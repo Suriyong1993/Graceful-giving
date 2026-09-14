@@ -127,9 +127,12 @@ export const StatusBadge: React.FC<{
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${style.bg} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold border ${style.bg} ${className}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      <span
+        className="w-1.5 h-1.5 shrink-0 rounded-full bg-current"
+        aria-hidden="true"
+      />
       <span>{label || style.defaultLabel}</span>
     </span>
   );
@@ -174,7 +177,7 @@ export const MoneyDisplay: React.FC<{
 
   return (
     <span
-      className={`tracking-tight font-sans font-bold ${getColor()} ${getSize()} ${className}`}
+      className={`tracking-tight tabular-nums font-sans font-bold ${getColor()} ${getSize()} ${className}`}
     >
       {prefix}฿{formatted}
     </span>
@@ -193,8 +196,8 @@ export const PageHeader: React.FC<{
     <div
       className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF] clay-card-shadow ${className}`}
     >
-      <div>
-        <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight">
+      <div className="min-w-0">
+        <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight break-words">
           {title}
         </h1>
         {subtitle && (
@@ -203,7 +206,11 @@ export const PageHeader: React.FC<{
           </p>
         )}
       </div>
-      {action && <div className="flex items-center gap-2">{action}</div>}
+      {action && (
+        <div className="flex max-w-full flex-wrap items-center gap-2 [&_button]:min-h-11">
+          {action}
+        </div>
+      )}
     </div>
   );
 };
@@ -228,29 +235,39 @@ export const FilterBar: React.FC<{
   className = "",
 }) => {
   return (
-    <div className={`space-y-3 ${className}`}>
+    <div className={`min-w-0 space-y-3 ${className}`}>
       {/* Search Input */}
       <div className="relative w-full">
-        <Search className="w-4 h-4 text-[#927D6D] absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <Search
+          className="pointer-events-none w-4 h-4 text-[#927D6D] absolute left-3.5 top-1/2 -translate-y-1/2"
+          aria-hidden="true"
+        />
         <input
-          type="text"
+          type="search"
+          aria-label={searchPlaceholder}
           value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={e => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs md:text-sm text-[#38251B] placeholder-[#927D6D]/70 focus:outline-none focus:border-[#E99A4A]"
+          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus-visible:ring-2 focus-visible:ring-[#E99A4A]/30"
         />
       </div>
 
       {/* Filter Tabs / Chips */}
       {filters && filters.length > 0 && onFilterChange && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {filters.map((f) => {
+        <div
+          role="group"
+          aria-label="กรองรายการ"
+          className="flex items-center gap-2 overflow-x-auto p-1 -m-1 no-scrollbar"
+        >
+          {filters.map(f => {
             const isActive = activeFilter === f.id;
             return (
               <button
                 key={f.id}
+                type="button"
+                aria-pressed={isActive}
                 onClick={() => onFilterChange(f.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
+                className={`min-h-11 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
                     ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"
                     : "bg-white text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"

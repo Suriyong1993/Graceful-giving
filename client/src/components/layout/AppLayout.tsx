@@ -1,24 +1,16 @@
 import React from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { AppMenu, isActiveRoute, navItems } from "./AppNavigation";
 import {
   Bell,
-  CheckCircle2,
-  ChevronRight,
   CircleUserRound,
-  CreditCard,
   FileBarChart,
-  HandCoins,
   Home as HomeIcon,
-  Landmark,
-  MoreHorizontal,
-  PieChart,
   Plus,
   ReceiptText,
-  Settings2,
   Sprout,
-  UsersRound,
 } from "lucide-react";
 
 interface AppLayoutProps {
@@ -48,28 +40,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const churchName =
     churchProfile?.name || user?.name || "คริสตจักรพระคุณสมบูรณ์";
 
-  const navItems = [
-    { label: "หน้าหลัก", path: "/", icon: HomeIcon, iconColor: "text-[#E99A4A]" },
-    { label: "รายการ", path: "/transactions", icon: ReceiptText, iconColor: "text-[#A8C978]" },
-    { label: "ถวายทรัพย์", path: "/offerings", icon: HandCoins, iconColor: "text-[#F7B6A6]" },
-    { label: "รายจ่าย", path: "/expenses", icon: CreditCard, iconColor: "text-[#E99A4A]" },
-    { label: "กองทุน", path: "/funds", icon: Landmark, iconColor: "text-[#85C1E9]" },
-    { label: "งบประมาณ", path: "/budgets", icon: PieChart, iconColor: "text-[#C39BD3]" },
-    { label: "พันธกิจ", path: "/ministries", icon: Sprout, iconColor: "text-[#A8C978]" },
-    { label: "สมาชิก", path: "/members", icon: UsersRound, iconColor: "text-[#E99A4A]" },
-    { label: "รายงาน", path: "/reports", icon: FileBarChart, iconColor: "text-[#A9D4ED]" },
-    { label: "การอนุมัติ", path: "/approvals", icon: CheckCircle2, iconColor: "text-[#A8C978]" },
-    { label: "ตั้งค่า", path: "/settings", icon: Settings2, iconColor: "text-[#70452E]" },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
       <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
         {/* DESKTOP FIXED SIDEBAR (Visible on lg: >= 1024px) */}
         <aside className="hidden lg:flex flex-col w-72 bg-[#FFF4DF]/85 border-r border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
           {/* 1. Grace-giving Branding */}
-          <div
-            onClick={() => setLocation("/")}
+          <Link
+            href="/"
             className="flex items-center gap-3 mb-6 cursor-pointer select-none"
           >
             <div className="w-12 h-12 rounded-2xl bg-[#E99A4A]/15 border border-[#E99A4A]/30 flex items-center justify-center relative overflow-hidden shrink-0 shadow-2xs">
@@ -91,7 +69,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 การเงินเชื่อมใจ เพื่อคริสตจักร
               </p>
             </div>
-          </div>
+          </Link>
 
           {/* Quick Offering Action Button */}
           <button
@@ -104,35 +82,36 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </button>
 
           {/* Navigation Links in exact order */}
-          <nav className="flex-1 space-y-1 text-sm font-medium">
-            {navItems.map((item) => {
+          <nav
+            aria-label="เมนูนำทางหลัก"
+            className="flex-1 space-y-1 text-sm font-medium"
+          >
+            {navItems.map(item => {
               const Icon = item.icon;
-              const isActive =
-                item.path === "/"
-                  ? currentPath === "/"
-                  : currentPath.startsWith(item.path);
+              const isActive = isActiveRoute(currentPath, item.path);
 
               return (
-                <button
+                <Link
                   key={item.path}
-                  onClick={() => setLocation(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all ${
+                  href={item.path}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`w-full flex min-h-11 items-center gap-3 border px-4 py-2.5 rounded-2xl transition-all ${
                     isActive
                       ? "bg-[#FFF9EE] text-[#70452E] font-bold border border-[#E9D9BF] shadow-xs"
-                      : "text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E]"
+                      : "border-transparent text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E]"
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${item.iconColor}`} />
                   <span>{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </nav>
 
           {/* User Profile Card at Sidebar Bottom */}
           <div className="pt-4 mt-auto border-t border-[#E9D9BF]/80">
-            <div
-              onClick={() => setLocation("/settings")}
+            <Link
+              href="/settings"
               className="flex items-center gap-3 p-3 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF] cursor-pointer hover:bg-white transition-all"
             >
               <div className="w-10 h-10 rounded-full bg-[#E99A4A]/20 flex items-center justify-center text-[#70452E] font-bold text-sm shrink-0">
@@ -151,29 +130,41 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       : "สมาชิกคริสตจักร"}
                 </p>
               </div>
-            </div>
+            </Link>
           </div>
         </aside>
 
         {/* MAIN CONTAINER */}
-        <main className="w-full max-w-[560px] lg:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-36 lg:pb-16 min-w-0">
+        <main className="w-full max-w-[560px] md:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
           {/* Top Bar for Desktop and Mobile */}
-          <header className="flex items-center justify-between gap-4 mb-6 pb-2 border-b border-[#E9D9BF]/60">
+          <header className="flex flex-wrap items-start justify-between gap-4 mb-6 pb-4 border-b border-[#E9D9BF]/60">
+            <div className="flex w-full items-center justify-between lg:hidden">
+              <AppMenu />
+              <Link
+                href="/notifications"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]"
+                aria-label="การแจ้งเตือน"
+              >
+                <Bell className="size-5" aria-hidden="true" />
+              </Link>
+            </div>
             {/* Left: Page Title or Mobile Branding */}
-            <div>
+            <div className="min-w-0 flex-1 basis-full sm:basis-0">
               {title ? (
                 <div>
-                  <h1 className="text-xl md:text-2xl font-extrabold text-[#38251B] tracking-tight">
+                  <h1 className="text-xl md:text-2xl font-extrabold text-[#38251B] tracking-tight break-words">
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="text-xs text-[#927D6D] mt-0.5">{subtitle}</p>
+                    <p className="text-sm leading-relaxed text-[#927D6D] mt-1">
+                      {subtitle}
+                    </p>
                   )}
                 </div>
               ) : (
-                <div
-                  onClick={() => setLocation("/")}
-                  className="flex items-center gap-2 cursor-pointer lg:hidden"
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-xl bg-[#E99A4A]/15 border border-[#E99A4A]/30 flex items-center justify-center">
                     <Sprout className="w-5 h-5 text-[#70452E]" />
@@ -186,21 +177,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       Ledger
                     </span>
                   </div>
-                </div>
+                </Link>
               )}
             </div>
 
             {/* Right: Actions and Notification */}
-            <div className="flex items-center gap-2.5">
-              {action && <div>{action}</div>}
+            <div className="flex max-w-full flex-wrap items-center gap-2.5">
+              {action && (
+                <div className="max-w-full [&>div]:flex-wrap [&_button]:min-h-11">
+                  {action}
+                </div>
+              )}
 
               <button
                 onClick={() => setLocation("/notifications")}
-                className="w-10 h-10 rounded-full bg-white border border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#70452E] hover:bg-[#FFF4DF] transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+                className="hidden lg:flex size-11 shrink-0 rounded-full bg-white border border-[#E9D9BF] shadow-xs items-center justify-center text-[#70452E] hover:bg-[#FFF4DF] transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                 aria-label="การแจ้งเตือน"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#E06250] ring-2 ring-white" />
               </button>
             </div>
           </header>
@@ -213,7 +207,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* MOBILE FIXED BOTTOM NAVIGATION BAR */}
       <nav
         aria-label="เมนูนำทางหลักบนมือถือ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-5 shadow-lg"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg"
       >
         <div className="max-w-md mx-auto flex items-center justify-between relative">
           {/* 1. หน้าแรก */}
@@ -225,6 +219,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 : "text-[#927D6D] hover:text-[#70452E]"
             }`}
             aria-label="ไปที่หน้าแรก"
+            aria-current={currentPath === "/" ? "page" : undefined}
           >
             <HomeIcon className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[11px] mt-0.5 font-bold">หน้าแรก</span>
@@ -239,6 +234,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 : "text-[#927D6D] hover:text-[#70452E]"
             }`}
             aria-label="ไปที่รายการการเงิน"
+            aria-current={
+              isActiveRoute(currentPath, "/transactions") ? "page" : undefined
+            }
           >
             <ReceiptText className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[11px] mt-0.5 font-bold">รายการ</span>
@@ -267,6 +265,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 : "text-[#927D6D] hover:text-[#70452E]"
             }`}
             aria-label="ไปที่หน้ารายงาน"
+            aria-current={
+              isActiveRoute(currentPath, "/reports") ? "page" : undefined
+            }
           >
             <FileBarChart className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[11px] mt-0.5 font-bold">รายงาน</span>
@@ -281,6 +282,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 : "text-[#927D6D] hover:text-[#70452E]"
             }`}
             aria-label="ไปที่หน้าฉัน (ตั้งค่า)"
+            aria-current={
+              isActiveRoute(currentPath, "/settings") ? "page" : undefined
+            }
           >
             <CircleUserRound className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[11px] mt-0.5 font-bold">ฉัน</span>

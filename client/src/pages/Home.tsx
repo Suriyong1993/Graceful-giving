@@ -54,6 +54,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Illustration } from "@/components/Illustration";
+import { AppMenu } from "@/components/layout/AppNavigation";
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -589,7 +590,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
       {/* ─── DESKTOP WRAPPER (Persistent Sidebar + Responsive Main Content) ─── */}
       <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
         {/* DESKTOP FIXED/PERSISTENT SIDEBAR (Visible on lg: screens >= 1024px) */}
@@ -660,10 +661,7 @@ export default function Home() {
 
             {/* 4. ถวายทรัพย์ */}
             <button
-              onClick={() => {
-                setOfferingStep(1);
-                setOfferingOpen(true);
-              }}
+              onClick={() => setLocation("/offerings")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <HandCoins className="w-5 h-5 text-[#F7B6A6]" />
@@ -672,7 +670,7 @@ export default function Home() {
 
             {/* 5. รายจ่าย */}
             <button
-              onClick={() => setExpenseOpen(true)}
+              onClick={() => setLocation("/expenses")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <CreditCard className="w-5 h-5 text-[#E99A4A]" />
@@ -681,7 +679,7 @@ export default function Home() {
 
             {/* 6. กองทุน */}
             <button
-              onClick={() => setActiveTab("reports")}
+              onClick={() => setLocation("/funds")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <Landmark className="w-5 h-5 text-[#85C1E9]" />
@@ -690,7 +688,7 @@ export default function Home() {
 
             {/* 7. งบประมาณ */}
             <button
-              onClick={() => setActiveTab("home")}
+              onClick={() => setLocation("/budgets")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <PieChart className="w-5 h-5 text-[#C39BD3]" />
@@ -699,7 +697,7 @@ export default function Home() {
 
             {/* 8. พันธกิจ */}
             <button
-              onClick={() => setNewsOpen(true)}
+              onClick={() => setLocation("/ministries")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <Sprout className="w-5 h-5 text-[#A8C978]" />
@@ -708,7 +706,7 @@ export default function Home() {
 
             {/* 9. สมาชิก */}
             <button
-              onClick={() => setActiveTab("profile")}
+              onClick={() => setLocation("/members")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <UsersRound className="w-5 h-5 text-[#E99A4A]" />
@@ -730,7 +728,7 @@ export default function Home() {
 
             {/* 11. การอนุมัติ */}
             <button
-              onClick={() => setWithdrawalOpen(true)}
+              onClick={() => setLocation("/approvals")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <CheckCircle2 className="w-5 h-5 text-[#A8C978]" />
@@ -739,7 +737,7 @@ export default function Home() {
 
             {/* 12. ตั้งค่า */}
             <button
-              onClick={() => setLocation("/setup")}
+              onClick={() => setLocation("/settings")}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E] transition-all"
             >
               <Settings2 className="w-5 h-5 text-[#70452E]" />
@@ -773,7 +771,10 @@ export default function Home() {
         </aside>
 
         {/* MAIN DASHBOARD CONTAINER (Max-w on Desktop, Full Width on Mobile) */}
-        <main className="w-full max-w-[560px] lg:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-36 lg:pb-16 min-w-0">
+        <main className="w-full max-w-[560px] md:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+          <div className="mb-4 flex lg:hidden">
+            <AppMenu />
+          </div>
           {/* ═══════════════════════════════════════════════════════════════════
               TAB 1: HOME (Dashboard matching reference composition)
           ═══════════════════════════════════════════════════════════════════ */}
@@ -801,29 +802,29 @@ export default function Home() {
                 {/* Hero Content Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center relative z-10">
                   {/* Left Column: Stacked Typography, Tagline, Bible Verse */}
-                  <div className="md:col-span-7 space-y-3.5">
+                  <div className="min-w-0 md:col-span-7 space-y-3.5">
                     {/* Stacked "Grace" + "Ledger" Typography matching reference */}
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-1.5">
+                    <h1 className="flex flex-col">
+                      <span className="flex items-center gap-1.5">
                         <span className="text-4xl sm:text-5xl md:text-6xl font-black text-[#38251B] tracking-tight leading-none font-display">
                           Grace
                         </span>
                         <span className="text-[#A8C978] -mt-3 sm:-mt-4">
                           <Sprout className="w-8 h-8 sm:w-10 sm:h-10 stroke-[2.5]" />
                         </span>
-                      </div>
+                      </span>
                       <span className="text-4xl sm:text-5xl md:text-6xl font-black text-[#E99A4A] tracking-tight leading-none font-display">
                         Ledger
                       </span>
-                    </div>
+                    </h1>
 
                     <p className="text-sm md:text-base font-bold text-[#38251B]/90">
                       การเงินเชื่อมใจ เพื่อพันธกิจของพระเจ้า
                     </p>
 
                     {/* Bible Pill Badge */}
-                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/95 border border-[#E9D9BF] shadow-2xs text-xs text-[#70452E]">
-                      <span className="font-extrabold text-[#E99A4A]">
+                    <div className="inline-flex flex-wrap items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/95 border border-[#E9D9BF] shadow-2xs text-xs leading-relaxed text-[#70452E]">
+                      <span className="whitespace-nowrap font-extrabold text-[#E99A4A]">
                         2 โครินธ์ 9:7
                       </span>
                       <span className="text-[#70452E] font-medium">
@@ -846,9 +847,9 @@ export default function Home() {
                   </div>
 
                   {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image (35-45% on desktop) */}
-                  <div className="md:col-span-5 flex flex-col sm:flex-row items-center justify-center md:justify-end gap-3 pt-2 md:pt-0">
+                  <div className="min-w-0 md:col-span-5 flex flex-col sm:flex-row md:flex-col items-center justify-center gap-3 pt-2 md:pt-10">
                     {/* Desktop Scripture Speech Card */}
-                    <div className="hidden md:block bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] shadow-xs text-xs max-w-[185px] space-y-1.5 shrink-0">
+                    <div className="hidden md:block w-full max-w-56 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] shadow-xs text-xs space-y-1.5">
                       <p className="text-[#70452E] font-medium leading-relaxed">
                         ทุกสิ่งที่ท่านให้เพื่อการงานของพระเจ้า ย่อมเกิดผลเสมอ
                       </p>
@@ -861,7 +862,7 @@ export default function Home() {
                     </div>
 
                     {/* 3D Clay Jesus & Fluffy Lamb Illustration */}
-                    <div className="relative w-full sm:w-48 md:w-56 h-52 sm:h-64 rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
+                    <div className="relative w-full sm:w-48 md:w-full md:max-w-56 h-52 sm:h-64 rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
                       <Illustration
                         src="/illustrations/hero_jesus_shepherd.jpg"
                         alt="พระเยซูคริสต์และลูกแกะ"
@@ -883,7 +884,7 @@ export default function Home() {
               >
                 <div className="flex items-center justify-between gap-4">
                   {/* Left: Prominent financial figures */}
-                  <div className="space-y-1.5 z-10">
+                  <div className="min-w-0 flex-1 space-y-1.5 z-10">
                     <div className="flex items-center gap-2">
                       <h2 className="text-sm md:text-base font-bold text-[#38251B]">
                         ยอดเงินคงเหลือรวม
@@ -892,6 +893,7 @@ export default function Home() {
                         onClick={() => setShowBalance(!showBalance)}
                         className="text-[#927D6D] hover:text-[#70452E] transition-colors p-1 rounded-full focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                         aria-label={showBalance ? "ซ่อนยอดเงิน" : "แสดงยอดเงิน"}
+                        aria-pressed={!showBalance}
                       >
                         {showBalance ? (
                           <Eye className="w-4 h-4" />
@@ -901,7 +903,7 @@ export default function Home() {
                       </button>
                     </div>
 
-                    <div className="text-3xl sm:text-4xl md:text-5xl font-black text-[#1b5e3a] tracking-tight">
+                    <div className="break-words text-3xl sm:text-4xl md:text-5xl font-black text-[#1b5e3a] tracking-tight tabular-nums">
                       {showBalance ? fmtBaht(totalBalance) : "฿ ••••••••"}
                     </div>
 
@@ -923,7 +925,7 @@ export default function Home() {
                   </div>
 
                   {/* Right: Decorative balance_wallet.jpg tucked cleanly in corner */}
-                  <div className="shrink-0 z-10">
+                  <div className="hidden sm:block shrink-0 z-10">
                     <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-[24px] overflow-hidden border border-[#E9D9BF]/80 shadow-2xs bg-[#FFF8EB] p-1">
                       <Illustration
                         src="/illustrations/balance_wallet.jpg"
@@ -944,7 +946,7 @@ export default function Home() {
                 className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
               >
                 {/* Card 1: รายรับ (Income) */}
-                <div className="bg-[#FFF0ED] border border-[#FCE7DF] rounded-[28px] p-4 md:p-5 flex items-center gap-3.5 shadow-2xs">
+                <div className="min-w-0 bg-[#FFF0ED] border border-[#FCE7DF] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
                   <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#FCE7DF] shadow-2xs">
                     <Illustration
                       src="/illustrations/income_hand_heart.jpg"
@@ -955,14 +957,14 @@ export default function Home() {
                       aria-hidden="true"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 max-w-full flex-1">
                     <span className="text-sm font-bold text-[#70452E]">
                       รายรับ
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] truncate">
+                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
                       {showBalance ? fmtShortBaht(monthlyIncome) : "฿••••"}
                     </div>
-                    <span className="text-xs font-bold text-[#4F8B33] flex items-center gap-0.5">
+                    <span className="text-xs font-bold text-[#4F8B33] flex flex-wrap items-center gap-x-1 gap-y-0.5">
                       <span>{incomeTrend}</span>
                       <span className="text-[11px] text-[#927D6D] font-normal">
                         จากเดือนที่แล้ว
@@ -972,7 +974,7 @@ export default function Home() {
                 </div>
 
                 {/* Card 2: รายจ่าย (Expenses) */}
-                <div className="bg-[#EFF8E8] border border-[#DCECC5] rounded-[28px] p-4 md:p-5 flex items-center gap-3.5 shadow-2xs">
+                <div className="min-w-0 bg-[#EFF8E8] border border-[#DCECC5] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
                   <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#DCECC5] shadow-2xs">
                     <Illustration
                       src="/illustrations/expense_hand_coin.jpg"
@@ -983,14 +985,14 @@ export default function Home() {
                       aria-hidden="true"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 max-w-full flex-1">
                     <span className="text-sm font-bold text-[#70452E]">
                       รายจ่าย
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] truncate">
+                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
                       {showBalance ? fmtShortBaht(monthlyExpense) : "฿••••"}
                     </div>
-                    <span className="text-xs font-bold text-[#C26B1E] flex items-center gap-0.5">
+                    <span className="text-xs font-bold text-[#C26B1E] flex flex-wrap items-center gap-x-1 gap-y-0.5">
                       <span>{expenseTrend}</span>
                       <span className="text-[11px] text-[#927D6D] font-normal">
                         จากเดือนที่แล้ว
@@ -1000,7 +1002,7 @@ export default function Home() {
                 </div>
 
                 {/* Card 3: คงเหลือ (Balance / Net) */}
-                <div className="bg-[#FFF8EB] border border-[#FBE9CD] rounded-[28px] p-4 md:p-5 flex items-center gap-3.5 shadow-2xs">
+                <div className="min-w-0 bg-[#FFF8EB] border border-[#FBE9CD] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
                   <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#FBE9CD] shadow-2xs">
                     <Illustration
                       src="/illustrations/balance_wallet.jpg"
@@ -1011,14 +1013,14 @@ export default function Home() {
                       aria-hidden="true"
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 max-w-full flex-1">
                     <span className="text-sm font-bold text-[#70452E]">
                       คงเหลือ
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] truncate">
+                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
                       {showBalance ? fmtShortBaht(netMonthly) : "฿••••"}
                     </div>
-                    <span className="text-xs font-bold text-[#4F8B33] flex items-center gap-0.5">
+                    <span className="text-xs font-bold text-[#4F8B33] flex flex-wrap items-center gap-x-1 gap-y-0.5">
                       <span>{balanceTrend}</span>
                       <span className="text-[11px] text-[#927D6D] font-normal">
                         จากเดือนที่แล้ว
@@ -1080,7 +1082,7 @@ export default function Home() {
 
                 {/* 4. สมาชิก */}
                 <button
-                  onClick={() => setActiveTab("profile")}
+                  onClick={() => setLocation("/members")}
                   className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#FFF3DF] border border-[#F6E1BF] hover:border-[#E99A4A] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                   aria-label="สมาชิก"
                 >
@@ -1107,18 +1109,20 @@ export default function Home() {
                 </button>
 
                 {/* 6. เพิ่มเติม */}
-                <button
-                  onClick={() => setLocation("/setup")}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#EAF0F6] border border-[#D5E1EC] hover:border-[#A9D4ED] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#A9D4ED]"
-                  aria-label="เพิ่มเติม"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#5B7B94]">
-                    <MoreHorizontal className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
-                    เพิ่มเติม
-                  </span>
-                </button>
+                <AppMenu>
+                  <button
+                    type="button"
+                    className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#EAF0F6] border border-[#D5E1EC] hover:border-[#A9D4ED] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#A9D4ED]"
+                    aria-label="เพิ่มเติม"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#5B7B94]">
+                      <MoreHorizontal className="w-6 h-6 stroke-[2.2]" />
+                    </div>
+                    <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
+                      เพิ่มเติม
+                    </span>
+                  </button>
+                </AppMenu>
               </section>
 
               {/* ─── 5. CHURCH NEWS CARD ("ข่าวสารจากคริสตจักร") ─────────── */}
@@ -1628,7 +1632,7 @@ export default function Home() {
       {/* Visible on Mobile/Tablet (< 1024px). Contains: หน้าแรก, รายการ, เพิ่ม (+), รายงาน, ฉัน */}
       <nav
         aria-label="เมนูนำทางหลักบนมือถือ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-5 shadow-lg"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg"
       >
         <div className="max-w-md mx-auto flex items-center justify-between relative">
           {/* 1. หน้าแรก */}
