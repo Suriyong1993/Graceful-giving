@@ -26,7 +26,14 @@ export default function NewExpense() {
 
   const [amount, setAmount] = useState<string>("");
   const [category, setCategory] = useState<
-    "utilities" | "ministry" | "pastoral" | "admin" | "building" | "worship" | "welfare" | "other"
+    | "utilities"
+    | "ministry"
+    | "pastoral"
+    | "admin"
+    | "building"
+    | "worship"
+    | "welfare"
+    | "other"
   >("utilities");
   const [description, setDescription] = useState("");
   const [payee, setPayee] = useState("");
@@ -42,13 +49,13 @@ export default function NewExpense() {
   const [createdExpenseId, setCreatedExpenseId] = useState<number | null>(null);
 
   const createExpenseMutation = trpc.expenses.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setIsSubmitting(false);
       setCreatedExpenseId(data.id);
       setShowSuccessModal(true);
       toast.success("บันทึกรายการรายจ่ายเรียบร้อยแล้ว");
     },
-    onError: (err) => {
+    onError: err => {
       setIsSubmitting(false);
       // Even if offline/demo, show success modal for frontend testing
       setCreatedExpenseId(Date.now());
@@ -89,22 +96,74 @@ export default function NewExpense() {
   };
 
   const categories = [
-    { id: "utilities", label: "สาธารณูปโภค", icon: Zap, desc: "ค่าน้ำ ค่าไฟ อินเทอร์เน็ต" },
-    { id: "ministry", label: "พันธกิจในคริสตจักร", icon: Users, desc: "รวี กิจกรรม ค่าย กลุ่มแคร์" },
-    { id: "welfare", label: "สงเคราะห์และชุมชน", icon: HeartHandshake, desc: "เยี่ยมเยียน ผู้ยากไร้ ชุมชน" },
-    { id: "worship", label: "นมัสการและดนตรี", icon: GraduationCap, desc: "อุปกรณ์เสียง ลิขสิทธิ์เพลง" },
-    { id: "building", label: "อาคารและบูรณะ", icon: Building, desc: "ซ่อมบำรุง บูรณะ ปรับปรุง" },
-    { id: "pastoral", label: "ศิษยาภิบาล/ผู้ประกาศ", icon: Cross, desc: "ค่าตอบแทนและพันธกิจอภิบาล" },
-    { id: "admin", label: "บริหารและธุรการ", icon: Receipt, desc: "อุปกรณ์สำนักงาน เอกสาร ภาษี" },
-    { id: "other", label: "ค่าใช้จ่ายอื่นๆ", icon: FileText, desc: "เบ็ดเตล็ดและอื่นๆ" },
+    {
+      id: "utilities",
+      label: "สาธารณูปโภค",
+      icon: Zap,
+      desc: "ค่าน้ำ ค่าไฟ อินเทอร์เน็ต",
+    },
+    {
+      id: "ministry",
+      label: "พันธกิจในคริสตจักร",
+      icon: Users,
+      desc: "รวี กิจกรรม ค่าย กลุ่มแคร์",
+    },
+    {
+      id: "welfare",
+      label: "สงเคราะห์และชุมชน",
+      icon: HeartHandshake,
+      desc: "เยี่ยมเยียน ผู้ยากไร้ ชุมชน",
+    },
+    {
+      id: "worship",
+      label: "นมัสการและดนตรี",
+      icon: GraduationCap,
+      desc: "อุปกรณ์เสียง ลิขสิทธิ์เพลง",
+    },
+    {
+      id: "building",
+      label: "อาคารและบูรณะ",
+      icon: Building,
+      desc: "ซ่อมบำรุง บูรณะ ปรับปรุง",
+    },
+    {
+      id: "pastoral",
+      label: "ศิษยาภิบาล/ผู้ประกาศ",
+      icon: Cross,
+      desc: "ค่าตอบแทนและพันธกิจอภิบาล",
+    },
+    {
+      id: "admin",
+      label: "บริหารและธุรการ",
+      icon: Receipt,
+      desc: "อุปกรณ์สำนักงาน เอกสาร ภาษี",
+    },
+    {
+      id: "other",
+      label: "ค่าใช้จ่ายอื่นๆ",
+      icon: FileText,
+      desc: "เบ็ดเตล็ดและอื่นๆ",
+    },
   ];
 
   const funds = [
     { id: 1, name: "บัญชีทั่วไป (General Fund)", balance: "฿ 285,400" },
-    { id: 2, name: "กองทุนพันธกิจและประกาศ (Mission Fund)", balance: "฿ 120,500" },
+    {
+      id: 2,
+      name: "กองทุนพันธกิจและประกาศ (Mission Fund)",
+      balance: "฿ 120,500",
+    },
     { id: 3, name: "กองทุนสงเคราะห์ (Benevolence Fund)", balance: "฿ 45,000" },
-    { id: 4, name: "กองทุนก่อสร้างและพัฒนา (Building Fund)", balance: "฿ 850,000" },
-    { id: 5, name: "กองทุนเพื่อเด็กและเยาวชน (Youth Fund)", balance: "฿ 68,200" },
+    {
+      id: 4,
+      name: "กองทุนก่อสร้างและพัฒนา (Building Fund)",
+      balance: "฿ 850,000",
+    },
+    {
+      id: 5,
+      name: "กองทุนเพื่อเด็กและเยาวชน (Youth Fund)",
+      balance: "฿ 68,200",
+    },
   ];
 
   const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,15 +242,17 @@ export default function NewExpense() {
                   required
                   placeholder="0.00"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={e => setAmount(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/30 text-3xl font-bold text-[#38251B] placeholder:text-[#70452E]/30"
                 />
               </div>
 
               {/* Amount Quick Presets */}
               <div className="flex flex-wrap gap-2 pt-1">
-                <span className="text-xs text-[#70452E]/70 py-1">จำนวนเงินแนะนำ:</span>
-                {amountPresets.map((val) => (
+                <span className="text-xs text-[#70452E]/70 py-1">
+                  จำนวนเงินแนะนำ:
+                </span>
+                {amountPresets.map(val => (
                   <button
                     key={val}
                     type="button"
@@ -210,7 +271,7 @@ export default function NewExpense() {
                 หมวดหมู่รายจ่าย <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {categories.map((cat) => {
+                {categories.map(cat => {
                   const Icon = cat.icon;
                   const isSelected = category === cat.id;
                   return (
@@ -239,7 +300,9 @@ export default function NewExpense() {
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-[#38251B]">{cat.label}</p>
+                        <p className="text-xs font-bold text-[#38251B]">
+                          {cat.label}
+                        </p>
                         <p className="text-[10px] text-[#70452E]/70 line-clamp-1">
                           {cat.desc}
                         </p>
@@ -261,14 +324,15 @@ export default function NewExpense() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
                 <label className="text-sm font-semibold text-[#38251B]">
-                  ชื่อรายการ / คำอธิบายรายจ่าย <span className="text-red-500">*</span>
+                  ชื่อรายการ / คำอธิบายรายจ่าย{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   placeholder="เช่น ค่าไฟฟ้าประจำเดือน, อุปกรณ์รวีวารศึกษา..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
                 />
               </div>
@@ -281,7 +345,7 @@ export default function NewExpense() {
                   type="text"
                   placeholder="เช่น การไฟฟ้านครหลวง, บจก. ซาวด์..."
                   value={payee}
-                  onChange={(e) => setPayee(e.target.value)}
+                  onChange={e => setPayee(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm text-[#38251B]"
                 />
               </div>
@@ -292,10 +356,10 @@ export default function NewExpense() {
                 </label>
                 <select
                   value={fundId}
-                  onChange={(e) => setFundId(Number(e.target.value))}
+                  onChange={e => setFundId(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
                 >
-                  {funds.map((f) => (
+                  {funds.map(f => (
                     <option key={f.id} value={f.id}>
                       {f.name} (คงเหลือ {f.balance})
                     </option>
@@ -310,7 +374,7 @@ export default function NewExpense() {
                 <input
                   type="date"
                   value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
+                  onChange={e => setExpenseDate(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm text-[#38251B]"
                 />
               </div>
@@ -323,7 +387,7 @@ export default function NewExpense() {
                   type="text"
                   placeholder="เช่น INV-2026-0911, RCP-4412"
                   value={receiptRef}
-                  onChange={(e) => setReceiptRef(e.target.value)}
+                  onChange={e => setReceiptRef(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-mono text-[#38251B]"
                 />
               </div>
@@ -336,7 +400,7 @@ export default function NewExpense() {
                   rows={2}
                   placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับการตรวจสอบบัญชี..."
                   value={details}
-                  onChange={(e) => setDetails(e.target.value)}
+                  onChange={e => setDetails(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm text-[#38251B]"
                 />
               </div>
@@ -421,7 +485,7 @@ export default function NewExpense() {
         {/* Success Modal */}
         {showSuccessModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 md:p-8 text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="w-16 h-16 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E] mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-[#70452E]" />
               </div>
@@ -438,21 +502,31 @@ export default function NewExpense() {
               <div className="p-4 rounded-2xl bg-[#FFF4DF]/60 border border-[#E9D9BF] text-left space-y-2 text-xs text-[#70452E]">
                 <div className="flex justify-between">
                   <span className="text-[#70452E]/70">รายการ:</span>
-                  <span className="font-semibold text-[#38251B]">{description}</span>
+                  <span className="font-semibold text-[#38251B]">
+                    {description}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#70452E]/70">จำนวนเงิน:</span>
                   <span className="font-bold text-red-600 text-sm">
-                    -฿{parseFloat(amount.replace(/,/g, "") || "0").toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                    -฿
+                    {parseFloat(amount.replace(/,/g, "") || "0").toLocaleString(
+                      "th-TH",
+                      { minimumFractionDigits: 2 }
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#70452E]/70">ผู้รับเงิน:</span>
-                  <span className="font-medium text-[#38251B]">{payee || "ทั่วไป"}</span>
+                  <span className="font-medium text-[#38251B]">
+                    {payee || "ทั่วไป"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#70452E]/70">วันที่:</span>
-                  <span className="text-[#38251B]">{new Date(expenseDate).toLocaleDateString("th-TH")}</span>
+                  <span className="text-[#38251B]">
+                    {new Date(expenseDate).toLocaleDateString("th-TH")}
+                  </span>
                 </div>
               </div>
 

@@ -147,7 +147,7 @@ export default function Budgets() {
           <div className="flex flex-col sm:flex-row items-center gap-3">
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
+              onChange={e => setSelectedYear(e.target.value)}
               className="px-4 py-2.5 rounded-2xl border border-[#E9D9BF] bg-white font-semibold text-[#38251B] text-sm shadow-sm focus:outline-none"
             >
               <option value="2026">ปีงบประมาณ 2026 (2569)</option>
@@ -218,7 +218,7 @@ export default function Budgets() {
 
         {/* Ministry Budget Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {budgetItems.map((item) => {
+          {budgetItems.map(item => {
             const Icon = item.icon;
             const percent = Math.round((item.spent / item.allocated) * 100);
             const remaining = item.allocated - item.spent;
@@ -290,7 +290,9 @@ export default function Budgets() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs text-[#70452E]/80">
                       <span>คงเหลือ ฿{remaining.toLocaleString()}</span>
-                      <span className="font-bold text-[#38251B]">{percent}%</span>
+                      <span className="font-bold text-[#38251B]">
+                        {percent}%
+                      </span>
                     </div>
                     <div className="w-full h-2.5 bg-[#FFF4DF] rounded-full overflow-hidden">
                       <div
@@ -324,14 +326,16 @@ export default function Budgets() {
         {/* New Budget Allocation Modal */}
         {showNewBudgetModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   จัดสรรงบประมาณฝ่ายงาน
                 </h3>
                 <button
                   onClick={() => setShowNewBudgetModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -339,7 +343,9 @@ export default function Budgets() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-[#38251B]">เลือกฝ่ายพันธกิจ</label>
+                  <label className="font-semibold text-[#38251B]">
+                    เลือกฝ่ายพันธกิจ
+                  </label>
                   <select className="w-full px-3 py-2.5 rounded-xl border border-[#E9D9BF] bg-white font-medium text-[#38251B] mt-1">
                     <option>ฝ่ายนมัสการและดนตรี</option>
                     <option>ฝ่ายรวีวารศึกษาและเด็ก</option>
@@ -351,7 +357,9 @@ export default function Budgets() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">ปีงบประมาณ</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ปีงบประมาณ
+                  </label>
                   <input
                     type="text"
                     defaultValue="2026"
@@ -359,7 +367,9 @@ export default function Budgets() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">วงเงินงบประมาณที่จัดสรร (บาท)</label>
+                  <label className="font-semibold text-[#38251B]">
+                    วงเงินงบประมาณที่จัดสรร (บาท)
+                  </label>
                   <input
                     type="number"
                     placeholder="0.00"
@@ -367,7 +377,9 @@ export default function Budgets() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">หมายเหตุการอนุมัติมติที่ประชุม</label>
+                  <label className="font-semibold text-[#38251B]">
+                    หมายเหตุการอนุมัติมติที่ประชุม
+                  </label>
                   <textarea
                     rows={2}
                     placeholder="ระบุครั้งที่ประชุมมัคนายกที่อนุมัติ..."

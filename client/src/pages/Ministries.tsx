@@ -34,7 +34,8 @@ export default function Ministries() {
       leader: "คุณธนพัฒน์ (ผู้นำทีมนมัสการ)",
       membersCount: 14,
       schedule: "ซ้อมทุกวันพฤหัสบดี 19:00 น. และรับใช้ทุกวันอาทิตย์",
-      description: "นำการนมัสการที่เปี่ยมด้วยพระวิญญาณและความจริง ดูแลนักร้อง นักดนตรี และทีมสรรเสริญ",
+      description:
+        "นำการนมัสการที่เปี่ยมด้วยพระวิญญาณและความจริง ดูแลนักร้อง นักดนตรี และทีมสรรเสริญ",
       budget: 120000,
       spent: 78500,
       activeProjects: 2,
@@ -47,7 +48,8 @@ export default function Ministries() {
       leader: "คุณศิริพร (ครูใหญ่รวี)",
       membersCount: 8,
       schedule: "ทุกวันอาทิตย์ 10:00 - 12:00 น. (ชั้น 2 อาคารเรียน)",
-      description: "ปลูกฝังพระวจนะของพระเจ้าในจิตใจของเด็กตั้งแต่วัยอนุบาลจนถึงประถม",
+      description:
+        "ปลูกฝังพระวจนะของพระเจ้าในจิตใจของเด็กตั้งแต่วัยอนุบาลจนถึงประถม",
       budget: 90000,
       spent: 54200,
       activeProjects: 3,
@@ -60,7 +62,8 @@ export default function Ministries() {
       leader: "อ.ทวีเกียรติ (ผู้ช่วยศิษยาภิบาล)",
       membersCount: 22,
       schedule: "ทุกวันเสาร์ 17:00 - 19:30 น. (ห้อง Youth Lounge)",
-      description: "เสริมสร้างพลังชีวิตเยาวชน มัธยมและมหาวิทยาลัย ให้เติบโตอย่างมั่นคงในพระคริสต์",
+      description:
+        "เสริมสร้างพลังชีวิตเยาวชน มัธยมและมหาวิทยาลัย ให้เติบโตอย่างมั่นคงในพระคริสต์",
       budget: 150000,
       spent: 128000,
       activeProjects: 4,
@@ -73,7 +76,8 @@ export default function Ministries() {
       leader: "อ.ประสิทธิ์ (ศิษยาภิบาล)",
       membersCount: 10,
       schedule: "ลงพื้นที่ชุมชนทุกวันเสาร์ที่สองของเดือน",
-      description: "นำข่าวประเสริฐแห่งความรอดสู่ชุมชนรอบคริสตจักร และสนับสนุนงานมิชชันต่างจังหวัด",
+      description:
+        "นำข่าวประเสริฐแห่งความรอดสู่ชุมชนรอบคริสตจักร และสนับสนุนงานมิชชันต่างจังหวัด",
       budget: 350000,
       spent: 245000,
       activeProjects: 2,
@@ -86,7 +90,8 @@ export default function Ministries() {
       leader: "คุณวรรณา (มัคนายกฝ่ายสงเคราะห์)",
       membersCount: 6,
       schedule: "เยี่ยมเยียนผู้ป่วยทุกวันอังคารและพฤหัสบดี",
-      description: "เคียงข้างผู้ทุกข์ใจ อธิษฐานเผื่อผู้ป่วย และจัดสรรถุงยังชีพสงเคราะห์ผู้ยากไร้",
+      description:
+        "เคียงข้างผู้ทุกข์ใจ อธิษฐานเผื่อผู้ป่วย และจัดสรรถุงยังชีพสงเคราะห์ผู้ยากไร้",
       budget: 100000,
       spent: 62000,
       activeProjects: 1,
@@ -99,7 +104,8 @@ export default function Ministries() {
       leader: "คุณวิทวัส (หัวหน้าทีมมีเดีย)",
       membersCount: 9,
       schedule: "ถ่ายทอดสดทุกรอบนมัสการ และควบคุมระบบภาพเสียง",
-      description: "ผลิตสื่อออนไลน์ สตรีมมิ่งสด และดูแลระบบเสียงระบบไฟในห้องนมัสการ",
+      description:
+        "ผลิตสื่อออนไลน์ สตรีมมิ่งสด และดูแลระบบเสียงระบบไฟในห้องนมัสการ",
       budget: 160000,
       spent: 105000,
       activeProjects: 3,
@@ -112,7 +118,8 @@ export default function Ministries() {
       leader: "คุณสมชาย (ผู้นำกลุ่มแคร์)",
       membersCount: 35,
       schedule: "กระจายตามบ้าน 6 กลุ่ม ทุกคืนวันพุธและศุกร์",
-      description: "ผูกพันชีวิต เรียนพระคัมภีร์ร่วมกัน อธิษฐานเผื่อกัน และดูแลสมาชิกอย่างใกล้ชิด",
+      description:
+        "ผูกพันชีวิต เรียนพระคัมภีร์ร่วมกัน อธิษฐานเผื่อกัน และดูแลสมาชิกอย่างใกล้ชิด",
       budget: 60000,
       spent: 34000,
       activeProjects: 6,
@@ -125,7 +132,8 @@ export default function Ministries() {
       leader: "คุณมาลินี (หัวหน้าฝ่ายปฏิคม)",
       membersCount: 12,
       schedule: "ต้อนรับที่ประตูทางเข้าทุกวันอาทิตย์ 09:00 - 10:30 น.",
-      description: "สร้างความประทับใจแรกแก่ผู้มาร่วมใหม่ จัดเตรียมอาหารว่างและบรรยากาศอบอุ่น",
+      description:
+        "สร้างความประทับใจแรกแก่ผู้มาร่วมใหม่ จัดเตรียมอาหารว่างและบรรยากาศอบอุ่น",
       budget: 50000,
       spent: 29000,
       activeProjects: 1,
@@ -164,7 +172,7 @@ export default function Ministries() {
 
         {/* Ministries Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {ministriesList.map((m) => {
+          {ministriesList.map(m => {
             const Icon = m.icon;
             const percent = Math.round((m.spent / m.budget) * 100);
 
@@ -201,10 +209,16 @@ export default function Ministries() {
 
                   <div className="p-3 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/50 text-xs text-[#70452E] space-y-1">
                     <p>
-                      <span className="font-semibold text-[#38251B]">หัวหน้าฝ่าย:</span> {m.leader}
+                      <span className="font-semibold text-[#38251B]">
+                        หัวหน้าฝ่าย:
+                      </span>{" "}
+                      {m.leader}
                     </p>
                     <p className="text-[11px] text-[#70452E]/70 line-clamp-1">
-                      <span className="font-semibold text-[#38251B]">รอบรับใช้:</span> {m.schedule}
+                      <span className="font-semibold text-[#38251B]">
+                        รอบรับใช้:
+                      </span>{" "}
+                      {m.schedule}
                     </p>
                   </div>
 
@@ -213,7 +227,8 @@ export default function Ministries() {
                     <div className="flex justify-between text-xs text-[#70452E]/70">
                       <span>เบิกจ่ายงบ</span>
                       <span className="font-semibold text-[#38251B]">
-                        ฿{m.spent.toLocaleString()} / ฿{m.budget.toLocaleString()}
+                        ฿{m.spent.toLocaleString()} / ฿
+                        {m.budget.toLocaleString()}
                       </span>
                     </div>
                     <div className="w-full h-2 bg-[#FFF4DF] rounded-full overflow-hidden">
@@ -238,14 +253,16 @@ export default function Ministries() {
         {/* New Ministry Modal */}
         {showNewModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   เพิ่มฝ่ายงานใหม่
                 </h3>
                 <button
                   onClick={() => setShowNewModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -253,23 +270,27 @@ export default function Ministries() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-[#38251B]">ชื่อฝ่ายงาน</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ชื่อฝ่ายงาน
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="เช่น ฝ่ายอนุชนและมัธยม"
                     value={newDeptName}
-                    onChange={(e) => setNewDeptName(e.target.value)}
+                    onChange={e => setNewDeptName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] mt-1"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">หัวหน้าฝ่ายงาน</label>
+                  <label className="font-semibold text-[#38251B]">
+                    หัวหน้าฝ่ายงาน
+                  </label>
                   <input
                     type="text"
                     placeholder="ชื่อ-นามสกุล ผู้รับผิดชอบ"
                     value={newLeader}
-                    onChange={(e) => setNewLeader(e.target.value)}
+                    onChange={e => setNewLeader(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] mt-1"
                   />
                 </div>

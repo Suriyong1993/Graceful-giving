@@ -31,10 +31,11 @@ export default function Funds() {
   >("mission");
   const [newFundDesc, setNewFundDesc] = useState("");
 
-  const { data: accountsData, isLoading, refetch } = trpc.finance.accounts.useQuery(
-    undefined,
-    { retry: false }
-  );
+  const {
+    data: accountsData,
+    isLoading,
+    refetch,
+  } = trpc.finance.accounts.useQuery(undefined, { retry: false });
 
   const createAccountMutation = trpc.finance.createAccount.useMutation({
     onSuccess: () => {
@@ -64,7 +65,8 @@ export default function Funds() {
         target: 300000,
         inflowMonth: 48200,
         outflowMonth: 32500,
-        description: "ค่าใช้จ่ายดำเนินงานประจำวัน ค่าน้ำ ค่าไฟ และค่าบำรุงรักษาทั่วไป",
+        description:
+          "ค่าใช้จ่ายดำเนินงานประจำวัน ค่าน้ำ ค่าไฟ และค่าบำรุงรักษาทั่วไป",
       },
       {
         id: 2,
@@ -77,7 +79,8 @@ export default function Funds() {
         target: 150000,
         inflowMonth: 18500,
         outflowMonth: 14000,
-        description: "สนับสนุนผู้ประกาศ งานมิชชันทั้งในและต่างประเทศ และคริสตจักรลูก",
+        description:
+          "สนับสนุนผู้ประกาศ งานมิชชันทั้งในและต่างประเทศ และคริสตจักรลูก",
       },
       {
         id: 3,
@@ -103,7 +106,8 @@ export default function Funds() {
         target: 50000,
         inflowMonth: 8200,
         outflowMonth: 6000,
-        description: "ให้การช่วยเหลือสมาชิกที่ประสบวิกฤต เจ็บป่วย และการสงเคราะห์ผู้ยากไร้ในชุมชน",
+        description:
+          "ให้การช่วยเหลือสมาชิกที่ประสบวิกฤต เจ็บป่วย และการสงเคราะห์ผู้ยากไร้ในชุมชน",
       },
       {
         id: 5,
@@ -116,7 +120,8 @@ export default function Funds() {
         target: 80000,
         inflowMonth: 12000,
         outflowMonth: 7850,
-        description: "ค่ายเยาวชนประจำปี กิจกรรมรวีวารศึกษา และการพัฒนาผู้นำรุ่นใหม่",
+        description:
+          "ค่ายเยาวชนประจำปี กิจกรรมรวีวารศึกษา และการพัฒนาผู้นำรุ่นใหม่",
       },
       {
         id: 6,
@@ -142,7 +147,8 @@ export default function Funds() {
         target: 50000,
         inflowMonth: 4500,
         outflowMonth: 2850,
-        description: "หลักสูตรสร้างสาวก หนังสือคู่มือเฝ้าเดี่ยว และการอบรมผู้นำกลุ่มแคร์",
+        description:
+          "หลักสูตรสร้างสาวก หนังสือคู่มือเฝ้าเดี่ยว และการอบรมผู้นำกลุ่มแคร์",
       },
     ];
   }, []);
@@ -198,7 +204,10 @@ export default function Funds() {
               ยอดเงินรวมทุกกองทุน (Total Fund Reserves)
             </p>
             <div className="text-3xl md:text-4xl font-extrabold text-[#38251B]">
-              ฿{totalFundsBalance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+              ฿
+              {totalFundsBalance.toLocaleString("th-TH", {
+                minimumFractionDigits: 2,
+              })}
             </div>
             <p className="text-xs text-[#70452E]/60">
               ครอบคลุมทั้งหมด 7 กองทุนหลักของคริสตจักร
@@ -217,9 +226,12 @@ export default function Funds() {
 
         {/* Funds Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {fundsList.map((f) => {
+          {fundsList.map(f => {
             const Icon = f.icon;
-            const percentage = Math.min(100, Math.round((f.balance / f.target) * 100));
+            const percentage = Math.min(
+              100,
+              Math.round((f.balance / f.target) * 100)
+            );
 
             return (
               <div
@@ -252,7 +264,10 @@ export default function Funds() {
                   <div className="pt-2">
                     <p className="text-xs text-[#70452E]/60">ยอดคงเหลือสุทธิ</p>
                     <div className="text-2xl font-bold text-[#38251B]">
-                      ฿{f.balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                      ฿
+                      {f.balance.toLocaleString("th-TH", {
+                        minimumFractionDigits: 2,
+                      })}
                     </div>
                   </div>
 
@@ -260,7 +275,9 @@ export default function Funds() {
                   <div className="space-y-1.5 pt-1">
                     <div className="flex justify-between text-xs text-[#70452E]/70">
                       <span>สำรองเป้าหมาย (฿{f.target.toLocaleString()})</span>
-                      <span className="font-semibold text-[#38251B]">{percentage}%</span>
+                      <span className="font-semibold text-[#38251B]">
+                        {percentage}%
+                      </span>
                     </div>
                     <div className="w-full h-2.5 bg-[#FFF4DF] rounded-full overflow-hidden">
                       <div
@@ -296,14 +313,16 @@ export default function Funds() {
         {/* Create Fund Modal */}
         {showNewFundModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 md:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   สร้างกองทุนใหม่
                 </h3>
                 <button
                   onClick={() => setShowNewFundModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -319,7 +338,7 @@ export default function Funds() {
                     required
                     placeholder="เช่น กองทุนทุนการศึกษาบุตรศิษยาภิบาล"
                     value={newFundName}
-                    onChange={(e) => setNewFundName(e.target.value)}
+                    onChange={e => setNewFundName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
                   />
                 </div>
@@ -330,13 +349,17 @@ export default function Funds() {
                   </label>
                   <select
                     value={newFundType}
-                    onChange={(e) => setNewFundType(e.target.value as any)}
+                    onChange={e => setNewFundType(e.target.value as any)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
                   >
                     <option value="mission">พันธกิจและประกาศ (Mission)</option>
                     <option value="building">อาคารและบูรณะ (Building)</option>
-                    <option value="welfare">สงเคราะห์และสวัสดิการ (Welfare)</option>
-                    <option value="special">กองทุนโครงการพิเศษ (Special)</option>
+                    <option value="welfare">
+                      สงเคราะห์และสวัสดิการ (Welfare)
+                    </option>
+                    <option value="special">
+                      กองทุนโครงการพิเศษ (Special)
+                    </option>
                     <option value="general">ดำเนินงานทั่วไป (General)</option>
                   </select>
                 </div>
@@ -349,7 +372,7 @@ export default function Funds() {
                     rows={3}
                     placeholder="ระบุวัตถุประสงค์ของการรับและจ่ายเงินกองทุนนี้..."
                     value={newFundDesc}
-                    onChange={(e) => setNewFundDesc(e.target.value)}
+                    onChange={e => setNewFundDesc(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
                   />
                 </div>

@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Prompt', 'Noto Sans Thai', sans-serif;
-  --font-display: 'Prompt', 'Noto Sans Thai', sans-serif;
-  --font-script: 'Caveat', cursive;
+  --font-sans: "Prompt", "Noto Sans Thai", sans-serif;
+  --font-display: "Prompt", "Noto Sans Thai", sans-serif;
+  --font-script: "Caveat", cursive;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -36,74 +36,83 @@
   --color-ring: var(--ring);
 
   /* Custom Grace-giving Brand Colors */
-  --color-clay-bg: #FFF9EE;
-  --color-clay-cream: #FFF4DF;
-  --color-clay-sage: #A8C978;
-  --color-clay-lightsage: #DCECC5;
-  --color-clay-peach: #F7B6A6;
-  --color-clay-orange: #E99A4A;
-  --color-clay-sky: #A9D4ED;
-  --color-clay-brown: #70452E;
-  --color-clay-dark: #38251B;
-  --color-clay-muted: #927D6D;
-  --color-clay-border: #E9D9BF;
+  --color-clay-bg: #fff9ee;
+  --color-clay-cream: #fff4df;
+  --color-clay-sage: #a8c978;
+  --color-clay-lightsage: #dcecc5;
+  --color-clay-peach: #f7b6a6;
+  --color-clay-orange: #e99a4a;
+  --color-clay-sky: #a9d4ed;
+  --color-clay-brown: #70452e;
+  --color-clay-dark: #38251b;
+  --color-clay-muted: #927d6d;
+  --color-clay-border: #e9d9bf;
 }
 
 :root {
-  --primary: #E99A4A;
-  --primary-foreground: #FFFFFF;
-  --background: #FFF9EE;
-  --foreground: #38251B;
-  --card: #FFFFFF;
-  --card-foreground: #38251B;
-  --popover: #FFFFFF;
-  --popover-foreground: #38251B;
-  --secondary: #FFF4DF;
-  --secondary-foreground: #70452E;
-  --muted: #F8F2E6;
-  --muted-foreground: #927D6D;
-  --accent: #DCECC5;
-  --accent-foreground: #3B6B22;
-  --destructive: #F7B6A6;
-  --destructive-foreground: #7C2A1E;
-  --border: #E9D9BF;
-  --input: #E9D9BF;
-  --ring: #E99A4A;
+  --primary: #e99a4a;
+  --primary-foreground: #ffffff;
+  --background: #fff9ee;
+  --foreground: #38251b;
+  --card: #ffffff;
+  --card-foreground: #38251b;
+  --popover: #ffffff;
+  --popover-foreground: #38251b;
+  --secondary: #fff4df;
+  --secondary-foreground: #70452e;
+  --muted: #f8f2e6;
+  --muted-foreground: #927d6d;
+  --accent: #dcecc5;
+  --accent-foreground: #3b6b22;
+  --destructive: #f7b6a6;
+  --destructive-foreground: #7c2a1e;
+  --border: #e9d9bf;
+  --input: #e9d9bf;
+  --ring: #e99a4a;
   --radius: 1rem;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 html {
-  min-width: 320px;
-  background-color: #FFF9EE;
-  color: #38251B;
+  background-color: #fff9ee;
+  color: #38251b;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
-  background-color: #FFF9EE;
-  color: #38251B;
-  font-family: 'Prompt', 'Noto Sans Thai', sans-serif;
+  background-color: #fff9ee;
+  color: #38251b;
+  font-family: "Prompt", "Noto Sans Thai", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-button, input, textarea, select {
-  font: inherit;
-}
-
-button:focus-visible, a:focus-visible {
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
   outline: 3px solid rgba(233, 154, 74, 0.45);
   outline-offset: 2px;
 }
 
 .font-script {
-  font-family: 'Caveat', cursive;
+  font-family: "Caveat", cursive;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Soft 3D Clay Card Shadow */
 .clay-card-shadow {
-  box-shadow: 0 10px 30px -5px rgba(112, 69, 46, 0.06), 0 2px 8px -2px rgba(112, 69, 46, 0.04);
+  box-shadow:
+    0 10px 30px -5px rgba(112, 69, 46, 0.06),
+    0 2px 8px -2px rgba(112, 69, 46, 0.04);
 }
 
 .clay-button-shadow {
@@ -111,24 +120,36 @@ button:focus-visible, a:focus-visible {
 }
 
 .clay-inset-bevel {
-  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(112, 69, 46, 0.05);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.8),
+    0 4px 12px rgba(112, 69, 46, 0.05);
 }
 
 @layer base {
   * {
-    border-color: #E9D9BF;
+    border-color: #e9d9bf;
   }
-  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), a[href] {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  a[href] {
     cursor: pointer;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  button, a {
-    transition: transform 180ms cubic-bezier(.23,1,.32,1), background-color 180ms ease, color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  button,
+  a {
+    transition:
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
   }
   button:active:not(:disabled) {
-    transform: scale(.97);
+    transform: scale(0.97);
   }
 }
 
@@ -137,12 +158,12 @@ button:focus-visible, a:focus-visible {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #FFF9EE;
+  background: #fff9ee;
 }
 ::-webkit-scrollbar-thumb {
-  background: #E5D5BC;
+  background: #e5d5bc;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4BE9F;
+  background: #d4be9f;
 }
