@@ -1,4 +1,4 @@
-﻿# Graceful-giving (Grace Ledger)
+﻿# Graceful-giving (Grace-giving)
 
 ระบบบริหารจัดการการเงินคริสตจักรและสื่อสารข่าวสารกิจกรรมสำหรับสมาชิก (Church Financial Ledger & Community Updates) พัฒนาขึ้นด้วยสถาปัตยกรรม Fullstack TypeScript ที่ปลอดภัย รวดเร็ว และรองรับการแสดงผลทั้งบนสมาร์ทโฟน แท็บเล็ต และเดสก์ท็อป
 
@@ -17,7 +17,7 @@
 - **Backend (Server)**:
   - **Runtime & Server**: Node.js, Express, esbuild
   - **API Layer**: tRPC v11 (End-to-End Type Safety)
-  - **Database & ORM**: MySQL via Drizzle ORM (`drizzle-orm/mysql2`)
+  - **Database & ORM**: PostgreSQL (Supabase) via Drizzle ORM (`drizzle-orm/postgres-js`)
   - **Authentication**: Manus OAuth Integration + Session Cookies
   - **Testing**: Vitest + TypeScript Compiler (`tsc`)
 
@@ -25,7 +25,7 @@
 
 ## 2. ฟีเจอร์หลักของระบบ (Core Features)
 
-### 2.1 หน้าหลักการเงิน (Grace Ledger Dashboard)
+### 2.1 หน้าหลักการเงิน (Grace-giving Dashboard)
 - **สรุปยอดเงินและแนวโน้ม**: แสดงยอดเงินคงเหลือรวม การคำนวณรายรับ รายจ่าย และคงเหลือ พร้อมตัวชี้วัดทิศทางลูกศรที่ถูกต้องตามผลประกอบการ
 - **ปุ่มดำเนินการด่วน (Quick Actions)**:
   - บันทึกการถวาย (สิบลด, ถวายทั่วไป, พันธกิจ, ถวายพิเศษ)

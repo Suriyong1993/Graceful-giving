@@ -1,7 +1,11 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -29,6 +33,44 @@ import Approvals from "./pages/Approvals";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Updates from "./pages/Updates";
+
+const SETUP_EXEMPT_PATHS = ["/setup", "/login", "/register", "/404"];
+
+// Hybrid onboarding gate: logged-in users whose church profile is missing or
+// not yet set up are nudged to the wizard — unless they skipped it in this
+// tab, are already on an exempt page, or the profile query failed
+// (offline-safe: never trap the user when the DB is unreachable).
+function SetupGate() {
+  const [location, setLocation] = useLocation();
+  const { user, loading } = useAuth();
+  const profileQuery = trpc.church.getProfile.useQuery(undefined, {
+    enabled: !!user,
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (loading || !user) return;
+    // Normalize trailing slashes so e.g. "/setup/" still matches the exempt list.
+    const normalizedLocation =
+      location.length > 1 ? location.replace(/\/+$/, "") : location;
+    if (SETUP_EXEMPT_PATHS.includes(normalizedLocation)) return;
+    if (hasSkippedSetup()) return;
+    if (profileQuery.isLoading || profileQuery.isError) return;
+    const profile = profileQuery.data;
+    if (!profile || !profile.setupCompleted) setLocation("/setup");
+  }, [
+    loading,
+    user,
+    location,
+    profileQuery.isLoading,
+    profileQuery.isError,
+    profileQuery.data,
+    setLocation,
+  ]);
+
+  return null;
+}
 
 function Router() {
   return (
@@ -95,6 +137,7 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster position="top-center" richColors />
+          <SetupGate />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

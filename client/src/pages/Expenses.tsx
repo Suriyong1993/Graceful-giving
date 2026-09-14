@@ -138,7 +138,7 @@ export default function Expenses() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `grace-ledger-expenses-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `grace-giving-expenses-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

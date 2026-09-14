@@ -67,7 +67,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
         {/* DESKTOP FIXED SIDEBAR (Visible on lg: >= 1024px) */}
         <aside className="hidden lg:flex flex-col w-72 bg-[#FFF4DF]/85 border-r border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
-          {/* 1. Grace Ledger Branding */}
+          {/* 1. Grace-giving Branding */}
           <div
             onClick={() => setLocation("/")}
             className="flex items-center gap-3 mb-6 cursor-pointer select-none"

@@ -579,7 +579,7 @@ export default function Home() {
       <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
         {/* DESKTOP FIXED/PERSISTENT SIDEBAR (Visible on lg: screens >= 1024px) */}
         <aside className="hidden lg:flex flex-col w-72 bg-[#FFF4DF]/85 border-r border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
-          {/* 1. Grace Ledger (branding) */}
+          {/* 1. Grace-giving (branding) */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-2xl bg-[#E99A4A]/15 border border-[#E99A4A]/30 flex items-center justify-center relative overflow-hidden shrink-0 shadow-2xs">
               <Sprout className="w-7 h-7 text-[#70452E]" />
@@ -768,7 +768,7 @@ export default function Home() {
               {/* Desktop/Tablet Layout: Side-by-side with split hero (image 35-45%)
                   Mobile Layout: Responsive stack with image below/behind branding with complete legibility */}
               <section
-                aria-label="Grace Ledger ส่วนต้อนรับ"
+                aria-label="Grace-giving ส่วนต้อนรับ"
                 className="relative rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-5 md:p-7"
               >
                 {/* Notification Bell (Top-Right) */}

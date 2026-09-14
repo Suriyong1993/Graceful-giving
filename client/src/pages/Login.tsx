@@ -17,7 +17,7 @@ export default function Login() {
     setTimeout(() => {
       setIsLoading(false);
       toast.success("เข้าสู่ระบบเรียบร้อยแล้ว", {
-        description: "ยินดีต้อนรับสู่ Grace Ledger",
+        description: "ยินดีต้อนรับสู่ Grace-giving",
       });
       setLocation("/");
     }, 600);

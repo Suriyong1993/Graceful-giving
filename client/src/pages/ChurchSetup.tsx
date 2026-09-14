@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { clearSetupSkip, markSetupSkipped } from "@/lib/setupSkip";
 import {
   Check,
   ChevronRight,
@@ -82,6 +83,18 @@ const DEFAULT_FUNDS = [
 ];
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
+
+const SAVE_ERROR_PATTERNS: Array<[pattern: string, message: string]> = [
+  ["10001", "กรุณาเข้าสู่ระบบด้วยบัญชีผู้ดูแลก่อนบันทึกการตั้งค่า"],
+  ["10002", "บัญชีนี้ไม่มีสิทธิ์บันทึกการตั้งค่า (ต้องเป็นผู้ดูแลหรือผู้นำคริสตจักร)"],
+  ["เฉพาะผู้นำคริสตจักรเท่านั้น", "บัญชีนี้ไม่มีสิทธิ์บันทึกการตั้งค่า (ต้องเป็นผู้ดูแลหรือผู้นำคริสตจักร)"],
+  ["Database is not available", "เชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลยังไม่ถูกบันทึก กรุณาตั้งค่า DATABASE_URL แล้วลองใหม่"],
+];
+
+function getSaveErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  return SAVE_ERROR_PATTERNS.find(([pattern]) => message.includes(pattern))?.[1] ?? (message || "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+}
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -380,6 +393,12 @@ export default function ChurchSetup() {
 
   const updateProfileMutation = trpc.church.updateProfile.useMutation();
   const completeSetupMutation = trpc.church.completeSetup.useMutation();
+  const utils = trpc.useUtils();
+
+  function skipSetup() {
+    markSetupSkipped();
+    setLocation("/");
+  }
 
   const set = (partial: Partial<SetupData>) => setData((d) => ({ ...d, ...partial }));
   const totalSteps = STEPS.length;
@@ -435,12 +454,13 @@ export default function ChurchSetup() {
         motto: data.motto,
       });
       await completeSetupMutation.mutateAsync();
+      clearSetupSkip();
+      await utils.church.getProfile.invalidate();
       toast.success("ตั้งค่าคริสตจักรเรียบร้อย! 🎉");
       setTimeout(() => setLocation("/"), 1200);
-    } catch {
-      // fallback: still navigate to home but show info
-      toast.info("บันทึกข้อมูลแล้ว (โหมดออฟไลน์)");
-      setTimeout(() => setLocation("/"), 1000);
+    } catch (error: unknown) {
+      // Surface the real failure and stay on this step so the filled-in data is not lost.
+      toast.error(getSaveErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -453,13 +473,13 @@ export default function ChurchSetup() {
         {/* Header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-[#fce9ce] via-[#fff3de] to-[#fbf7ee] px-5 pb-6 pt-5 sm:px-8">
           <button
-            onClick={() => setLocation("/")}
+            onClick={skipSetup}
             aria-label="กลับหน้าหลัก"
             className="absolute right-5 top-5 grid size-9 place-items-center rounded-full bg-white/70 text-[#786455] hover:bg-white transition"
           >
             <X className="size-4" />
           </button>
-          <p className="text-xs font-bold text-[#8d5e30]">GRACE LEDGER · ตั้งค่าคริสตจักร</p>
+          <p className="text-xs font-bold text-[#8d5e30]">GRACE-GIVING · ตั้งค่าคริสตจักร</p>
           <h1 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-[#3a2d26]">
             ยินดีต้อนรับ 👋<br />มาเริ่มต้นด้วยกัน
           </h1>
@@ -470,7 +490,14 @@ export default function ChurchSetup() {
               <span>ขั้นตอนที่ {step} จาก {totalSteps}</span>
               <span>{Math.round(progressPct)}%</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-[#f0e8db]">
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progressPct)}
+              aria-label="ความคืบหน้าการตั้งค่า"
+              className="h-2 overflow-hidden rounded-full bg-[#f0e8db]"
+            >
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[#bd7b42] to-[#d4954f] transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
@@ -595,6 +622,12 @@ export default function ChurchSetup() {
               </button>
             )}
           </div>
+          <button
+            onClick={skipSetup}
+            className="mt-2 w-full py-2 text-center text-xs font-bold text-[#6a5649] transition hover:text-[#3a2d26]"
+          >
+            ไว้ทีหลัง →
+          </button>
         </div>
       </div>
     </div>

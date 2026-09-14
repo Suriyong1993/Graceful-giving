@@ -93,11 +93,11 @@ function downloadICS(event: {
   const icsLines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Grace Ledger//Church Events//TH",
+    "PRODID:-//Grace-giving//Church Events//TH",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${Date.now()}@grace-ledger.local`,
+    `UID:${Date.now()}@grace-giving.local`,
     `DTSTAMP:${formatICSDate(new Date())}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,

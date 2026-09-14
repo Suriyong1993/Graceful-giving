@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { quickActions, statCards } from "../client/src/pages/Home";
 
-describe("Grace Ledger dashboard contract", () => {
+describe("Grace-giving dashboard contract", () => {
   it("keeps the reference dashboard summary set stable for the first visual slice", () => {
     expect(statCards).toHaveLength(3);
     expect(statCards.map((card) => card.label)).toEqual(["รายรับ", "รายจ่าย", "คงเหลือ"]);

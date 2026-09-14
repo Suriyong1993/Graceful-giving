@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Graceful-giving ("Grace Ledger" / เกรซเลดเจอร์) is a church financial management and member-communication system: offerings/tithes, expenses, funds, budgets, withdrawal approvals, ministries, members, and a news/events feed. Fullstack TypeScript, single deployable Node process (Express serves both the API and the built SPA).
+Graceful-giving ("Grace-giving" / เกรซกิฟวิง) is a church financial management and member-communication system: offerings/tithes, expenses, funds, budgets, withdrawal approvals, ministries, members, and a news/events feed. Fullstack TypeScript, single deployable Node process (Express serves both the API and the built SPA).
 
 The codebase is more feature-complete than `README.md` describes — the README documents an earlier "news & events" milestone only. Prefer reading `server/routers.ts` and `drizzle/schema.ts` over the README for current scope.
 
@@ -31,7 +31,7 @@ There is no separate lint script; `pnpm check` (tsc) and `pnpm format` (prettier
 
 No `.env` is committed. Required variables (read in `server/_core/env.ts`):
 
-- `DATABASE_URL` — MySQL connection string (drizzle-orm/mysql2). If unset, `getDb()` returns `null` and every DB-backed function degrades to a no-op/empty read rather than throwing — keep this behavior in mind when adding new `db.ts` functions.
+- `DATABASE_URL` — PostgreSQL connection string (Supabase; `drizzle-orm/postgres-js` + `postgres` client with `prepare: false` for the :6543 pooler). If unset — or unreachable (one eager `SELECT 1` runs at init) — `getDb()` returns `null` and every DB-backed function degrades to a no-op/empty read rather than throwing — keep this behavior in mind when adding new `db.ts` functions.
 - `VITE_APP_ID`, `JWT_SECRET` (session cookie signing), `OAUTH_SERVER_URL`, `OWNER_OPEN_ID` (the openId that gets auto-promoted to `role: "admin"` on first upsert), `BUILT_IN_FORGE_API_URL`, `BUILT_IN_FORGE_API_KEY`.
 
 ## Architecture

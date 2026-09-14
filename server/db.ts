@@ -1,5 +1,6 @@
 import { and, asc, between, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   budgetPlans,
   churchEvents,
@@ -28,7 +29,12 @@ export const DEFAULT_CHURCH_ID = "demo-church";
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Supabase transaction pooler (:6543) requires prepared statements off.
+      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      // Eager health-check: `postgres` connects lazily, so verify now to preserve
+      // the getDb()-returns-null (never throws) contract on unreachable URLs.
+      await client`SELECT 1`;
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -74,7 +80,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   values.lastSignedIn ??= new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -106,7 +112,7 @@ export async function upsertChurchProfile(input: InsertChurchProfile) {
   await db
     .insert(churchProfiles)
     .values({ ...input, churchId })
-    .onDuplicateKeyUpdate({ set: { ...input, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: churchProfiles.churchId, set: { ...input, updatedAt: new Date() } });
 }
 
 export async function markSetupCompleted(churchId = DEFAULT_CHURCH_ID) {
@@ -130,8 +136,11 @@ export async function listFinanceAccounts(churchId = DEFAULT_CHURCH_ID) {
 export async function createFinanceAccount(input: InsertFinanceAccount) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(financeAccounts).values({ ...input, churchId: input.churchId ?? DEFAULT_CHURCH_ID });
-  return result[0].insertId;
+  const result = await db
+    .insert(financeAccounts)
+    .values({ ...input, churchId: input.churchId ?? DEFAULT_CHURCH_ID })
+    .returning({ id: financeAccounts.id });
+  return result[0].id;
 }
 
 // ─── Financial Summary ────────────────────────────────────────────────────────
@@ -276,14 +285,17 @@ export async function listOfferings(
 export async function createOffering(input: Omit<InsertOffering, "churchId">, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(offerings).values({ ...input, churchId });
+  const result = await db
+    .insert(offerings)
+    .values({ ...input, churchId })
+    .returning({ id: offerings.id });
   // Update fund balance
   if (input.fundId) {
     await db.execute(
       sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
     );
   }
-  return result[0].insertId;
+  return result[0].id;
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────
@@ -333,14 +345,17 @@ export async function listExpenses(
 export async function createExpense(input: Omit<InsertExpense, "churchId">, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(expenses).values({ ...input, churchId });
+  const result = await db
+    .insert(expenses)
+    .values({ ...input, churchId })
+    .returning({ id: expenses.id });
   // Deduct fund balance
   if (input.fundId) {
     await db.execute(
       sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
     );
   }
-  return result[0].insertId;
+  return result[0].id;
 }
 
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
@@ -373,8 +388,11 @@ export async function createWithdrawalRequest(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(withdrawalRequests).values({ ...input, churchId });
-  return result[0].insertId;
+  const result = await db
+    .insert(withdrawalRequests)
+    .values({ ...input, churchId })
+    .returning({ id: withdrawalRequests.id });
+  return result[0].id;
 }
 
 export async function approveWithdrawal(
@@ -513,15 +531,21 @@ export async function listAllChurchEvents(limit = 50) {
 export async function createChurchNews(input: Omit<InsertChurchNews, "churchId">) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(churchNews).values({ ...input, churchId: DEFAULT_CHURCH_ID });
-  return result[0].insertId;
+  const result = await db
+    .insert(churchNews)
+    .values({ ...input, churchId: DEFAULT_CHURCH_ID })
+    .returning({ id: churchNews.id });
+  return result[0].id;
 }
 
 export async function createChurchEvent(input: Omit<InsertChurchEvent, "churchId">) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db.insert(churchEvents).values({ ...input, churchId: DEFAULT_CHURCH_ID });
-  return result[0].insertId;
+  const result = await db
+    .insert(churchEvents)
+    .values({ ...input, churchId: DEFAULT_CHURCH_ID })
+    .returning({ id: churchEvents.id });
+  return result[0].id;
 }
 
 export async function updateChurchNews(id: number, input: Omit<InsertChurchNews, "churchId" | "authorId">) {
