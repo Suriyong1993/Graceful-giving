@@ -1,0 +1,1478 @@
+// server/_core/apiHandler.ts
+import "dotenv/config";
+
+// server/_core/app.ts
+import "dotenv/config";
+import express from "express";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+
+// shared/const.ts
+var COOKIE_NAME = "app_session_id";
+var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
+var AXIOS_TIMEOUT_MS = 3e4;
+var UNAUTHED_ERR_MSG = "Please login (10001)";
+var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
+var OAUTH_STATE_COOKIE = "__Host-oauth_state";
+var decodeOAuthState = (state) => {
+  let decoded;
+  try {
+    decoded = atob(state);
+  } catch {
+    return { redirectUri: "" };
+  }
+  try {
+    const parsed = JSON.parse(decoded);
+    if (parsed && typeof parsed.redirectUri === "string") return parsed;
+  } catch {
+  }
+  return { redirectUri: decoded };
+};
+
+// server/_core/oauth.ts
+import { parse as parseCookieHeader2 } from "cookie";
+
+// server/db.ts
+import { and, asc, between, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+
+// drizzle/schema.ts
+import { boolean, decimal, integer, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+var userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+var financeAccountTypeEnum = pgEnum("finance_account_type", [
+  "general",
+  "tithe",
+  "mission",
+  "building",
+  "welfare",
+  "special"
+]);
+var offeringCategoryEnum = pgEnum("offering_category", [
+  "tithe",
+  "general",
+  "mission",
+  "building",
+  "welfare",
+  "special"
+]);
+var offeringMethodEnum = pgEnum("offering_method", ["cash", "transfer", "check"]);
+var expenseCategoryEnum = pgEnum("expense_category", [
+  "utilities",
+  "ministry",
+  "pastoral",
+  "admin",
+  "building",
+  "worship",
+  "welfare",
+  "other"
+]);
+var expenseStatusEnum = pgEnum("expense_status", ["draft", "approved", "paid"]);
+var withdrawalStatusEnum = pgEnum("withdrawal_status", ["pending", "approved", "rejected", "disbursed"]);
+var newsCategoryEnum = pgEnum("news_category", ["announcement", "ministry", "finance", "pastoral"]);
+var newsStatusEnum = pgEnum("news_status", ["draft", "published", "archived"]);
+var eventStatusEnum = pgEnum("event_status", ["draft", "published", "cancelled"]);
+var users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  openId: varchar("openId", { length: 64 }).notNull().unique(),
+  name: text("name"),
+  email: varchar("email", { length: 320 }),
+  loginMethod: varchar("loginMethod", { length: 64 }),
+  role: userRoleEnum("role").default("user").notNull(),
+  /** Church-specific role for financial access control */
+  churchRole: varchar("churchRole", { length: 20 }).$type(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date()),
+  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
+});
+var churchProfiles = pgTable("church_profiles", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull().unique(),
+  name: varchar("name", { length: 180 }).notNull(),
+  address: text("address"),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  website: varchar("website", { length: 500 }),
+  pastorName: varchar("pastorName", { length: 120 }),
+  assistantPastorName: varchar("assistantPastorName", { length: 120 }),
+  treasurerName: varchar("treasurerName", { length: 120 }),
+  bankName: varchar("bankName", { length: 120 }),
+  bankAccount: varchar("bankAccount", { length: 30 }),
+  bankAccountName: varchar("bankAccountName", { length: 120 }),
+  /** Month (1-12) when the fiscal year starts */
+  fiscalYearStartMonth: integer("fiscalYearStartMonth").default(1).notNull(),
+  logoUrl: varchar("logoUrl", { length: 500 }),
+  /** Whether the church has completed the initial 8-step setup */
+  setupCompleted: boolean("setupCompleted").default(false).notNull(),
+  /** Custom verse or motto */
+  motto: varchar("motto", { length: 280 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var financeAccounts = pgTable("finance_accounts", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  type: financeAccountTypeEnum("type").default("general").notNull(),
+  /** Running balance — updated whenever an offering or expense is recorded */
+  balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var offerings = pgTable("offerings", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  category: offeringCategoryEnum("category").default("general").notNull(),
+  fundId: integer("fundId"),
+  /** Visible only to TREASURER and SUPER_ADMIN */
+  donorName: varchar("donorName", { length: 120 }),
+  donorMemberId: integer("donorMemberId"),
+  receiptDate: timestamp("receiptDate").defaultNow().notNull(),
+  method: offeringMethodEnum("method").default("cash").notNull(),
+  /** Bank transfer reference or cheque number */
+  reference: varchar("reference", { length: 120 }),
+  notes: text("notes"),
+  recordedBy: integer("recordedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  category: expenseCategoryEnum("category").default("other").notNull(),
+  fundId: integer("fundId"),
+  description: varchar("description", { length: 280 }).notNull(),
+  details: text("details"),
+  expenseDate: timestamp("expenseDate").defaultNow().notNull(),
+  payee: varchar("payee", { length: 120 }),
+  receiptRef: varchar("receiptRef", { length: 120 }),
+  status: expenseStatusEnum("status").default("approved").notNull(),
+  approvedBy: integer("approvedBy"),
+  recordedBy: integer("recordedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var withdrawalRequests = pgTable("withdrawal_requests", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  purpose: varchar("purpose", { length: 280 }).notNull(),
+  details: text("details"),
+  fundId: integer("fundId"),
+  requestedBy: integer("requestedBy").notNull(),
+  requestDate: timestamp("requestDate").defaultNow().notNull(),
+  status: withdrawalStatusEnum("status").default("pending").notNull(),
+  approvedBy: integer("approvedBy"),
+  approvalDate: timestamp("approvalDate"),
+  approvalNote: text("approvalNote"),
+  rejectionReason: text("rejectionReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var budgetPlans = pgTable("budget_plans", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  year: integer("year").notNull(),
+  /** null = annual budget; 1-12 = monthly budget */
+  month: integer("month"),
+  fundId: integer("fundId"),
+  category: varchar("category", { length: 80 }),
+  plannedAmount: decimal("plannedAmount", { precision: 15, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var churchNews = pgTable("church_news", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  authorId: integer("authorId").notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  summary: varchar("summary", { length: 280 }).notNull(),
+  body: text("body").notNull(),
+  category: newsCategoryEnum("category").default("announcement").notNull(),
+  status: newsStatusEnum("status").default("draft").notNull(),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var churchEvents = pgTable("church_events", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  authorId: integer("authorId").notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  summary: varchar("summary", { length: 280 }).notNull(),
+  description: text("description").notNull(),
+  startsAt: timestamp("startsAt").notNull(),
+  endsAt: timestamp("endsAt"),
+  location: varchar("location", { length: 180 }),
+  registrationUrl: varchar("registrationUrl", { length: 500 }),
+  status: eventStatusEnum("status").default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+
+// server/_core/env.ts
+var ENV = {
+  appId: process.env.VITE_APP_ID ?? "",
+  cookieSecret: process.env.JWT_SECRET ?? "",
+  databaseUrl: process.env.DATABASE_URL ?? "",
+  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
+  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  isProduction: process.env.NODE_ENV === "production",
+  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
+};
+
+// server/db.ts
+var _db = null;
+var DEFAULT_CHURCH_ID = "demo-church";
+async function getDb() {
+  if (!_db && process.env.DATABASE_URL) {
+    try {
+      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      await client`SELECT 1`;
+      _db = drizzle(client);
+    } catch (error) {
+      console.warn("[Database] Failed to connect:", error);
+      _db = null;
+    }
+  }
+  return _db;
+}
+async function upsertUser(user) {
+  if (!user.openId) throw new Error("User openId is required for upsert");
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot upsert user: database not available");
+    return;
+  }
+  const values = { openId: user.openId };
+  const updateSet = {};
+  const textFields = ["name", "email", "loginMethod"];
+  const assignNullable = (field) => {
+    const value = user[field];
+    if (value === void 0) return;
+    const normalized = value ?? null;
+    values[field] = normalized;
+    updateSet[field] = normalized;
+  };
+  textFields.forEach(assignNullable);
+  if (user.lastSignedIn !== void 0) {
+    values.lastSignedIn = user.lastSignedIn;
+    updateSet.lastSignedIn = user.lastSignedIn;
+  }
+  if (user.role !== void 0) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId) {
+    values.role = "admin";
+    updateSet.role = "admin";
+  }
+  values.lastSignedIn ??= /* @__PURE__ */ new Date();
+  if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = /* @__PURE__ */ new Date();
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+}
+async function getUserByOpenId(openId) {
+  const db = await getDb();
+  if (!db) return void 0;
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : void 0;
+}
+async function updateUserChurchRole(userId, churchRole) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(users).set({ churchRole }).where(eq(users.id, userId));
+}
+async function getChurchProfile(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(churchProfiles).where(eq(churchProfiles.churchId, churchId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+async function upsertChurchProfile(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  await db.insert(churchProfiles).values({ ...input, churchId }).onConflictDoUpdate({ target: churchProfiles.churchId, set: { ...input, updatedAt: /* @__PURE__ */ new Date() } });
+}
+async function markSetupCompleted(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(churchProfiles).set({ setupCompleted: true }).where(eq(churchProfiles.churchId, churchId));
+}
+async function listFinanceAccounts(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(financeAccounts).where(and(eq(financeAccounts.churchId, churchId), eq(financeAccounts.isActive, true))).orderBy(asc(financeAccounts.sortOrder), asc(financeAccounts.name));
+}
+async function createFinanceAccount(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(financeAccounts).values({ ...input, churchId: input.churchId ?? DEFAULT_CHURCH_ID }).returning({ id: financeAccounts.id });
+  return result[0].id;
+}
+async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return null;
+  const now = /* @__PURE__ */ new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  try {
+    const [accounts, thisOfferings, prevOfferings, thisExpenses, prevExpenses] = await Promise.all([
+      db.select().from(financeAccounts).where(and(eq(financeAccounts.churchId, churchId), eq(financeAccounts.isActive, true))),
+      db.select({ total: sum(offerings.amount) }).from(offerings).where(
+        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, thisMonthStart, thisMonthEnd))
+      ),
+      db.select({ total: sum(offerings.amount) }).from(offerings).where(
+        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, prevMonthStart, prevMonthEnd))
+      ),
+      db.select({ total: sum(expenses.amount) }).from(expenses).where(
+        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, thisMonthStart, thisMonthEnd))
+      ),
+      db.select({ total: sum(expenses.amount) }).from(expenses).where(
+        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, prevMonthStart, prevMonthEnd))
+      )
+    ]);
+    const totalBalance = accounts.reduce((sum2, a) => sum2 + parseFloat(a.balance ?? "0"), 0);
+    const monthlyIncome = parseFloat(thisOfferings[0]?.total ?? "0") || 0;
+    const monthlyExpense = parseFloat(thisExpenses[0]?.total ?? "0") || 0;
+    const prevMonthIncome = parseFloat(prevOfferings[0]?.total ?? "0") || 0;
+    const prevMonthExpense = parseFloat(prevExpenses[0]?.total ?? "0") || 0;
+    return {
+      totalBalance,
+      monthlyIncome,
+      monthlyExpense,
+      prevMonthIncome,
+      prevMonthExpense,
+      accounts: accounts.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        balance: parseFloat(a.balance ?? "0")
+      }))
+    };
+  } catch {
+    return null;
+  }
+}
+async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = [];
+  const now = /* @__PURE__ */ new Date();
+  const thaiMonths = ["\u0E21.\u0E04.", "\u0E01.\u0E1E.", "\u0E21\u0E35.\u0E04.", "\u0E40\u0E21.\u0E22.", "\u0E1E.\u0E04.", "\u0E21\u0E34.\u0E22.", "\u0E01.\u0E04.", "\u0E2A.\u0E04.", "\u0E01.\u0E22.", "\u0E15.\u0E04.", "\u0E1E.\u0E22.", "\u0E18.\u0E04."];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    const [inc, exp] = await Promise.all([
+      db.select({ total: sum(offerings.amount) }).from(offerings).where(
+        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, start, end))
+      ),
+      db.select({ total: sum(expenses.amount) }).from(expenses).where(
+        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, start, end))
+      )
+    ]);
+    result.push({
+      month: thaiMonths[d.getMonth()],
+      income: parseFloat(inc[0]?.total ?? "0") || 0,
+      expense: parseFloat(exp[0]?.total ?? "0") || 0
+    });
+  }
+  return result;
+}
+async function listOfferings(churchId = DEFAULT_CHURCH_ID, opts = {}) {
+  const db = await getDb();
+  if (!db) return [];
+  const { limit = 50, showDonorNames = false, fromDate, toDate } = opts;
+  const conditions = [eq(offerings.churchId, churchId)];
+  if (fromDate) conditions.push(gte(offerings.receiptDate, fromDate));
+  if (toDate) conditions.push(lte(offerings.receiptDate, toDate));
+  const rows = await db.select().from(offerings).where(and(...conditions)).orderBy(desc(offerings.receiptDate)).limit(limit);
+  return rows.map((r) => ({
+    id: r.id,
+    amount: parseFloat(r.amount ?? "0"),
+    category: r.category,
+    donorName: showDonorNames ? r.donorName : r.donorName ? "\u0E1C\u0E39\u0E49\u0E16\u0E27\u0E32\u0E22\u0E19\u0E34\u0E23\u0E19\u0E32\u0E21" : null,
+    receiptDate: r.receiptDate,
+    method: r.method,
+    notes: r.notes,
+    fundId: r.fundId
+  }));
+}
+async function createOffering(input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(offerings).values({ ...input, churchId }).returning({ id: offerings.id });
+  if (input.fundId) {
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+    );
+  }
+  return result[0].id;
+}
+async function listExpenses(churchId = DEFAULT_CHURCH_ID, opts = {}) {
+  const db = await getDb();
+  if (!db) return [];
+  const { limit = 50, fromDate, toDate } = opts;
+  const conditions = [eq(expenses.churchId, churchId)];
+  if (fromDate) conditions.push(gte(expenses.expenseDate, fromDate));
+  if (toDate) conditions.push(lte(expenses.expenseDate, toDate));
+  const rows = await db.select().from(expenses).where(and(...conditions)).orderBy(desc(expenses.expenseDate)).limit(limit);
+  return rows.map((r) => ({
+    id: r.id,
+    amount: parseFloat(r.amount ?? "0"),
+    category: r.category,
+    description: r.description,
+    expenseDate: r.expenseDate,
+    payee: r.payee,
+    status: r.status,
+    fundId: r.fundId
+  }));
+}
+async function createExpense(input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(expenses).values({ ...input, churchId }).returning({ id: expenses.id });
+  if (input.fundId) {
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+    );
+  }
+  return result[0].id;
+}
+async function listWithdrawalRequests(churchId = DEFAULT_CHURCH_ID, opts = {}) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(withdrawalRequests.churchId, churchId)];
+  if (opts.userId) conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
+  const rows = await db.select().from(withdrawalRequests).where(and(...conditions)).orderBy(desc(withdrawalRequests.createdAt)).limit(50);
+  return rows.map((r) => ({
+    ...r,
+    amount: parseFloat(r.amount ?? "0")
+  }));
+}
+async function createWithdrawalRequest(input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(withdrawalRequests).values({ ...input, churchId }).returning({ id: withdrawalRequests.id });
+  return result[0].id;
+}
+async function approveWithdrawal(id, approverId, action, note, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(withdrawalRequests).set({
+    status: action,
+    approvedBy: approverId,
+    approvalDate: /* @__PURE__ */ new Date(),
+    approvalNote: action === "approved" ? note : null,
+    rejectionReason: action === "rejected" ? note : null
+  }).where(and(eq(withdrawalRequests.id, id), eq(withdrawalRequests.churchId, churchId)));
+}
+async function disburseWithdrawal(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(withdrawalRequests).set({ status: "disbursed" }).where(and(eq(withdrawalRequests.id, id), eq(withdrawalRequests.churchId, churchId)));
+}
+async function getFinancialReportData(churchId = DEFAULT_CHURCH_ID, fromDate, toDate) {
+  const db = await getDb();
+  if (!db) return [];
+  const [offeringsRows, expensesRows] = await Promise.all([
+    db.select().from(offerings).where(
+      and(eq(offerings.churchId, churchId), between(offerings.receiptDate, fromDate, toDate))
+    ).orderBy(asc(offerings.receiptDate)),
+    db.select().from(expenses).where(
+      and(eq(expenses.churchId, churchId), between(expenses.expenseDate, fromDate, toDate))
+    ).orderBy(asc(expenses.expenseDate))
+  ]);
+  const rows = [
+    ...offeringsRows.map((r) => ({
+      date: r.receiptDate.toISOString().split("T")[0],
+      type: "income",
+      category: r.category,
+      description: r.notes || `\u0E16\u0E27\u0E32\u0E22${r.category}`,
+      amount: parseFloat(r.amount ?? "0"),
+      method: r.method
+    })),
+    ...expensesRows.map((r) => ({
+      date: r.expenseDate.toISOString().split("T")[0],
+      type: "expense",
+      category: r.category,
+      description: r.description,
+      amount: parseFloat(r.amount ?? "0")
+    }))
+  ];
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+async function listPublishedChurchNews(limit = 12) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(churchNews).where(and(eq(churchNews.churchId, DEFAULT_CHURCH_ID), eq(churchNews.status, "published"))).orderBy(desc(churchNews.publishedAt), desc(churchNews.createdAt)).limit(limit);
+}
+async function listPublishedChurchEvents(limit = 12) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(churchEvents).where(and(eq(churchEvents.churchId, DEFAULT_CHURCH_ID), eq(churchEvents.status, "published"))).orderBy(asc(churchEvents.startsAt)).limit(limit);
+}
+async function listAllChurchNews(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(churchNews).where(eq(churchNews.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchNews.updatedAt)).limit(limit);
+}
+async function listAllChurchEvents(limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(churchEvents).where(eq(churchEvents.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchEvents.updatedAt)).limit(limit);
+}
+async function createChurchNews(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(churchNews).values({ ...input, churchId: DEFAULT_CHURCH_ID }).returning({ id: churchNews.id });
+  return result[0].id;
+}
+async function createChurchEvent(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const result = await db.insert(churchEvents).values({ ...input, churchId: DEFAULT_CHURCH_ID }).returning({ id: churchEvents.id });
+  return result[0].id;
+}
+async function updateChurchNews(id, input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(churchNews).set(input).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+}
+async function updateChurchEvent(id, input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(churchEvents).set(input).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+}
+async function updateChurchNewsStatus(id, status) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(churchNews).set({ status, publishedAt: status === "published" ? /* @__PURE__ */ new Date() : void 0 }).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+}
+async function updateChurchEventStatus(id, status) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(churchEvents).set({ status }).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+}
+async function deleteChurchNews(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(churchNews).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+}
+async function deleteChurchEvent(id) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.delete(churchEvents).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+}
+
+// server/_core/cookies.ts
+function isSecureRequest(req) {
+  if (req.protocol === "https") return true;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  if (!forwardedProto) return false;
+  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
+  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
+}
+function getSessionCookieOptions(req) {
+  return {
+    httpOnly: true,
+    path: "/",
+    sameSite: "none",
+    secure: isSecureRequest(req)
+  };
+}
+
+// shared/_core/errors.ts
+var HttpError = class extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+    this.name = "HttpError";
+  }
+};
+var ForbiddenError = (msg) => new HttpError(403, msg);
+
+// server/_core/sdk.ts
+import axios from "axios";
+import { parse as parseCookieHeader } from "cookie";
+import { SignJWT, jwtVerify } from "jose";
+var isNonEmptyString = (value) => typeof value === "string" && value.length > 0;
+var EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
+var GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
+var GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
+var OAuthService = class {
+  constructor(client) {
+    this.client = client;
+    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
+    if (!ENV.oAuthServerUrl) {
+      console.error(
+        "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
+      );
+    }
+  }
+  decodeState(state) {
+    return decodeOAuthState(state).redirectUri;
+  }
+  async getTokenByCode(code, state) {
+    const payload = {
+      clientId: ENV.appId,
+      grantType: "authorization_code",
+      code,
+      redirectUri: this.decodeState(state)
+    };
+    const { data } = await this.client.post(
+      EXCHANGE_TOKEN_PATH,
+      payload
+    );
+    return data;
+  }
+  async getUserInfoByToken(token) {
+    const { data } = await this.client.post(
+      GET_USER_INFO_PATH,
+      {
+        accessToken: token.accessToken
+      }
+    );
+    return data;
+  }
+};
+var createOAuthHttpClient = () => axios.create({
+  baseURL: ENV.oAuthServerUrl,
+  timeout: AXIOS_TIMEOUT_MS
+});
+var SDKServer = class {
+  client;
+  oauthService;
+  constructor(client = createOAuthHttpClient()) {
+    this.client = client;
+    this.oauthService = new OAuthService(this.client);
+  }
+  deriveLoginMethod(platforms, fallback) {
+    if (fallback && fallback.length > 0) return fallback;
+    if (!Array.isArray(platforms) || platforms.length === 0) return null;
+    const set = new Set(
+      platforms.filter((p) => typeof p === "string")
+    );
+    if (set.has("REGISTERED_PLATFORM_EMAIL")) return "email";
+    if (set.has("REGISTERED_PLATFORM_GOOGLE")) return "google";
+    if (set.has("REGISTERED_PLATFORM_APPLE")) return "apple";
+    if (set.has("REGISTERED_PLATFORM_MICROSOFT") || set.has("REGISTERED_PLATFORM_AZURE"))
+      return "microsoft";
+    if (set.has("REGISTERED_PLATFORM_GITHUB")) return "github";
+    const first = Array.from(set)[0];
+    return first ? first.toLowerCase() : null;
+  }
+  /**
+   * Exchange OAuth authorization code for access token
+   * @example
+   * const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+   */
+  async exchangeCodeForToken(code, state) {
+    return this.oauthService.getTokenByCode(code, state);
+  }
+  /**
+   * Get user information using access token
+   * @example
+   * const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+   */
+  async getUserInfo(accessToken) {
+    const data = await this.oauthService.getUserInfoByToken({
+      accessToken
+    });
+    const loginMethod = this.deriveLoginMethod(
+      data?.platforms,
+      data?.platform ?? data.platform ?? null
+    );
+    return {
+      ...data,
+      platform: loginMethod,
+      loginMethod
+    };
+  }
+  parseCookies(cookieHeader) {
+    if (!cookieHeader) {
+      return /* @__PURE__ */ new Map();
+    }
+    const parsed = parseCookieHeader(cookieHeader);
+    return new Map(Object.entries(parsed));
+  }
+  getSessionSecret() {
+    const secret = ENV.cookieSecret;
+    return new TextEncoder().encode(secret);
+  }
+  /**
+   * Create a session token for a Manus user openId
+   * @example
+   * const sessionToken = await sdk.createSessionToken(userInfo.openId);
+   */
+  async createSessionToken(openId, options = {}) {
+    return this.signSession(
+      {
+        openId,
+        appId: ENV.appId,
+        name: options.name || ""
+      },
+      options
+    );
+  }
+  async signSession(payload, options = {}) {
+    const issuedAt = Date.now();
+    const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
+    const expirationSeconds = Math.floor((issuedAt + expiresInMs) / 1e3);
+    const secretKey = this.getSessionSecret();
+    return new SignJWT({
+      openId: payload.openId,
+      appId: payload.appId,
+      name: payload.name
+    }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setExpirationTime(expirationSeconds).sign(secretKey);
+  }
+  async verifySession(cookieValue) {
+    if (!cookieValue) {
+      console.warn("[Auth] Missing session cookie");
+      return null;
+    }
+    try {
+      const secretKey = this.getSessionSecret();
+      const { payload } = await jwtVerify(cookieValue, secretKey, {
+        algorithms: ["HS256"]
+      });
+      const { openId, appId, name } = payload;
+      if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
+        console.warn("[Auth] Session payload missing required fields");
+        return null;
+      }
+      return {
+        openId,
+        appId,
+        name
+      };
+    } catch (error) {
+      console.warn("[Auth] Session verification failed", String(error));
+      return null;
+    }
+  }
+  async getUserInfoWithJwt(jwtToken) {
+    const payload = {
+      jwtToken,
+      projectId: ENV.appId
+    };
+    const { data } = await this.client.post(
+      GET_USER_INFO_WITH_JWT_PATH,
+      payload
+    );
+    const loginMethod = this.deriveLoginMethod(
+      data?.platforms,
+      data?.platform ?? data.platform ?? null
+    );
+    return {
+      ...data,
+      platform: loginMethod,
+      loginMethod
+    };
+  }
+  async authenticateRequest(req) {
+    const cookies = this.parseCookies(req.headers.cookie);
+    let sessionToken = cookies.get(COOKIE_NAME);
+    if (!sessionToken) {
+      const authHeader = req.headers.authorization;
+      if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+        sessionToken = authHeader.slice(7);
+      }
+    }
+    const session = await this.verifySession(sessionToken);
+    if (!session) {
+      throw ForbiddenError("Invalid session cookie");
+    }
+    if (session.openId.startsWith(CRON_OPEN_ID_PREFIX)) {
+      const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
+      const taskUid = userInfo.taskUid ?? null;
+      if (!taskUid) {
+        throw ForbiddenError("Cron session missing task_uid");
+      }
+      return buildCronUser(userInfo);
+    }
+    const sessionUserId = session.openId;
+    const signedInAt = /* @__PURE__ */ new Date();
+    let user = await getUserByOpenId(sessionUserId);
+    if (!user) {
+      try {
+        const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
+        await upsertUser({
+          openId: userInfo.openId,
+          name: userInfo.name || null,
+          email: userInfo.email ?? null,
+          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          lastSignedIn: signedInAt
+        });
+        user = await getUserByOpenId(userInfo.openId);
+      } catch (error) {
+        console.error("[Auth] Failed to sync user from OAuth:", error);
+        throw ForbiddenError("Failed to sync user info");
+      }
+    }
+    if (!user) {
+      throw ForbiddenError("User not found");
+    }
+    await upsertUser({
+      openId: user.openId,
+      lastSignedIn: signedInAt
+    });
+    return user;
+  }
+};
+var CRON_OPEN_ID_PREFIX = "cron_";
+function buildCronUser(userInfo) {
+  const now = /* @__PURE__ */ new Date();
+  return {
+    id: -1,
+    openId: userInfo.openId,
+    name: userInfo.name || "Manus Scheduled Task",
+    email: null,
+    loginMethod: null,
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
+    taskUid: userInfo.taskUid ?? void 0,
+    isCron: true
+  };
+}
+var sdk = new SDKServer();
+
+// server/_core/oauth.ts
+function getQueryParam(req, key) {
+  const value = req.query[key];
+  return typeof value === "string" ? value : void 0;
+}
+function registerOAuthRoutes(app2) {
+  app2.get("/api/oauth/callback", async (req, res) => {
+    const code = getQueryParam(req, "code");
+    const state = getQueryParam(req, "state");
+    if (!code || !state) {
+      res.status(400).json({ error: "code and state are required" });
+      return;
+    }
+    const { nonce } = decodeOAuthState(state);
+    const expectedNonce = parseCookieHeader2(req.headers.cookie ?? "")[OAUTH_STATE_COOKIE];
+    if (!nonce || nonce !== expectedNonce) {
+      res.status(403).json({ error: "invalid oauth state" });
+      return;
+    }
+    res.clearCookie(OAUTH_STATE_COOKIE, { path: "/", secure: true, sameSite: "none" });
+    try {
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      if (!userInfo.openId) {
+        res.status(400).json({ error: "openId missing from user info" });
+        return;
+      }
+      await upsertUser({
+        openId: userInfo.openId,
+        name: userInfo.name || null,
+        email: userInfo.email ?? null,
+        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        lastSignedIn: /* @__PURE__ */ new Date()
+      });
+      const sessionToken = await sdk.createSessionToken(userInfo.openId, {
+        name: userInfo.name || "",
+        expiresInMs: ONE_YEAR_MS
+      });
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.redirect(302, "/");
+    } catch (error) {
+      console.error("[OAuth] Callback failed", error);
+      res.status(500).json({ error: "OAuth callback failed" });
+    }
+  });
+}
+
+// server/_core/storageProxy.ts
+function registerStorageProxy(app2) {
+  app2.get("/manus-storage/*", async (req, res) => {
+    const key = req.params[0];
+    if (!key) {
+      res.status(400).send("Missing storage key");
+      return;
+    }
+    if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
+      res.status(500).send("Storage proxy not configured");
+      return;
+    }
+    try {
+      const forgeUrl = new URL(
+        "v1/storage/presign/get",
+        ENV.forgeApiUrl.replace(/\/+$/, "") + "/"
+      );
+      forgeUrl.searchParams.set("path", key);
+      const forgeResp = await fetch(forgeUrl, {
+        headers: { Authorization: `Bearer ${ENV.forgeApiKey}` }
+      });
+      if (!forgeResp.ok) {
+        const body = await forgeResp.text().catch(() => "");
+        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body}`);
+        res.status(502).send("Storage backend error");
+        return;
+      }
+      const { url } = await forgeResp.json();
+      if (!url) {
+        res.status(502).send("Empty signed URL from backend");
+        return;
+      }
+      res.set("Cache-Control", "no-store");
+      res.redirect(307, url);
+    } catch (err) {
+      console.error("[StorageProxy] failed:", err);
+      res.status(502).send("Storage proxy error");
+    }
+  });
+}
+
+// server/routers.ts
+import { z as z2 } from "zod";
+
+// server/_core/systemRouter.ts
+import { z } from "zod";
+
+// server/_core/notification.ts
+import { TRPCError } from "@trpc/server";
+var TITLE_MAX_LENGTH = 1200;
+var CONTENT_MAX_LENGTH = 2e4;
+var trimValue = (value) => value.trim();
+var isNonEmptyString2 = (value) => typeof value === "string" && value.trim().length > 0;
+var buildEndpointUrl = (baseUrl) => {
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return new URL(
+    "webdevtoken.v1.WebDevService/SendNotification",
+    normalizedBase
+  ).toString();
+};
+var validatePayload = (input) => {
+  if (!isNonEmptyString2(input.title)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification title is required."
+    });
+  }
+  if (!isNonEmptyString2(input.content)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification content is required."
+    });
+  }
+  const title = trimValue(input.title);
+  const content = trimValue(input.content);
+  if (title.length > TITLE_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
+    });
+  }
+  if (content.length > CONTENT_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
+    });
+  }
+  return { title, content };
+};
+async function notifyOwner(payload) {
+  const { title, content } = validatePayload(payload);
+  if (!ENV.forgeApiUrl) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service URL is not configured."
+    });
+  }
+  if (!ENV.forgeApiKey) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service API key is not configured."
+    });
+  }
+  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+        "content-type": "application/json",
+        "connect-protocol-version": "1"
+      },
+      body: JSON.stringify({ title, content })
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(
+        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn("[Notification] Error calling notification service:", error);
+    return false;
+  }
+}
+
+// server/_core/trpc.ts
+import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
+import superjson from "superjson";
+var t = initTRPC.context().create({
+  transformer: superjson
+});
+var router = t.router;
+var publicProcedure = t.procedure;
+var requireUser = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+  if (!ctx.user) {
+    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user
+    }
+  });
+});
+var protectedProcedure = t.procedure.use(requireUser);
+var adminProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.user || ctx.user.role !== "admin") {
+      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user
+      }
+    });
+  })
+);
+
+// server/_core/systemRouter.ts
+var systemRouter = router({
+  health: publicProcedure.input(
+    z.object({
+      timestamp: z.number().min(0, "timestamp cannot be negative")
+    })
+  ).query(() => ({
+    ok: true
+  })),
+  notifyOwner: adminProcedure.input(
+    z.object({
+      title: z.string().min(1, "title is required"),
+      content: z.string().min(1, "content is required")
+    })
+  ).mutation(async ({ input }) => {
+    const delivered = await notifyOwner(input);
+    return {
+      success: delivered
+    };
+  })
+});
+
+// server/routers.ts
+import { TRPCError as TRPCError3 } from "@trpc/server";
+function canManageFinance(user) {
+  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+}
+function canViewDonorNames(user) {
+  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+}
+function canApproveWithdrawals(user) {
+  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+}
+function canManageChurchSettings(user) {
+  return user.role === "admin" || user.churchRole === "SUPER_ADMIN" || user.churchRole === "PASTOR";
+}
+var adminProcedure2 = protectedProcedure.use(({ ctx, next }) => {
+  if (ctx.user.role !== "admin") {
+    throw new TRPCError3({ code: "FORBIDDEN", message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1C\u0E39\u0E49\u0E14\u0E39\u0E41\u0E25\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19" });
+  }
+  return next();
+});
+var financeProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canManageFinance(ctx.user)) {
+    throw new TRPCError3({ code: "FORBIDDEN", message: "\u0E04\u0E38\u0E13\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E08\u0E31\u0E14\u0E01\u0E32\u0E23\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E01\u0E32\u0E23\u0E40\u0E07\u0E34\u0E19" });
+  }
+  return next();
+});
+var churchLeaderProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canManageChurchSettings(ctx.user)) {
+    throw new TRPCError3({ code: "FORBIDDEN", message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1C\u0E39\u0E49\u0E19\u0E33\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E08\u0E31\u0E01\u0E23\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19" });
+  }
+  return next();
+});
+var newsCategory = z2.enum(["announcement", "ministry", "finance", "pastoral"]);
+var newsStatus = z2.enum(["draft", "published", "archived"]);
+var eventStatus = z2.enum(["draft", "published", "cancelled"]);
+var offeringCategory = z2.enum(["tithe", "general", "mission", "building", "welfare", "special"]);
+var expenseCategory = z2.enum(["utilities", "ministry", "pastoral", "admin", "building", "worship", "welfare", "other"]);
+var paymentMethod = z2.enum(["cash", "transfer", "check"]);
+var churchRoleEnum = z2.enum(["SUPER_ADMIN", "PASTOR", "TREASURER", "MEMBER"]);
+var appRouter = router({
+  system: systemRouter,
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  auth: router({
+    me: publicProcedure.query((opts) => opts.ctx.user),
+    logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true };
+    }),
+    /** Set the church role of a user (SUPER_ADMIN only) */
+    setChurchRole: adminProcedure2.input(z2.object({ userId: z2.number().int().positive(), churchRole: churchRoleEnum.nullable() })).mutation(async ({ input }) => {
+      await updateUserChurchRole(input.userId, input.churchRole);
+      return { success: true };
+    })
+  }),
+  // ── Church Profile ──────────────────────────────────────────────────────────
+  church: router({
+    getProfile: protectedProcedure.query(async () => {
+      return await getChurchProfile();
+    }),
+    updateProfile: churchLeaderProcedure.input(z2.object({
+      name: z2.string().trim().min(2).max(180),
+      address: z2.string().trim().max(1e3).optional(),
+      phone: z2.string().trim().max(20).optional(),
+      email: z2.string().email().max(320).optional().or(z2.literal("")),
+      website: z2.string().url().max(500).optional().or(z2.literal("")),
+      pastorName: z2.string().trim().max(120).optional(),
+      assistantPastorName: z2.string().trim().max(120).optional(),
+      treasurerName: z2.string().trim().max(120).optional(),
+      bankName: z2.string().trim().max(120).optional(),
+      bankAccount: z2.string().trim().max(30).optional(),
+      bankAccountName: z2.string().trim().max(120).optional(),
+      fiscalYearStartMonth: z2.number().int().min(1).max(12).default(1),
+      motto: z2.string().trim().max(280).optional()
+    })).mutation(async ({ input }) => {
+      await upsertChurchProfile({ ...input, churchId: DEFAULT_CHURCH_ID });
+      return { success: true };
+    }),
+    completeSetup: churchLeaderProcedure.mutation(async () => {
+      await markSetupCompleted();
+      return { success: true };
+    })
+  }),
+  // ── Finance Summary ─────────────────────────────────────────────────────────
+  finance: router({
+    summary: protectedProcedure.query(async () => {
+      return await getFinancialSummary();
+    }),
+    monthlyStats: protectedProcedure.input(z2.object({ months: z2.number().int().min(1).max(24).default(6) }).optional()).query(async ({ input }) => {
+      return await getMonthlyStats(DEFAULT_CHURCH_ID, input?.months ?? 6);
+    }),
+    accounts: protectedProcedure.query(async () => {
+      return await listFinanceAccounts();
+    }),
+    createAccount: financeProcedure.input(z2.object({
+      name: z2.string().trim().min(2).max(120),
+      type: z2.enum(["general", "tithe", "mission", "building", "welfare", "special"]).default("general"),
+      description: z2.string().trim().max(500).optional()
+    })).mutation(async ({ input }) => {
+      const id = await createFinanceAccount({ ...input, churchId: DEFAULT_CHURCH_ID });
+      return { id };
+    })
+  }),
+  // ── Offerings ───────────────────────────────────────────────────────────────
+  offerings: router({
+    list: protectedProcedure.input(z2.object({
+      limit: z2.number().int().min(1).max(200).default(50),
+      fromDate: z2.coerce.date().optional(),
+      toDate: z2.coerce.date().optional()
+    }).optional()).query(async ({ ctx, input }) => {
+      const showDonorNames = canViewDonorNames(ctx.user);
+      return await listOfferings(DEFAULT_CHURCH_ID, {
+        limit: input?.limit ?? 50,
+        showDonorNames,
+        fromDate: input?.fromDate,
+        toDate: input?.toDate
+      });
+    }),
+    create: financeProcedure.input(z2.object({
+      amount: z2.number().positive(),
+      category: offeringCategory.default("general"),
+      fundId: z2.number().int().positive().optional(),
+      donorName: z2.string().trim().max(120).optional(),
+      receiptDate: z2.coerce.date().optional(),
+      method: paymentMethod.default("cash"),
+      reference: z2.string().trim().max(120).optional(),
+      notes: z2.string().trim().max(500).optional()
+    })).mutation(async ({ ctx, input }) => {
+      const id = await createOffering({
+        amount: input.amount.toFixed(2),
+        category: input.category,
+        fundId: input.fundId ?? null,
+        donorName: input.donorName ?? null,
+        receiptDate: input.receiptDate ?? /* @__PURE__ */ new Date(),
+        method: input.method,
+        reference: input.reference ?? null,
+        notes: input.notes ?? null,
+        recordedBy: ctx.user.id
+      });
+      return { id };
+    })
+  }),
+  // ── Expenses ────────────────────────────────────────────────────────────────
+  expenses: router({
+    list: protectedProcedure.input(z2.object({
+      limit: z2.number().int().min(1).max(200).default(50),
+      fromDate: z2.coerce.date().optional(),
+      toDate: z2.coerce.date().optional()
+    }).optional()).query(async ({ input }) => {
+      return await listExpenses(DEFAULT_CHURCH_ID, {
+        limit: input?.limit ?? 50,
+        fromDate: input?.fromDate,
+        toDate: input?.toDate
+      });
+    }),
+    create: financeProcedure.input(z2.object({
+      amount: z2.number().positive(),
+      category: expenseCategory.default("other"),
+      fundId: z2.number().int().positive().optional(),
+      description: z2.string().trim().min(2).max(280),
+      details: z2.string().trim().max(1e3).optional(),
+      expenseDate: z2.coerce.date().optional(),
+      payee: z2.string().trim().max(120).optional(),
+      receiptRef: z2.string().trim().max(120).optional()
+    })).mutation(async ({ ctx, input }) => {
+      const id = await createExpense({
+        amount: input.amount.toFixed(2),
+        category: input.category,
+        fundId: input.fundId ?? null,
+        description: input.description,
+        details: input.details ?? null,
+        expenseDate: input.expenseDate ?? /* @__PURE__ */ new Date(),
+        payee: input.payee ?? null,
+        receiptRef: input.receiptRef ?? null,
+        status: "approved",
+        recordedBy: ctx.user.id
+      });
+      return { id };
+    })
+  }),
+  // ── Withdrawal Requests ─────────────────────────────────────────────────────
+  withdrawals: router({
+    list: protectedProcedure.input(z2.object({ myOnly: z2.boolean().default(false) }).optional()).query(async ({ ctx, input }) => {
+      const userId = input?.myOnly ? ctx.user.id : void 0;
+      return await listWithdrawalRequests(DEFAULT_CHURCH_ID, { userId });
+    }),
+    create: protectedProcedure.input(z2.object({
+      amount: z2.number().positive(),
+      purpose: z2.string().trim().min(5).max(280),
+      details: z2.string().trim().max(1e3).optional(),
+      fundId: z2.number().int().positive().optional()
+    })).mutation(async ({ ctx, input }) => {
+      const id = await createWithdrawalRequest({
+        amount: input.amount.toFixed(2),
+        purpose: input.purpose,
+        details: input.details ?? null,
+        fundId: input.fundId ?? null,
+        requestedBy: ctx.user.id,
+        requestDate: /* @__PURE__ */ new Date()
+      });
+      return { id };
+    }),
+    approve: financeProcedure.input(z2.object({
+      id: z2.number().int().positive(),
+      action: z2.enum(["approved", "rejected"]),
+      note: z2.string().trim().max(500).default("")
+    })).mutation(async ({ ctx, input }) => {
+      if (!canApproveWithdrawals(ctx.user)) {
+        throw new TRPCError3({ code: "FORBIDDEN", message: "\u0E04\u0E38\u0E13\u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E34\u0E17\u0E18\u0E34\u0E4C\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E04\u0E33\u0E02\u0E2D\u0E40\u0E1A\u0E34\u0E01" });
+      }
+      await approveWithdrawal(input.id, ctx.user.id, input.action, input.note);
+      return { success: true };
+    }),
+    disburse: financeProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ input }) => {
+      await disburseWithdrawal(input.id);
+      return { success: true };
+    })
+  }),
+  // ── Reports ──────────────────────────────────────────────────────────────────
+  reports: router({
+    financial: protectedProcedure.input(z2.object({
+      fromDate: z2.coerce.date(),
+      toDate: z2.coerce.date()
+    })).query(async ({ input }) => {
+      return await getFinancialReportData(DEFAULT_CHURCH_ID, input.fromDate, input.toDate);
+    }),
+    exportCsv: financeProcedure.input(z2.object({
+      fromDate: z2.coerce.date(),
+      toDate: z2.coerce.date()
+    })).query(async ({ input }) => {
+      const rows = await getFinancialReportData(DEFAULT_CHURCH_ID, input.fromDate, input.toDate);
+      const header = "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48,\u0E1B\u0E23\u0E30\u0E40\u0E20\u0E17,\u0E2B\u0E21\u0E27\u0E14\u0E2B\u0E21\u0E39\u0E48,\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14,\u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 (\u0E1A\u0E32\u0E17),\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E32\u0E07";
+      const lines = rows.map(
+        (r) => [
+          r.date,
+          r.type === "income" ? "\u0E23\u0E32\u0E22\u0E23\u0E31\u0E1A" : "\u0E23\u0E32\u0E22\u0E08\u0E48\u0E32\u0E22",
+          r.category,
+          `"${r.description.replace(/"/g, '""')}"`,
+          r.amount.toFixed(2),
+          r.method ?? "-"
+        ].join(",")
+      );
+      return { csv: [header, ...lines].join("\n"), rowCount: rows.length };
+    })
+  }),
+  // ── Updates (existing) ──────────────────────────────────────────────────────
+  updates: router({
+    feed: protectedProcedure.query(async () => ({
+      news: await listPublishedChurchNews(),
+      events: await listPublishedChurchEvents()
+    })),
+    adminList: adminProcedure2.query(async () => ({
+      news: await listAllChurchNews(),
+      events: await listAllChurchEvents()
+    })),
+    createNews: adminProcedure2.input(z2.object({
+      title: z2.string().trim().min(3).max(180),
+      summary: z2.string().trim().min(3).max(280),
+      body: z2.string().trim().min(3),
+      category: newsCategory,
+      status: newsStatus.default("draft")
+    })).mutation(async ({ ctx, input }) => {
+      const id = await createChurchNews({
+        authorId: ctx.user.id,
+        title: input.title,
+        summary: input.summary,
+        body: input.body,
+        category: input.category,
+        status: input.status,
+        publishedAt: input.status === "published" ? /* @__PURE__ */ new Date() : null
+      });
+      return { id };
+    }),
+    createEvent: adminProcedure2.input(z2.object({
+      title: z2.string().trim().min(3).max(180),
+      summary: z2.string().trim().min(3).max(280),
+      description: z2.string().trim().min(3),
+      startsAt: z2.coerce.date(),
+      endsAt: z2.coerce.date().optional(),
+      location: z2.string().trim().max(180).optional(),
+      registrationUrl: z2.string().url().max(500).optional().or(z2.literal("")),
+      status: eventStatus.default("draft")
+    })).mutation(async ({ ctx, input }) => {
+      const id = await createChurchEvent({
+        authorId: ctx.user.id,
+        title: input.title,
+        summary: input.summary,
+        description: input.description,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt ?? null,
+        location: input.location || null,
+        registrationUrl: input.registrationUrl || null,
+        status: input.status
+      });
+      return { id };
+    }),
+    updateNews: adminProcedure2.input(z2.object({
+      id: z2.number().int().positive(),
+      title: z2.string().trim().min(3).max(180),
+      summary: z2.string().trim().min(3).max(280),
+      body: z2.string().trim().min(3),
+      category: newsCategory,
+      status: newsStatus
+    })).mutation(async ({ input }) => {
+      await updateChurchNews(input.id, {
+        title: input.title,
+        summary: input.summary,
+        body: input.body,
+        category: input.category,
+        status: input.status,
+        publishedAt: input.status === "published" ? /* @__PURE__ */ new Date() : null
+      });
+      return { success: true };
+    }),
+    updateEvent: adminProcedure2.input(z2.object({
+      id: z2.number().int().positive(),
+      title: z2.string().trim().min(3).max(180),
+      summary: z2.string().trim().min(3).max(280),
+      description: z2.string().trim().min(3),
+      startsAt: z2.coerce.date(),
+      endsAt: z2.coerce.date().optional(),
+      location: z2.string().trim().max(180).optional(),
+      registrationUrl: z2.string().url().max(500).optional().or(z2.literal("")),
+      status: eventStatus
+    })).mutation(async ({ input }) => {
+      await updateChurchEvent(input.id, {
+        title: input.title,
+        summary: input.summary,
+        description: input.description,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt ?? null,
+        location: input.location || null,
+        registrationUrl: input.registrationUrl || null,
+        status: input.status
+      });
+      return { success: true };
+    }),
+    setNewsStatus: adminProcedure2.input(z2.object({ id: z2.number().int().positive(), status: newsStatus })).mutation(async ({ input }) => {
+      await updateChurchNewsStatus(input.id, input.status);
+      return { success: true };
+    }),
+    setEventStatus: adminProcedure2.input(z2.object({ id: z2.number().int().positive(), status: eventStatus })).mutation(async ({ input }) => {
+      await updateChurchEventStatus(input.id, input.status);
+      return { success: true };
+    }),
+    deleteNews: adminProcedure2.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ input }) => {
+      await deleteChurchNews(input.id);
+      return { success: true };
+    }),
+    deleteEvent: adminProcedure2.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ input }) => {
+      await deleteChurchEvent(input.id);
+      return { success: true };
+    })
+  })
+});
+
+// server/_core/context.ts
+async function createContext(opts) {
+  let user = null;
+  try {
+    user = await sdk.authenticateRequest(opts.req);
+  } catch (error) {
+    user = null;
+  }
+  return {
+    req: opts.req,
+    res: opts.res,
+    user
+  };
+}
+
+// server/_core/app.ts
+function createApp() {
+  const app2 = express();
+  app2.use(express.json({ limit: "50mb" }));
+  app2.use(express.urlencoded({ limit: "50mb", extended: true }));
+  registerStorageProxy(app2);
+  registerOAuthRoutes(app2);
+  app2.use(
+    "/api/trpc",
+    createExpressMiddleware({
+      router: appRouter,
+      createContext
+    })
+  );
+  return app2;
+}
+
+// server/_core/apiHandler.ts
+var app = createApp();
+var apiHandler_default = app;
+export {
+  apiHandler_default as default
+};

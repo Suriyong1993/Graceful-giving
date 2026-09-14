@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { createApp } from "../server/_core/app";
+import { createApp } from "./app";
 
 const app = createApp();
 
