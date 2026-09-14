@@ -138,6 +138,9 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                 <Link
                   href={path}
                   aria-current={active ? "page" : undefined}
+                  onFocus={e =>
+                    e.currentTarget.scrollIntoView({ block: "nearest" })
+                  }
                   className={`flex min-h-12 items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium ${
                     active
                       ? "border-[#E9D9BF] bg-[#FFF4DF] font-bold text-[#70452E]"

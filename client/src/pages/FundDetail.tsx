@@ -26,7 +26,9 @@ export default function FundDetail() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const fundId = Number(params.id) || 1;
-  const [activeTab, setActiveTab] = useState<"transactions" | "governance" | "budget">("transactions");
+  const [activeTab, setActiveTab] = useState<
+    "transactions" | "governance" | "budget"
+  >("transactions");
   const [showTransferModal, setShowTransferModal] = useState(false);
 
   // Mock fund directory
@@ -38,8 +40,13 @@ export default function FundDetail() {
       target: 300000,
       inflowMonth: 48200,
       outflowMonth: 32500,
-      signers: ["อ.ประสิทธิ์ (ศิษยาภิบาล)", "คุณมาลี (เหรัญญิก)", "คุณสมชาย (มัคนายก)"],
-      description: "ใช้สำหรับค่าใช้จ่ายดำเนินงานประจำวัน ค่าน้ำ ค่าไฟ และบำรุงรักษาทั่วไปของคริสตจักร",
+      signers: [
+        "อ.ประสิทธิ์ (ศิษยาภิบาล)",
+        "คุณมาลี (เหรัญญิก)",
+        "คุณสมชาย (มัคนายก)",
+      ],
+      description:
+        "ใช้สำหรับค่าใช้จ่ายดำเนินงานประจำวัน ค่าน้ำ ค่าไฟ และบำรุงรักษาทั่วไปของคริสตจักร",
       budgetUtilization: 68,
     },
     2: {
@@ -50,7 +57,8 @@ export default function FundDetail() {
       inflowMonth: 18500,
       outflowMonth: 14000,
       signers: ["อ.ประสิทธิ์ (ศิษยาภิบาล)", "คุณวิชัย (หัวหน้าพันธกิจ)"],
-      description: "สนับสนุนผู้ประกาศ งานมิชชันต่างจังหวัด และการบุกเบิกคริสตจักรลูก",
+      description:
+        "สนับสนุนผู้ประกาศ งานมิชชันต่างจังหวัด และการบุกเบิกคริสตจักรลูก",
       budgetUtilization: 77,
     },
     3: {
@@ -61,7 +69,8 @@ export default function FundDetail() {
       inflowMonth: 35000,
       outflowMonth: 5500,
       signers: ["คุณสมชาย (ประธานฝ่ายอาคาร)", "คุณมาลี (เหรัญญิก)"],
-      description: "โครงการปรับปรุงอาคารเรียนรวีวารศึกษาและระบบระบายอากาศห้องนมัสการ",
+      description:
+        "โครงการปรับปรุงอาคารเรียนรวีวารศึกษาและระบบระบายอากาศห้องนมัสการ",
       budgetUtilization: 25,
     },
     4: {
@@ -72,7 +81,8 @@ export default function FundDetail() {
       inflowMonth: 8200,
       outflowMonth: 6000,
       signers: ["คุณวรรณา (ฝ่ายสงเคราะห์)", "คุณมาลี (เหรัญญิก)"],
-      description: "ช่วยเหลือสมาชิกยามฉุกเฉิน ค่ารักษาพยาบาล และถุงยังชีพชุมชนรอบโบสถ์",
+      description:
+        "ช่วยเหลือสมาชิกยามฉุกเฉิน ค่ารักษาพยาบาล และถุงยังชีพชุมชนรอบโบสถ์",
       budgetUtilization: 60,
     },
   }[fundId] || {
@@ -185,9 +195,14 @@ export default function FundDetail() {
           {/* Metrics Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="bg-white p-4 rounded-2xl border border-[#E9D9BF]/80 shadow-inner">
-              <p className="text-xs text-[#70452E]/70 font-medium">ยอดคงเหลือสุทธิ</p>
+              <p className="text-xs text-[#70452E]/70 font-medium">
+                ยอดคงเหลือสุทธิ
+              </p>
               <p className="text-2xl font-bold text-[#38251B] mt-1">
-                ฿{fundInfo.balance.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                ฿
+                {fundInfo.balance.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                })}
               </p>
               <p className="text-[11px] text-[#70452E]/60 mt-0.5">
                 เป้าหมายสำรอง ฿{fundInfo.target.toLocaleString()}
@@ -200,9 +215,14 @@ export default function FundDetail() {
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
               </div>
               <p className="text-2xl font-bold text-emerald-700 mt-1">
-                +฿{fundInfo.inflowMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                +฿
+                {fundInfo.inflowMonth.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                })}
               </p>
-              <p className="text-[11px] text-emerald-800/60 mt-0.5">เงินถวายและโอนเข้า</p>
+              <p className="text-[11px] text-emerald-800/60 mt-0.5">
+                เงินถวายและโอนเข้า
+              </p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-[#E9D9BF]/80 shadow-inner">
@@ -211,9 +231,14 @@ export default function FundDetail() {
                 <TrendingDown className="w-3.5 h-3.5 text-rose-600" />
               </div>
               <p className="text-2xl font-bold text-rose-700 mt-1">
-                -฿{fundInfo.outflowMonth.toLocaleString("th-TH", { minimumFractionDigits: 2 })}
+                -฿
+                {fundInfo.outflowMonth.toLocaleString("th-TH", {
+                  minimumFractionDigits: 2,
+                })}
               </p>
-              <p className="text-[11px] text-rose-800/60 mt-0.5">เบิกจ่ายตามพันธกิจ</p>
+              <p className="text-[11px] text-rose-800/60 mt-0.5">
+                เบิกจ่ายตามพันธกิจ
+              </p>
             </div>
           </div>
         </div>
@@ -256,7 +281,7 @@ export default function FundDetail() {
             </div>
 
             <div className="divide-y divide-[#E9D9BF]/40">
-              {fundTransactions.map((tx) => (
+              {fundTransactions.map(tx => (
                 <div
                   key={tx.id}
                   onClick={() => setLocation(`/transactions/${tx.id}`)}
@@ -281,7 +306,8 @@ export default function FundDetail() {
                       {tx.description}
                     </p>
                     <p className="text-xs text-[#70452E]/70">
-                      {new Date(tx.date).toLocaleDateString("th-TH")} • บันทึกโดย: {tx.recordedBy}
+                      {new Date(tx.date).toLocaleDateString("th-TH")} •
+                      บันทึกโดย: {tx.recordedBy}
                     </p>
                   </div>
                   <div className="text-right">
@@ -290,7 +316,9 @@ export default function FundDetail() {
                       type={tx.type as any}
                       size="sm"
                     />
-                    <p className="text-[11px] text-[#70452E]/60 mt-1">สมบูรณ์</p>
+                    <p className="text-[11px] text-[#70452E]/60 mt-1">
+                      สมบูรณ์
+                    </p>
                   </div>
                 </div>
               ))}
@@ -306,7 +334,8 @@ export default function FundDetail() {
                 การกำกับดูแลและการอนุมัติกองทุน
               </h3>
               <p className="text-xs text-[#70452E]/70">
-                การเบิกจ่ายจากกองทุนนี้ต้องได้รับความเห็นชอบจากผู้มีอำนาจลงนามอย่างน้อย 2 ใน 3 ท่าน
+                การเบิกจ่ายจากกองทุนนี้ต้องได้รับความเห็นชอบจากผู้มีอำนาจลงนามอย่างน้อย
+                2 ใน 3 ท่าน
               </p>
             </div>
 
@@ -319,8 +348,12 @@ export default function FundDetail() {
                   <div className="w-10 h-10 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E] font-bold text-sm">
                     {idx + 1}
                   </div>
-                  <p className="font-semibold text-sm text-[#38251B]">{signer}</p>
-                  <p className="text-xs text-[#70452E]/70">ผู้มีอำนาจลงนามเบิกจ่าย</p>
+                  <p className="font-semibold text-sm text-[#38251B]">
+                    {signer}
+                  </p>
+                  <p className="text-xs text-[#70452E]/70">
+                    ผู้มีอำนาจลงนามเบิกจ่าย
+                  </p>
                 </div>
               ))}
             </div>
@@ -328,9 +361,17 @@ export default function FundDetail() {
             <div className="p-4 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] text-xs text-[#70452E] leading-relaxed space-y-2">
               <p className="font-bold text-[#38251B]">ข้อกำหนดของกองทุน:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>การเบิกเกิน 10,000 บาท ต้องแนบเอกสารเสนอโครงการต่อคณะกรรมการคริสตจักร</li>
-                <li>สรุปรายงานยอดเงินคงเหลือและใบเสร็จทุกสิ้นเดือนให้แก่ที่ประชุมมัคนายก</li>
-                <li>เงินถวายที่มีผู้ระบุเจาะจง ห้ามโอนย้ายไปยังกองทุนอื่นโดยไม่ได้รับความยินยอม</li>
+                <li>
+                  การเบิกเกิน 10,000 บาท
+                  ต้องแนบเอกสารเสนอโครงการต่อคณะกรรมการคริสตจักร
+                </li>
+                <li>
+                  สรุปรายงานยอดเงินคงเหลือและใบเสร็จทุกสิ้นเดือนให้แก่ที่ประชุมมัคนายก
+                </li>
+                <li>
+                  เงินถวายที่มีผู้ระบุเจาะจง
+                  ห้ามโอนย้ายไปยังกองทุนอื่นโดยไม่ได้รับความยินยอม
+                </li>
               </ul>
             </div>
           </div>
@@ -339,14 +380,16 @@ export default function FundDetail() {
         {/* Transfer Fund Modal */}
         {showTransferModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   โอนเงินระหว่างกองทุน
                 </h3>
                 <button
                   onClick={() => setShowTransferModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -354,7 +397,9 @@ export default function FundDetail() {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-[#38251B]">โอนจากกองทุน</label>
+                  <label className="font-semibold text-[#38251B]">
+                    โอนจากกองทุน
+                  </label>
                   <input
                     type="text"
                     disabled
@@ -363,7 +408,9 @@ export default function FundDetail() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">ไปยังกองทุน</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ไปยังกองทุน
+                  </label>
                   <select className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white font-medium text-[#38251B] mt-1">
                     <option>บัญชีทั่วไป (General Operating Fund)</option>
                     <option>กองทุนพันธกิจและประกาศ (Mission Fund)</option>
@@ -372,7 +419,9 @@ export default function FundDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">จำนวนเงิน (บาท)</label>
+                  <label className="font-semibold text-[#38251B]">
+                    จำนวนเงิน (บาท)
+                  </label>
                   <input
                     type="number"
                     placeholder="0.00"
@@ -380,7 +429,9 @@ export default function FundDetail() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">เหตุผลการโอน</label>
+                  <label className="font-semibold text-[#38251B]">
+                    เหตุผลการโอน
+                  </label>
                   <textarea
                     rows={2}
                     placeholder="ระบุวัตถุประสงค์ในการย้ายยอดเงิน..."

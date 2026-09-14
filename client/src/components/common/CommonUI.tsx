@@ -267,6 +267,12 @@ export const FilterBar: React.FC<{
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onFilterChange(f.id)}
+                onFocus={e =>
+                  e.currentTarget.scrollIntoView({
+                    block: "nearest",
+                    inline: "nearest",
+                  })
+                }
                 className={`min-h-11 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
                     ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"

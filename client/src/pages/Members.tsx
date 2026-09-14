@@ -132,14 +132,13 @@ export default function Members() {
   }, []);
 
   const filteredMembers = useMemo(() => {
-    return membersList.filter((m) => {
+    return membersList.filter(m => {
       const matchSearch =
         m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.phone.includes(searchTerm) ||
         m.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         m.code.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus =
-        statusFilter === "all" || m.status === statusFilter;
+      const matchStatus = statusFilter === "all" || m.status === statusFilter;
       return matchSearch && matchStatus;
     });
   }, [membersList, searchTerm, statusFilter]);
@@ -158,10 +157,11 @@ export default function Members() {
   };
 
   const exportCSV = () => {
-    const headers = "รหัสสมาชิก,ชื่อ-นามสกุล,บทบาท,ฝ่ายงาน,เบอร์โทร,อีเมล,กลุ่มแคร์,สถานะ\n";
+    const headers =
+      "รหัสสมาชิก,ชื่อ-นามสกุล,บทบาท,ฝ่ายงาน,เบอร์โทร,อีเมล,กลุ่มแคร์,สถานะ\n";
     const rows = filteredMembers
       .map(
-        (m) =>
+        m =>
           `"${m.code}","${m.name}","${m.role}","${m.ministry}","${m.phone}","${m.email}","${m.cellGroup}","${m.status}"`
       )
       .join("\n");
@@ -171,7 +171,10 @@ export default function Members() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `church-members-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      "download",
+      `church-members-${new Date().toISOString().slice(0, 10)}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -218,24 +221,40 @@ export default function Members() {
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <p className="text-xs text-[#70452E]/70 font-semibold">สมาชิกทั้งหมด</p>
+            <p className="text-xs text-[#70452E]/70 font-semibold">
+              สมาชิกทั้งหมด
+            </p>
             <p className="text-2xl font-bold text-[#38251B] mt-1">128 คน</p>
-            <p className="text-[11px] text-[#70452E]/60 mt-0.5">ในระบบทะเบียน</p>
+            <p className="text-[11px] text-[#70452E]/60 mt-0.5">
+              ในระบบทะเบียน
+            </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <p className="text-xs text-[#70452E]/70 font-semibold">รับบัพติศมาแล้ว</p>
+            <p className="text-xs text-[#70452E]/70 font-semibold">
+              รับบัพติศมาแล้ว
+            </p>
             <p className="text-2xl font-bold text-emerald-700 mt-1">112 คน</p>
-            <p className="text-[11px] text-emerald-800/60 mt-0.5">สมาชิกสมบูรณ์</p>
+            <p className="text-[11px] text-emerald-800/60 mt-0.5">
+              สมาชิกสมบูรณ์
+            </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <p className="text-xs text-[#70452E]/70 font-semibold">ผู้รับใช้ในฝ่ายงาน</p>
+            <p className="text-xs text-[#70452E]/70 font-semibold">
+              ผู้รับใช้ในฝ่ายงาน
+            </p>
             <p className="text-2xl font-bold text-[#E99A4A] mt-1">64 คน</p>
-            <p className="text-[11px] text-[#70452E]/60 mt-0.5">ครอบคลุม 8 ฝ่าย</p>
+            <p className="text-[11px] text-[#70452E]/60 mt-0.5">
+              ครอบคลุม 8 ฝ่าย
+            </p>
           </div>
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <p className="text-xs text-[#70452E]/70 font-semibold">ผู้เชื่อใหม่ / ผู้สนใจ</p>
+            <p className="text-xs text-[#70452E]/70 font-semibold">
+              ผู้เชื่อใหม่ / ผู้สนใจ
+            </p>
             <p className="text-2xl font-bold text-sky-700 mt-1">16 คน</p>
-            <p className="text-[11px] text-sky-800/60 mt-0.5">กำลังเรียนพระคัมภีร์</p>
+            <p className="text-[11px] text-sky-800/60 mt-0.5">
+              กำลังเรียนพระคัมภีร์
+            </p>
           </div>
         </div>
 
@@ -277,7 +296,7 @@ export default function Members() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9D9BF]/40">
-                  {filteredMembers.map((m) => (
+                  {filteredMembers.map(m => (
                     <tr
                       key={m.id}
                       onClick={() => setLocation(`/members/${m.id}`)}
@@ -291,7 +310,9 @@ export default function Members() {
                           <div className="w-8 h-8 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E] font-bold text-xs">
                             {m.name.slice(0, 1)}
                           </div>
-                          <span className="font-semibold text-[#38251B]">{m.name}</span>
+                          <span className="font-semibold text-[#38251B]">
+                            {m.name}
+                          </span>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-xs text-[#70452E]/80 whitespace-nowrap">
@@ -307,7 +328,11 @@ export default function Members() {
                         {m.phone}
                       </td>
                       <td className="py-4 px-6 text-center whitespace-nowrap">
-                        <StatusBadge status={m.status === "active" ? "completed" : "pending"} />
+                        <StatusBadge
+                          status={
+                            m.status === "active" ? "completed" : "pending"
+                          }
+                        />
                       </td>
                     </tr>
                   ))}
@@ -317,7 +342,7 @@ export default function Members() {
 
             {/* Mobile View */}
             <div className="md:hidden divide-y divide-[#E9D9BF]/40">
-              {filteredMembers.map((m) => (
+              {filteredMembers.map(m => (
                 <div
                   key={m.id}
                   onClick={() => setLocation(`/members/${m.id}`)}
@@ -328,12 +353,18 @@ export default function Members() {
                       {m.name.slice(0, 1)}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-[#38251B] truncate">{m.name}</p>
-                      <p className="text-xs text-[#70452E]/70">{m.role} • {m.ministry}</p>
+                      <p className="font-semibold text-sm text-[#38251B] truncate">
+                        {m.name}
+                      </p>
+                      <p className="text-xs text-[#70452E]/70">
+                        {m.role} • {m.ministry}
+                      </p>
                       <p className="text-[11px] text-[#70452E]/60">{m.phone}</p>
                     </div>
                   </div>
-                  <StatusBadge status={m.status === "active" ? "completed" : "pending"} />
+                  <StatusBadge
+                    status={m.status === "active" ? "completed" : "pending"}
+                  />
                 </div>
               ))}
             </div>
@@ -343,14 +374,16 @@ export default function Members() {
         {/* Add Member Modal */}
         {showAddMemberModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   เพิ่มสมาชิกใหม่
                 </h3>
                 <button
                   onClick={() => setShowAddMemberModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -358,23 +391,27 @@ export default function Members() {
 
               <form onSubmit={handleAddMember} className="space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-[#38251B]">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
+                  <label className="font-semibold text-[#38251B]">
+                    ชื่อ-นามสกุล <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
                     placeholder="เช่น คุณมานพ พงษ์ไพบูลย์"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onChange={e => setNewName(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] mt-1"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">เบอร์โทรศัพท์</label>
+                  <label className="font-semibold text-[#38251B]">
+                    เบอร์โทรศัพท์
+                  </label>
                   <input
                     type="tel"
                     placeholder="08x-xxx-xxxx"
                     value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
+                    onChange={e => setNewPhone(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] mt-1"
                   />
                 </div>
@@ -384,15 +421,17 @@ export default function Members() {
                     type="email"
                     placeholder="member@email.com"
                     value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
+                    onChange={e => setNewEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] mt-1"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#38251B]">ฝ่ายงานที่สนใจรับใช้</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ฝ่ายงานที่สนใจรับใช้
+                  </label>
                   <select
                     value={newMinistry}
-                    onChange={(e) => setNewMinistry(e.target.value)}
+                    onChange={e => setNewMinistry(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white font-medium mt-1"
                   >
                     <option>ฝ่ายนมัสการและดนตรี</option>

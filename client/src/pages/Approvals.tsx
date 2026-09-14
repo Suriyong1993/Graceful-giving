@@ -21,15 +21,18 @@ import {
 import { toast } from "sonner";
 
 export default function Approvals() {
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "approved" | "rejected"
+  >("pending");
   const [selectedReq, setSelectedReq] = useState<any | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
 
-  const { data: withdrawalsData, isLoading, refetch } = trpc.withdrawals.list.useQuery(
-    undefined,
-    { retry: false }
-  );
+  const {
+    data: withdrawalsData,
+    isLoading,
+    refetch,
+  } = trpc.withdrawals.list.useQuery(undefined, { retry: false });
 
   const approveMutation = trpc.withdrawals.approve.useMutation({
     onSuccess: () => {
@@ -110,7 +113,7 @@ export default function Approvals() {
   }, [withdrawalsData]);
 
   const filteredRequests = useMemo(() => {
-    return requests.filter((r) => r.status === activeTab);
+    return requests.filter(r => r.status === activeTab);
   }, [requests, activeTab]);
 
   const handleApprove = (id: number) => {
@@ -164,7 +167,10 @@ export default function Approvals() {
             }`}
           >
             <Clock className="w-4 h-4 text-[#E99A4A]" />
-            <span>รอดำเนินการ ({requests.filter((r) => r.status === "pending").length})</span>
+            <span>
+              รอดำเนินการ ({requests.filter(r => r.status === "pending").length}
+              )
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("approved")}
@@ -175,7 +181,10 @@ export default function Approvals() {
             }`}
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>อนุมัติแล้ว ({requests.filter((r) => r.status === "approved").length})</span>
+            <span>
+              อนุมัติแล้ว (
+              {requests.filter(r => r.status === "approved").length})
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("rejected")}
@@ -186,7 +195,10 @@ export default function Approvals() {
             }`}
           >
             <XCircle className="w-4 h-4 text-rose-600" />
-            <span>ไม่อนุมัติ ({requests.filter((r) => r.status === "rejected").length})</span>
+            <span>
+              ไม่อนุมัติ ({requests.filter(r => r.status === "rejected").length}
+              )
+            </span>
           </button>
         </div>
 
@@ -198,7 +210,7 @@ export default function Approvals() {
           />
         ) : (
           <div className="space-y-4">
-            {filteredRequests.map((req) => (
+            {filteredRequests.map(req => (
               <div
                 key={req.id}
                 className="bg-white rounded-3xl border border-[#E9D9BF] p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
@@ -211,7 +223,15 @@ export default function Approvals() {
                     <span className="text-xs font-medium text-[#70452E] bg-[#FFF4DF] px-2.5 py-0.5 rounded-full border border-[#E9D9BF]/60">
                       {req.fund}
                     </span>
-                    <StatusBadge status={req.status === "pending" ? "pending" : req.status === "approved" ? "completed" : "failed"} />
+                    <StatusBadge
+                      status={
+                        req.status === "pending"
+                          ? "pending"
+                          : req.status === "approved"
+                            ? "completed"
+                            : "failed"
+                      }
+                    />
                   </div>
 
                   <h3 className="text-base font-bold text-[#38251B]">
@@ -228,7 +248,10 @@ export default function Approvals() {
                       {req.requester}
                     </span>
                     <span>•</span>
-                    <span>ยื่นคำขอเมื่อ {new Date(req.date).toLocaleDateString("th-TH")}</span>
+                    <span>
+                      ยื่นคำขอเมื่อ{" "}
+                      {new Date(req.date).toLocaleDateString("th-TH")}
+                    </span>
                   </div>
                 </div>
 
@@ -236,7 +259,11 @@ export default function Approvals() {
                 <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-[#E9D9BF]/40 flex-shrink-0">
                   <div className="text-left md:text-right">
                     <p className="text-xs text-[#70452E]/60">ยอดขอเบิก</p>
-                    <MoneyDisplay amount={req.amount} type="expense" size="md" />
+                    <MoneyDisplay
+                      amount={req.amount}
+                      type="expense"
+                      size="md"
+                    />
                   </div>
 
                   {req.status === "pending" && (
@@ -267,14 +294,16 @@ export default function Approvals() {
         {/* Reject Reason Modal */}
         {showRejectModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-[#38251B]">
                   ระบุเหตุผลที่ไม่อนุมัติ
                 </h3>
                 <button
                   onClick={() => setShowRejectModal(false)}
-                  className="text-[#70452E]/60 hover:text-[#38251B] text-xl font-bold"
+                  type="button"
+                  aria-label="ปิด"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
                 >
                   ×
                 </button>
@@ -289,7 +318,7 @@ export default function Approvals() {
                   required
                   placeholder="เช่น เอกสารใบเสนอราคาไม่ครบถ้วน, เกินงบประมาณที่จัดสรรไว้..."
                   value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  onChange={e => setRejectReason(e.target.value)}
                   className="w-full p-3 rounded-2xl border border-[#E9D9BF] text-xs text-[#38251B] focus:outline-none focus:border-rose-400"
                 />
               </div>
