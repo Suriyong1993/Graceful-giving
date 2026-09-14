@@ -18,8 +18,10 @@ import {
   Heart,
   HeartHandshake,
   Home as HomeIcon,
+  Info,
   Landmark,
   Layers,
+  Loader2,
   MoreHorizontal,
   PieChart,
   Plus,
@@ -70,6 +72,14 @@ function pctChange(current: number, prev: number) {
   if (prev === 0) return current > 0 ? "+∞%" : "0%";
   const pct = ((current - prev) / prev) * 100;
   return `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%`;
+}
+
+function trendArrow(trend: string) {
+  return trend.trim().startsWith("-") ? "↓" : "↑";
+}
+
+function trendValue(trend: string) {
+  return trend.replace(/^[+\-↑↓]\s*/, "");
 }
 
 function fmtThaiDate(d: Date | string) {
@@ -268,7 +278,11 @@ export default function Home() {
   });
 
   // tRPC Queries with resilient fallback
-  const { data: summaryData } = trpc.finance.summary.useQuery(undefined, {
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    isError: summaryError,
+  } = trpc.finance.summary.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
   });
@@ -377,12 +391,13 @@ export default function Home() {
   const expenseTrend = summaryData
     ? pctChange(summaryData.monthlyExpense, summaryData.prevMonthExpense)
     : "↑ 8%";
-  const balanceTrend = summaryData
-    ? pctChange(
-        netMonthly,
-        summaryData.prevMonthIncome - summaryData.prevMonthExpense
-      )
-    : "↑ 15%";
+  // Data-source status: distinguishes "still loading", "backend unavailable
+  // so showing bundled sample figures", and "real figures loaded" so the
+  // dashboard never lets a fallback number pass as a real balance.
+  const isBalanceLoading = summaryLoading;
+  const isSampleData = !summaryLoading && (summaryError || !summaryData);
+  const isPositiveBalance = totalBalance >= 0;
+  const isPositiveNet = netMonthly >= 0;
 
   const chartData =
     monthlyStatsData && monthlyStatsData.length > 0
@@ -785,71 +800,58 @@ export default function Home() {
                   Mobile Layout: Responsive stack with image below/behind branding with complete legibility */}
               <section
                 aria-label="Grace-giving ส่วนต้อนรับ"
-                className="relative rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-5 md:p-7"
+                className="relative rounded-[28px] md:rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-3.5 sm:p-5 md:p-7"
               >
                 {/* Notification Bell (Top-Right) */}
-                <div className="absolute top-4 right-4 z-20">
+                <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                   <button
                     onClick={() => setNewsOpen(true)}
-                    className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/95 border border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#70452E] hover:bg-white transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full bg-white/95 border border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#70452E] hover:bg-white transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                     aria-label="การแจ้งเตือนและข่าวสารคริสตจักร"
                   >
-                    <Bell className="w-5 h-5 text-[#70452E]" />
-                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#E06250] ring-2 ring-white" />
+                    <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#70452E]" />
+                    <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#E06250] ring-2 ring-white" />
                   </button>
                 </div>
 
                 {/* Hero Content Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-5 items-center relative z-10">
                   {/* Left Column: Stacked Typography, Tagline, Bible Verse */}
-                  <div className="min-w-0 md:col-span-7 space-y-3.5">
-                    {/* Stacked "Grace" + "Ledger" Typography matching reference */}
+                  <div className="min-w-0 md:col-span-7 space-y-1.5 sm:space-y-3.5">
+                    {/* Stacked "Grace" + "Ledger" Typography — compact on mobile so balance is visible without scrolling */}
                     <h1 className="flex flex-col">
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-4xl sm:text-5xl md:text-6xl font-black text-[#38251B] tracking-tight leading-none font-display">
+                      <span className="flex items-center gap-1 sm:gap-1.5">
+                        <span className="text-2xl sm:text-5xl md:text-6xl font-black text-[#38251B] tracking-tight leading-none font-display">
                           Grace
                         </span>
-                        <span className="text-[#A8C978] -mt-3 sm:-mt-4">
-                          <Sprout className="w-8 h-8 sm:w-10 sm:h-10 stroke-[2.5]" />
+                        <span className="text-[#A8C978] -mt-1.5 sm:-mt-4">
+                          <Sprout className="w-5 h-5 sm:w-10 sm:h-10 stroke-[2.5]" />
                         </span>
                       </span>
-                      <span className="text-4xl sm:text-5xl md:text-6xl font-black text-[#E99A4A] tracking-tight leading-none font-display">
+                      <span className="text-2xl sm:text-5xl md:text-6xl font-black text-[#E99A4A] tracking-tight leading-none font-display">
                         Ledger
                       </span>
                     </h1>
 
-                    <p className="text-sm md:text-base font-bold text-[#38251B]/90">
+                    <p className="hidden sm:block text-sm md:text-base font-bold text-[#38251B]/90">
                       การเงินเชื่อมใจ เพื่อพันธกิจของพระเจ้า
                     </p>
 
-                    {/* Bible Pill Badge */}
-                    <div className="inline-flex flex-wrap items-center gap-1.5 px-3.5 py-1.5 rounded-2xl bg-white/95 border border-[#E9D9BF] shadow-2xs text-xs leading-relaxed text-[#70452E]">
-                      <span className="whitespace-nowrap font-extrabold text-[#E99A4A]">
+                    {/* Bible Pill Badge — single line, truncates on mobile to save height */}
+                    <div className="inline-flex flex-nowrap items-center gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full sm:rounded-2xl bg-white/95 border border-[#E9D9BF] text-[11px] sm:text-xs leading-relaxed text-[#70452E] max-w-full">
+                      <span className="whitespace-nowrap font-extrabold text-[#E99A4A] shrink-0">
                         2 โครินธ์ 9:7
                       </span>
-                      <span className="text-[#70452E] font-medium">
+                      <span className="text-[#70452E] font-medium truncate">
                         “ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก”
                       </span>
                     </div>
-
-                    {/* Mobile Speech Bubble Card */}
-                    <div className="md:hidden bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] shadow-2xs text-xs space-y-1 mt-3">
-                      <p className="text-[#70452E] font-medium leading-relaxed">
-                        ทุกสิ่งที่ท่านให้เพื่อการงานของพระเจ้า ย่อมเกิดผลเสมอ
-                      </p>
-                      <div className="flex items-center justify-between pt-1 border-t border-[#E9D9BF]/50">
-                        <span className="text-[10px] text-[#927D6D] font-bold">
-                          1 โครินธ์ 15:58
-                        </span>
-                        <span className="text-[#A8C978]">🌱</span>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image (35-45% on desktop) */}
-                  <div className="min-w-0 md:col-span-5 flex flex-col sm:flex-row md:flex-col items-center justify-center gap-3 pt-2 md:pt-10">
+                  {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image — shrunk on mobile so the balance card sits above the fold */}
+                  <div className="min-w-0 md:col-span-5 flex flex-col sm:flex-row md:flex-col items-center justify-center gap-3 pt-1.5 sm:pt-2 md:pt-10">
                     {/* Desktop Scripture Speech Card */}
-                    <div className="hidden md:block w-full max-w-56 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] shadow-xs text-xs space-y-1.5">
+                    <div className="hidden md:block w-full max-w-56 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] text-xs space-y-1.5">
                       <p className="text-[#70452E] font-medium leading-relaxed">
                         ทุกสิ่งที่ท่านให้เพื่อการงานของพระเจ้า ย่อมเกิดผลเสมอ
                       </p>
@@ -862,7 +864,7 @@ export default function Home() {
                     </div>
 
                     {/* 3D Clay Jesus & Fluffy Lamb Illustration */}
-                    <div className="relative w-full sm:w-48 md:w-full md:max-w-56 h-52 sm:h-64 rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
+                    <div className="relative w-24 h-24 sm:w-48 sm:h-64 md:w-full md:max-w-56 md:h-64 rounded-2xl sm:rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
                       <Illustration
                         src="/illustrations/hero_jesus_shepherd.jpg"
                         alt="พระเยซูคริสต์และลูกแกะ"
@@ -877,15 +879,16 @@ export default function Home() {
               </section>
 
               {/* ─── 2. BALANCE CARD ("ยอดเงินคงเหลือรวม") ─────────────────── */}
-              {/* Highest priority visual element: large prominent numbers with green accent */}
+              {/* Highest priority visual element: large prominent numbers with
+                  status-based color (never color alone — always paired with text) */}
               <section
                 aria-label="ยอดเงินคงเหลือรวม"
-                className="bg-gradient-to-br from-white via-white to-[#F7FBF4] rounded-[30px] p-5 md:p-7 border border-[#DCECC5]/90 clay-card-shadow relative overflow-hidden"
+                className={`bg-gradient-to-br from-white via-white to-[#F7FBF4] rounded-[30px] p-5 md:p-7 border relative overflow-hidden ${isPositiveBalance ? "border-[#DCECC5]/90" : "border-[#F2C9BE]"} clay-card-shadow`}
               >
                 <div className="flex items-center justify-between gap-4">
                   {/* Left: Prominent financial figures */}
                   <div className="min-w-0 flex-1 space-y-1.5 z-10">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-sm md:text-base font-bold text-[#38251B]">
                         ยอดเงินคงเหลือรวม
                       </h2>
@@ -901,15 +904,52 @@ export default function Home() {
                           <EyeOff className="w-4 h-4" />
                         )}
                       </button>
+
+                      {/* Data-source status — kept visually separate from the
+                          amount itself so a sample/loading state is never
+                          mistaken for a real balance */}
+                      {isBalanceLoading && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#F0EAF8] text-[#7D3C98] text-[10px] font-bold">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          กำลังโหลดข้อมูล
+                        </span>
+                      )}
+                      {isSampleData && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF3DF] border border-dashed border-[#E9C179] text-[#946A1E] text-[10px] font-bold">
+                          <Info className="w-3 h-3" />
+                          {summaryError
+                            ? "เชื่อมต่อไม่สำเร็จ · แสดงข้อมูลตัวอย่าง"
+                            : "ข้อมูลตัวอย่าง"}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="break-words text-3xl sm:text-4xl md:text-5xl font-black text-[#1b5e3a] tracking-tight tabular-nums">
-                      {showBalance ? fmtBaht(totalBalance) : "฿ ••••••••"}
-                    </div>
+                    {isBalanceLoading ? (
+                      <div
+                        className="h-9 sm:h-11 md:h-12 w-44 sm:w-56 rounded-xl bg-[#EDE6D8] animate-pulse"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <div
+                        className={`break-words text-3xl sm:text-4xl md:text-5xl font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#1b5e3a]" : "text-[#B3261E]"}`}
+                      >
+                        {showBalance ? fmtBaht(totalBalance) : "฿ ••••••••"}
+                      </div>
+                    )}
 
-                    <p className="text-xs text-[#927D6D] font-medium flex items-center gap-1 pt-0.5">
-                      <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
-                      <span className="text-[#A8C978]">♥</span>
+                    <p className="text-xs text-[#5E4C3E] font-medium flex items-center gap-1 pt-0.5">
+                      {isBalanceLoading ? (
+                        <span>กำลังตรวจสอบยอดเงินล่าสุด…</span>
+                      ) : isPositiveBalance ? (
+                        <>
+                          <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
+                          <span className="text-[#A8C978]">♥</span>
+                        </>
+                      ) : (
+                        <span className="text-[#B3261E] font-semibold">
+                          ยอดคงเหลือติดลบ — ควรตรวจสอบรายจ่าย
+                        </span>
+                      )}
                     </p>
 
                     <div className="pt-2">
@@ -926,7 +966,7 @@ export default function Home() {
 
                   {/* Right: Decorative balance_wallet.jpg tucked cleanly in corner */}
                   <div className="hidden sm:block shrink-0 z-10">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-[24px] overflow-hidden border border-[#E9D9BF]/80 shadow-2xs bg-[#FFF8EB] p-1">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-[24px] overflow-hidden border border-[#E9D9BF]/80 bg-[#FFF8EB] p-1">
                       <Illustration
                         src="/illustrations/balance_wallet.jpg"
                         alt="กระเป๋าสตางค์ยอดคงเหลือ"
@@ -945,9 +985,10 @@ export default function Home() {
                 aria-label="สรุปตัวเลขการเงินรายเดือน"
                 className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
               >
-                {/* Card 1: รายรับ (Income) */}
-                <div className="min-w-0 bg-[#FFF0ED] border border-[#FCE7DF] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
-                  <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#FCE7DF] shadow-2xs">
+                {/* Card 1: รายรับ (Income) — green tone, consistent with the
+                    income = green convention used everywhere on this page */}
+                <div className="min-w-0 bg-[#EAF5E4] border border-[#D2EAC7] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5">
+                  <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#D2EAC7]">
                     <Illustration
                       src="/illustrations/income_hand_heart.jpg"
                       alt="รายรับ"
@@ -961,21 +1002,28 @@ export default function Home() {
                     <span className="text-sm font-bold text-[#70452E]">
                       รายรับ
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                      {showBalance ? fmtShortBaht(monthlyIncome) : "฿••••"}
-                    </div>
+                    {isBalanceLoading ? (
+                      <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
+                    ) : (
+                      <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
+                        {showBalance ? fmtShortBaht(monthlyIncome) : "฿••••"}
+                      </div>
+                    )}
                     <span className="text-xs font-bold text-[#4F8B33] flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                      <span>{incomeTrend}</span>
-                      <span className="text-[11px] text-[#927D6D] font-normal">
+                      <span>
+                        {trendArrow(incomeTrend)} {trendValue(incomeTrend)}
+                      </span>
+                      <span className="text-[11px] text-[#6B5A4C] font-medium">
                         จากเดือนที่แล้ว
                       </span>
                     </span>
                   </div>
                 </div>
 
-                {/* Card 2: รายจ่าย (Expenses) */}
-                <div className="min-w-0 bg-[#EFF8E8] border border-[#DCECC5] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
-                  <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#DCECC5] shadow-2xs">
+                {/* Card 2: รายจ่าย (Expenses) — dark-orange tone, consistent
+                    with the expense = orange/red convention used everywhere */}
+                <div className="min-w-0 bg-[#FDEDE3] border border-[#F6D3B8] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5">
+                  <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#F6D3B8]">
                     <Illustration
                       src="/illustrations/expense_hand_coin.jpg"
                       alt="รายจ่าย"
@@ -989,21 +1037,32 @@ export default function Home() {
                     <span className="text-sm font-bold text-[#70452E]">
                       รายจ่าย
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                      {showBalance ? fmtShortBaht(monthlyExpense) : "฿••••"}
-                    </div>
-                    <span className="text-xs font-bold text-[#C26B1E] flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                      <span>{expenseTrend}</span>
-                      <span className="text-[11px] text-[#927D6D] font-normal">
+                    {isBalanceLoading ? (
+                      <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
+                    ) : (
+                      <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
+                        {showBalance ? fmtShortBaht(monthlyExpense) : "฿••••"}
+                      </div>
+                    )}
+                    <span className="text-xs font-bold text-[#B3541E] flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                      <span>
+                        {trendArrow(expenseTrend)} {trendValue(expenseTrend)}
+                      </span>
+                      <span className="text-[11px] text-[#6B5A4C] font-medium">
                         จากเดือนที่แล้ว
                       </span>
                     </span>
                   </div>
                 </div>
 
-                {/* Card 3: คงเหลือ (Balance / Net) */}
-                <div className="min-w-0 bg-[#FFF8EB] border border-[#FBE9CD] rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 shadow-2xs">
-                  <div className="w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border border-[#FBE9CD] shadow-2xs">
+                {/* Card 3: คงเหลือ (Net) — color follows surplus/deficit
+                    status, always paired with an explicit text label */}
+                <div
+                  className={`min-w-0 rounded-[28px] p-4 md:p-5 flex sm:flex-col items-center sm:items-start gap-3.5 border ${isPositiveNet ? "bg-[#FFF8EB] border-[#FBE9CD]" : "bg-[#FDEBE8] border-[#F2C9BE]"}`}
+                >
+                  <div
+                    className={`w-[76px] h-[76px] md:w-[84px] md:h-[84px] rounded-[22px] overflow-hidden shrink-0 bg-white/95 p-1 border ${isPositiveNet ? "border-[#FBE9CD]" : "border-[#F2C9BE]"}`}
+                  >
                     <Illustration
                       src="/illustrations/balance_wallet.jpg"
                       alt="คงเหลือ"
@@ -1017,108 +1076,108 @@ export default function Home() {
                     <span className="text-sm font-bold text-[#70452E]">
                       คงเหลือ
                     </span>
-                    <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                      {showBalance ? fmtShortBaht(netMonthly) : "฿••••"}
-                    </div>
-                    <span className="text-xs font-bold text-[#4F8B33] flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                      <span>{balanceTrend}</span>
-                      <span className="text-[11px] text-[#927D6D] font-normal">
-                        จากเดือนที่แล้ว
+                    {isBalanceLoading ? (
+                      <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
+                    ) : (
+                      <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
+                        {showBalance ? fmtShortBaht(netMonthly) : "฿••••"}
+                      </div>
+                    )}
+                    <span
+                      className={`text-xs font-bold flex flex-wrap items-center gap-x-1 gap-y-0.5 ${isPositiveNet ? "text-[#4F8B33]" : "text-[#B3261E]"}`}
+                    >
+                      <span>
+                        {isPositiveNet
+                          ? "รายรับมากกว่ารายจ่าย"
+                          : "รายจ่ายมากกว่ารายรับ"}
                       </span>
                     </span>
                   </div>
                 </div>
               </section>
 
-              {/* ─── 4. QUICK ACTIONS GRID (6 rounded cards with Lucide icons) ── */}
+              {/* ─── 4a. PRIMARY ACTIONS (บันทึกการถวาย / บันทึกรายจ่าย) ──────
+                  Highest-weight action buttons, placed directly under the balance
+                  and income/expense figures so the two most common tasks are one
+                  tap away without competing with the secondary menu below. ── */}
               <section
-                aria-label="การดำเนินการด่วน 6 รายการ"
-                className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 md:gap-3.5"
+                aria-label="การดำเนินการหลัก"
+                className="grid grid-cols-2 gap-3 md:gap-4"
               >
-                {/* 1. บันทึกถวาย */}
                 <button
                   onClick={() => {
                     setOfferingStep(1);
                     setOfferingOpen(true);
                   }}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#EAF5E4] border border-[#D2EAC7] hover:border-[#A8C978] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#A8C978]"
-                  aria-label="บันทึกถวาย"
+                  className="flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-2xl bg-[#4F8B33] hover:bg-[#436F2B] text-white font-bold text-sm sm:text-base clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#4F8B33] focus-visible:ring-offset-2"
+                  aria-label="บันทึกการถวาย"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#4F8B33]">
-                    <HandCoins className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
-                    บันทึกถวาย
-                  </span>
+                  <HandCoins className="w-5 h-5 stroke-[2.2]" />
+                  <span>บันทึกการถวาย</span>
                 </button>
 
-                {/* 2. บันทึกรายจ่าย */}
                 <button
                   onClick={() => setExpenseOpen(true)}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#E3F2FD] border border-[#CEE5F7] hover:border-[#85C1E9] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#85C1E9]"
+                  className="flex items-center justify-center gap-2 py-3.5 sm:py-4 rounded-2xl bg-[#C26B1E] hover:bg-[#A85B18] text-white font-bold text-sm sm:text-base clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#C26B1E] focus-visible:ring-offset-2"
                   aria-label="บันทึกรายจ่าย"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#2B78A8]">
-                    <ReceiptText className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
-                    บันทึกรายจ่าย
-                  </span>
+                  <ReceiptText className="w-5 h-5 stroke-[2.2]" />
+                  <span>บันทึกรายจ่าย</span>
                 </button>
+              </section>
 
-                {/* 3. รายงาน */}
+              {/* ─── 4b. SECONDARY MENU (รายงาน / สมาชิก / กิจกรรม / เพิ่มเติม) ──
+                  Lower visual weight than the primary actions above: smaller
+                  icons, muted surfaces, no hover-scale pop. ── */}
+              <section
+                aria-label="เมนูลัดอื่น ๆ"
+                className="grid grid-cols-4 gap-2 md:gap-3"
+              >
+                {/* รายงาน */}
                 <button
                   onClick={() => setActiveTab("reports")}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#F0EAF8] border border-[#DFD3EE] hover:border-[#C39BD3] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#C39BD3]"
+                  className="flex flex-col items-center justify-center py-3 rounded-2xl bg-[#FAF6EE] border border-[#EDE2CE] hover:border-[#C39BD3] transition-colors focus-visible:ring-2 focus-visible:ring-[#C39BD3]"
                   aria-label="รายงาน"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#7D3C98]">
-                    <FileBarChart className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
+                  <FileBarChart className="w-5 h-5 stroke-[2] text-[#7D3C98]/80 mb-1" />
+                  <span className="text-[11px] font-semibold text-[#70452E]/85 tracking-tight text-center">
                     รายงาน
                   </span>
                 </button>
 
-                {/* 4. สมาชิก */}
+                {/* สมาชิก */}
                 <button
                   onClick={() => setLocation("/members")}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#FFF3DF] border border-[#F6E1BF] hover:border-[#E99A4A] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+                  className="flex flex-col items-center justify-center py-3 rounded-2xl bg-[#FAF6EE] border border-[#EDE2CE] hover:border-[#E99A4A] transition-colors focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                   aria-label="สมาชิก"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#C26B1E]">
-                    <UsersRound className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
+                  <UsersRound className="w-5 h-5 stroke-[2] text-[#C26B1E]/80 mb-1" />
+                  <span className="text-[11px] font-semibold text-[#70452E]/85 tracking-tight text-center">
                     สมาชิก
                   </span>
                 </button>
 
-                {/* 5. กิจกรรม */}
+                {/* กิจกรรม */}
                 <button
                   onClick={() => setNewsOpen(true)}
-                  className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#FFEBE5] border border-[#F7D5CD] hover:border-[#F7B6A6] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#F7B6A6]"
+                  className="flex flex-col items-center justify-center py-3 rounded-2xl bg-[#FAF6EE] border border-[#EDE2CE] hover:border-[#F7B6A6] transition-colors focus-visible:ring-2 focus-visible:ring-[#F7B6A6]"
                   aria-label="กิจกรรม"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#D45945]">
-                    <CalendarDays className="w-6 h-6 stroke-[2.2]" />
-                  </div>
-                  <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
+                  <CalendarDays className="w-5 h-5 stroke-[2] text-[#D45945]/80 mb-1" />
+                  <span className="text-[11px] font-semibold text-[#70452E]/85 tracking-tight text-center">
                     กิจกรรม
                   </span>
                 </button>
 
-                {/* 6. เพิ่มเติม */}
+                {/* เพิ่มเติม */}
                 <AppMenu>
                   <button
                     type="button"
-                    className="group flex flex-col items-center justify-center p-3 sm:p-3.5 min-h-[96px] rounded-2xl bg-[#EAF0F6] border border-[#D5E1EC] hover:border-[#A9D4ED] transition-all hover:scale-103 shadow-2xs focus-visible:ring-2 focus-visible:ring-[#A9D4ED]"
+                    className="flex flex-col items-center justify-center py-3 w-full rounded-2xl bg-[#FAF6EE] border border-[#EDE2CE] hover:border-[#A9D4ED] transition-colors focus-visible:ring-2 focus-visible:ring-[#A9D4ED]"
                     aria-label="เพิ่มเติม"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white/95 flex items-center justify-center mb-1.5 shadow-2xs text-[#5B7B94]">
-                      <MoreHorizontal className="w-6 h-6 stroke-[2.2]" />
-                    </div>
-                    <span className="text-xs font-bold text-[#38251B] tracking-tight text-center">
+                    <MoreHorizontal className="w-5 h-5 stroke-[2] text-[#5B7B94]/80 mb-1" />
+                    <span className="text-[11px] font-semibold text-[#70452E]/85 tracking-tight text-center">
                       เพิ่มเติม
                     </span>
                   </button>
@@ -1129,7 +1188,7 @@ export default function Home() {
               <section aria-label="ข่าวสารจากคริสตจักร">
                 <div
                   onClick={() => setNewsOpen(true)}
-                  className="cursor-pointer bg-gradient-to-r from-[#FFFDF8] via-[#FFF8EC] to-[#FFF1DE] border border-[#E9D9BF] rounded-[28px] p-4 md:p-5 flex items-center justify-between gap-4 shadow-2xs hover:border-[#E99A4A] transition-all"
+                  className="cursor-pointer bg-gradient-to-r from-[#FFFDF8] via-[#FFF8EC] to-[#FFF1DE] border border-[#E9D9BF] rounded-[28px] p-4 md:p-5 flex items-center justify-between gap-4 hover:border-[#E99A4A] transition-all"
                   role="button"
                   tabIndex={0}
                   onKeyDown={e => {
@@ -1140,7 +1199,7 @@ export default function Home() {
                   aria-label="เปิดดูข่าวสารจากคริสตจักร"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden shrink-0 bg-white p-1 border border-[#E9D9BF] shadow-xs">
+                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden shrink-0 bg-white p-1 border border-[#E9D9BF]">
                       <Illustration
                         src="/illustrations/bible_cross.jpg"
                         alt="พระคัมภีร์และกางเขน"
@@ -1159,16 +1218,18 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#927D6D] border border-[#E9D9BF]/80 shadow-2xs shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#927D6D] border border-[#E9D9BF]/80 shrink-0">
                     <ChevronRight className="w-4 h-4" />
                   </div>
                 </div>
               </section>
 
               {/* ─── 6. BUDGET SECTION ("แผนการใช้จ่าย") ──────────────────── */}
+              {/* Lighter shadow than the balance card above — this is
+                  reference info, not the primary figure. */}
               <section
                 aria-label="แผนการใช้จ่ายงบประมาณ"
-                className="bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF]/80 clay-card-shadow space-y-4"
+                className="bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF]/80 shadow-xs space-y-4"
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-base md:text-lg font-bold text-[#38251B]">
@@ -1198,7 +1259,7 @@ export default function Home() {
                             <span className="font-bold text-[#38251B]">
                               {b.label}
                             </span>
-                            <span className="text-[11px] text-[#927D6D]">
+                            <span className="text-[11px] text-[#7A6656] font-medium">
                               · {b.period}
                             </span>
                           </div>
@@ -1206,7 +1267,7 @@ export default function Home() {
                             <span className="font-bold text-[#38251B]">
                               {fmtShortBaht(b.amount)}
                             </span>
-                            <span className="text-[11px] text-[#927D6D]">
+                            <span className="text-[11px] text-[#7A6656] font-medium">
                               {" "}
                               / {fmtShortBaht(b.total)}
                             </span>
@@ -1230,9 +1291,11 @@ export default function Home() {
               </section>
 
               {/* ─── 7. RECENT TRANSACTIONS SECTION ("รายการล่าสุด") ─────── */}
+              {/* Lighter shadow than the balance card above — this is
+                  reference info, not the primary figure. */}
               <section
                 aria-label="รายการธุรกรรมล่าสุด"
-                className="bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF]/80 clay-card-shadow space-y-3"
+                className="bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF]/80 shadow-xs space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <h2 className="text-base md:text-lg font-bold text-[#38251B]">
@@ -1266,7 +1329,7 @@ export default function Home() {
                             <p className="text-sm font-bold text-[#38251B] leading-tight truncate">
                               {tx.title}
                             </p>
-                            <p className="text-[11px] text-[#927D6D] pt-0.5">
+                            <p className="text-[11px] text-[#7A6656] font-medium pt-0.5">
                               {typeof tx.date === "string"
                                 ? tx.date
                                 : fmtThaiDate(tx.date)}
@@ -1281,7 +1344,7 @@ export default function Home() {
                             {isIncome ? "+" : "-"}
                             {fmtBaht(tx.amount)}
                           </p>
-                          <p className="text-[11px] text-[#927D6D]">
+                          <p className="text-[11px] text-[#7A6656] font-medium">
                             {tx.subCategory}
                           </p>
                         </div>
