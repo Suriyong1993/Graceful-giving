@@ -33,6 +33,7 @@ export default function Expenses() {
     data: expensesData,
     isLoading,
     isError,
+    refetch,
   } = trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
 
   const expenses = useMemo(() => {
@@ -269,6 +270,13 @@ export default function Expenses() {
         {/* Table & List */}
         {isLoading ? (
           <LoadingSkeleton count={5} />
+        ) : isError ? (
+          <EmptyState
+            title="โหลดรายการรายจ่ายไม่สำเร็จ"
+            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+            actionText="ลองใหม่"
+            onAction={() => refetch()}
+          />
         ) : filteredExpenses.length === 0 ? (
           <EmptyState
             title="ไม่พบรายการรายจ่าย"

@@ -26,11 +26,19 @@ export default function Transactions() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [fundFilter, setFundFilter] = useState("all");
 
-  const { data: offeringsData, isLoading: loadingOfferings } =
-    trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
+  const {
+    data: offeringsData,
+    isLoading: loadingOfferings,
+    isError: offeringsError,
+    refetch: refetchOfferings,
+  } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
-  const { data: expensesData, isLoading: loadingExpenses } =
-    trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
+  const {
+    data: expensesData,
+    isLoading: loadingExpenses,
+    isError: expensesError,
+    refetch: refetchExpenses,
+  } = trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
 
   // Map and combine transactions
   const transactions = useMemo(() => {
@@ -118,7 +126,8 @@ export default function Transactions() {
     toast.success("ดาวน์โหลดรายงานธุรกรรมสำเร็จ (CSV)");
   };
 
-  const isLoading = loadingOfferings && loadingExpenses;
+  const isLoading = loadingOfferings || loadingExpenses;
+  const isError = offeringsError || expensesError;
 
   return (
     <AppLayout
@@ -209,7 +218,17 @@ export default function Transactions() {
 
       {/* 3. Transaction List & Table */}
       {isLoading ? (
-        <LoadingSkeleton count={4} />
+        <LoadingSkeleton count={5} />
+      ) : isError ? (
+        <EmptyState
+          title="โหลดรายการธุรกรรมไม่สำเร็จ"
+          description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+          actionText="ลองใหม่"
+          onAction={() => {
+            void refetchOfferings();
+            void refetchExpenses();
+          }}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="ไม่พบรายการธุรกรรม"

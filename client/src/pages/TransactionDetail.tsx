@@ -8,7 +8,15 @@ import {
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import { ArrowLeft, Calendar, CreditCard, Landmark, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CreditCard,
+  Landmark,
+  Trash2,
+  User,
+} from "lucide-react";
+import { toast } from "sonner";
 
 export default function TransactionDetail() {
   const [, setLocation] = useLocation();
@@ -18,6 +26,31 @@ export default function TransactionDetail() {
   const isExpense = txId?.startsWith("expense-") ?? false;
   const recordId = Number(txId?.split("-")[1]);
   const hasValidId = Number.isInteger(recordId) && recordId > 0;
+  const utils = trpc.useUtils();
+  const deleteOffering = trpc.offerings.delete.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.offerings.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
+      toast.success("ลบรายการถวายเรียบร้อยแล้ว");
+      setLocation("/transactions");
+    },
+    onError: error => toast.error(error.message || "ลบรายการถวายไม่สำเร็จ"),
+  });
+  const deleteExpense = trpc.expenses.delete.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.expenses.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
+      toast.success("ลบรายการรายจ่ายเรียบร้อยแล้ว");
+      setLocation("/transactions");
+    },
+    onError: error => toast.error(error.message || "ลบรายการรายจ่ายไม่สำเร็จ"),
+  });
   const offeringQuery = trpc.offerings.getById.useQuery(
     { id: recordId },
     { enabled: isOffering && hasValidId, retry: false }
@@ -83,13 +116,34 @@ export default function TransactionDetail() {
           : "ตรวจสอบข้อมูลจากระบบ"
       }
       action={
-        <button
-          onClick={() => setLocation("/transactions")}
-          className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>กลับหน้ารายการ</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {transaction && (
+            <button
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    "ต้องการลบรายการนี้หรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+                  )
+                )
+                  return;
+                if (isOffering) deleteOffering.mutate({ id: recordId });
+                if (isExpense) deleteExpense.mutate({ id: recordId });
+              }}
+              disabled={deleteOffering.isPending || deleteExpense.isPending}
+              className="min-h-11 px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>ลบรายการ</span>
+            </button>
+          )}
+          <button
+            onClick={() => setLocation("/transactions")}
+            className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>กลับหน้ารายการ</span>
+          </button>
+        </div>
       }
     >
       {loading ? (

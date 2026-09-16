@@ -16,6 +16,11 @@ import {
   InsertOffering,
   InsertUser,
   InsertWithdrawalRequest,
+  InsertMember,
+  InsertNotification,
+  auditLogs,
+  members,
+  notifications,
   offerings,
   users,
   withdrawalRequests,
@@ -80,20 +85,33 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   values.lastSignedIn ??= new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+  await db
+    .insert(users)
+    .values(values)
+    .onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function updateUserChurchRole(userId: number, churchRole: string | null) {
+export async function updateUserChurchRole(
+  userId: number,
+  churchRole: string | null
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(users).set({ churchRole } as any).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ churchRole } as any)
+    .where(eq(users.id, userId));
 }
 
 // ─── Church Profile ───────────────────────────────────────────────────────────
@@ -101,7 +119,11 @@ export async function updateUserChurchRole(userId: number, churchRole: string | 
 export async function getChurchProfile(churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(churchProfiles).where(eq(churchProfiles.churchId, churchId)).limit(1);
+  const result = await db
+    .select()
+    .from(churchProfiles)
+    .where(eq(churchProfiles.churchId, churchId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -112,13 +134,19 @@ export async function upsertChurchProfile(input: InsertChurchProfile) {
   await db
     .insert(churchProfiles)
     .values({ ...input, churchId })
-    .onConflictDoUpdate({ target: churchProfiles.churchId, set: { ...input, updatedAt: new Date() } });
+    .onConflictDoUpdate({
+      target: churchProfiles.churchId,
+      set: { ...input, updatedAt: new Date() },
+    });
 }
 
 export async function markSetupCompleted(churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchProfiles).set({ setupCompleted: true }).where(eq(churchProfiles.churchId, churchId));
+  await db
+    .update(churchProfiles)
+    .set({ setupCompleted: true })
+    .where(eq(churchProfiles.churchId, churchId));
 }
 
 // ─── Finance Accounts / Funds ──────────────────────────────────────────────────
@@ -129,7 +157,12 @@ export async function listFinanceAccounts(churchId = DEFAULT_CHURCH_ID) {
   return db
     .select()
     .from(financeAccounts)
-    .where(and(eq(financeAccounts.churchId, churchId), eq(financeAccounts.isActive, true)))
+    .where(
+      and(
+        eq(financeAccounts.churchId, churchId),
+        eq(financeAccounts.isActive, true)
+      )
+    )
     .orderBy(asc(financeAccounts.sortOrder), asc(financeAccounts.name));
 }
 
@@ -154,38 +187,94 @@ export type FinancialSummary = {
   accounts: Array<{ id: number; name: string; type: string; balance: number }>;
 };
 
-export async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID): Promise<FinancialSummary | null> {
+export async function getFinancialSummary(
+  churchId = DEFAULT_CHURCH_ID
+): Promise<FinancialSummary | null> {
   const db = await getDb();
   if (!db) return null;
 
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const thisMonthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59
+  );
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const prevMonthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59
+  );
 
   try {
-    const [accounts, thisOfferings, prevOfferings, thisExpenses, prevExpenses] = await Promise.all([
-      db.select().from(financeAccounts).where(and(eq(financeAccounts.churchId, churchId), eq(financeAccounts.isActive, true))),
-      db.select({ total: sum(offerings.amount) }).from(offerings).where(
-        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, thisMonthStart, thisMonthEnd))
-      ),
-      db.select({ total: sum(offerings.amount) }).from(offerings).where(
-        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, prevMonthStart, prevMonthEnd))
-      ),
-      db.select({ total: sum(expenses.amount) }).from(expenses).where(
-        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, thisMonthStart, thisMonthEnd))
-      ),
-      db.select({ total: sum(expenses.amount) }).from(expenses).where(
-        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, prevMonthStart, prevMonthEnd))
-      ),
-    ]);
+    const [accounts, thisOfferings, prevOfferings, thisExpenses, prevExpenses] =
+      await Promise.all([
+        db
+          .select()
+          .from(financeAccounts)
+          .where(
+            and(
+              eq(financeAccounts.churchId, churchId),
+              eq(financeAccounts.isActive, true)
+            )
+          ),
+        db
+          .select({ total: sum(offerings.amount) })
+          .from(offerings)
+          .where(
+            and(
+              eq(offerings.churchId, churchId),
+              between(offerings.receiptDate, thisMonthStart, thisMonthEnd)
+            )
+          ),
+        db
+          .select({ total: sum(offerings.amount) })
+          .from(offerings)
+          .where(
+            and(
+              eq(offerings.churchId, churchId),
+              between(offerings.receiptDate, prevMonthStart, prevMonthEnd)
+            )
+          ),
+        db
+          .select({ total: sum(expenses.amount) })
+          .from(expenses)
+          .where(
+            and(
+              eq(expenses.churchId, churchId),
+              between(expenses.expenseDate, thisMonthStart, thisMonthEnd)
+            )
+          ),
+        db
+          .select({ total: sum(expenses.amount) })
+          .from(expenses)
+          .where(
+            and(
+              eq(expenses.churchId, churchId),
+              between(expenses.expenseDate, prevMonthStart, prevMonthEnd)
+            )
+          ),
+      ]);
 
-    const totalBalance = accounts.reduce((sum, a) => sum + parseFloat(a.balance as unknown as string ?? "0"), 0);
-    const monthlyIncome = parseFloat(thisOfferings[0]?.total as unknown as string ?? "0") || 0;
-    const monthlyExpense = parseFloat(thisExpenses[0]?.total as unknown as string ?? "0") || 0;
-    const prevMonthIncome = parseFloat(prevOfferings[0]?.total as unknown as string ?? "0") || 0;
-    const prevMonthExpense = parseFloat(prevExpenses[0]?.total as unknown as string ?? "0") || 0;
+    const totalBalance = accounts.reduce(
+      (sum, a) => sum + parseFloat((a.balance as unknown as string) ?? "0"),
+      0
+    );
+    const monthlyIncome =
+      parseFloat((thisOfferings[0]?.total as unknown as string) ?? "0") || 0;
+    const monthlyExpense =
+      parseFloat((thisExpenses[0]?.total as unknown as string) ?? "0") || 0;
+    const prevMonthIncome =
+      parseFloat((prevOfferings[0]?.total as unknown as string) ?? "0") || 0;
+    const prevMonthExpense =
+      parseFloat((prevExpenses[0]?.total as unknown as string) ?? "0") || 0;
 
     return {
       totalBalance,
@@ -193,11 +282,11 @@ export async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID): Promise
       monthlyExpense,
       prevMonthIncome,
       prevMonthExpense,
-      accounts: accounts.map((a) => ({
+      accounts: accounts.map(a => ({
         id: a.id,
         name: a.name,
         type: a.type,
-        balance: parseFloat(a.balance as unknown as string ?? "0"),
+        balance: parseFloat((a.balance as unknown as string) ?? "0"),
       })),
     };
   } catch {
@@ -205,15 +294,35 @@ export async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID): Promise
   }
 }
 
-export type MonthlyStats = Array<{ month: string; income: number; expense: number }>;
+export type MonthlyStats = Array<{
+  month: string;
+  income: number;
+  expense: number;
+}>;
 
-export async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6): Promise<MonthlyStats> {
+export async function getMonthlyStats(
+  churchId = DEFAULT_CHURCH_ID,
+  months = 6
+): Promise<MonthlyStats> {
   const db = await getDb();
   if (!db) return [];
 
   const result: MonthlyStats = [];
   const now = new Date();
-  const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+  const thaiMonths = [
+    "ม.ค.",
+    "ก.พ.",
+    "มี.ค.",
+    "เม.ย.",
+    "พ.ค.",
+    "มิ.ย.",
+    "ก.ค.",
+    "ส.ค.",
+    "ก.ย.",
+    "ต.ค.",
+    "พ.ย.",
+    "ธ.ค.",
+  ];
 
   for (let i = months - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -221,18 +330,30 @@ export async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6):
     const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
 
     const [inc, exp] = await Promise.all([
-      db.select({ total: sum(offerings.amount) }).from(offerings).where(
-        and(eq(offerings.churchId, churchId), between(offerings.receiptDate, start, end))
-      ),
-      db.select({ total: sum(expenses.amount) }).from(expenses).where(
-        and(eq(expenses.churchId, churchId), between(expenses.expenseDate, start, end))
-      ),
+      db
+        .select({ total: sum(offerings.amount) })
+        .from(offerings)
+        .where(
+          and(
+            eq(offerings.churchId, churchId),
+            between(offerings.receiptDate, start, end)
+          )
+        ),
+      db
+        .select({ total: sum(expenses.amount) })
+        .from(expenses)
+        .where(
+          and(
+            eq(expenses.churchId, churchId),
+            between(expenses.expenseDate, start, end)
+          )
+        ),
     ]);
 
     result.push({
       month: thaiMonths[d.getMonth()],
-      income: parseFloat(inc[0]?.total as unknown as string ?? "0") || 0,
-      expense: parseFloat(exp[0]?.total as unknown as string ?? "0") || 0,
+      income: parseFloat((inc[0]?.total as unknown as string) ?? "0") || 0,
+      expense: parseFloat((exp[0]?.total as unknown as string) ?? "0") || 0,
     });
   }
   return result;
@@ -253,7 +374,12 @@ export type OfferingRow = {
 
 export async function listOfferings(
   churchId = DEFAULT_CHURCH_ID,
-  opts: { limit?: number; showDonorNames?: boolean; fromDate?: Date; toDate?: Date } = {}
+  opts: {
+    limit?: number;
+    showDonorNames?: boolean;
+    fromDate?: Date;
+    toDate?: Date;
+  } = {}
 ): Promise<OfferingRow[]> {
   const db = await getDb();
   if (!db) return [];
@@ -270,11 +396,15 @@ export async function listOfferings(
     .orderBy(desc(offerings.receiptDate))
     .limit(limit);
 
-  return rows.map((r) => ({
+  return rows.map(r => ({
     id: r.id,
-    amount: parseFloat(r.amount as unknown as string ?? "0"),
+    amount: parseFloat((r.amount as unknown as string) ?? "0"),
     category: r.category,
-    donorName: showDonorNames ? r.donorName : (r.donorName ? "ผู้ถวายนิรนาม" : null),
+    donorName: showDonorNames
+      ? r.donorName
+      : r.donorName
+        ? "ผู้ถวายนิรนาม"
+        : null,
     receiptDate: r.receiptDate,
     method: r.method,
     notes: r.notes,
@@ -298,9 +428,13 @@ export async function getOfferingById(
   if (!row) return null;
   return {
     id: row.id,
-    amount: parseFloat(row.amount as unknown as string ?? "0"),
+    amount: parseFloat((row.amount as unknown as string) ?? "0"),
     category: row.category,
-    donorName: showDonorNames ? row.donorName : (row.donorName ? "ผู้ถวายนิรนาม" : null),
+    donorName: showDonorNames
+      ? row.donorName
+      : row.donorName
+        ? "ผู้ถวายนิรนาม"
+        : null,
     receiptDate: row.receiptDate,
     method: row.method,
     notes: row.notes,
@@ -308,7 +442,10 @@ export async function getOfferingById(
   };
 }
 
-export async function createOffering(input: Omit<InsertOffering, "churchId">, churchId = DEFAULT_CHURCH_ID) {
+export async function createOffering(
+  input: Omit<InsertOffering, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db
@@ -322,6 +459,60 @@ export async function createOffering(input: Omit<InsertOffering, "churchId">, ch
     );
   }
   return result[0].id;
+}
+
+export async function updateOffering(
+  id: number,
+  input: Partial<Omit<InsertOffering, "churchId" | "recordedBy">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({ amount: offerings.amount, fundId: offerings.fundId })
+    .from(offerings)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+    .limit(1);
+  if (!existing[0]) return null;
+  await db
+    .update(offerings)
+    .set(input as any)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+  if (input.amount !== undefined || input.fundId !== undefined) {
+    const oldAmount = Number(existing[0].amount);
+    const newAmount =
+      input.amount === undefined ? oldAmount : Number(input.amount);
+    const oldFundId = existing[0].fundId;
+    const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
+    if (oldFundId)
+      await db.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+      );
+    if (newFundId)
+      await db.execute(
+        sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+      );
+  }
+  return id;
+}
+
+export async function deleteOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({ amount: offerings.amount, fundId: offerings.fundId })
+    .from(offerings)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+    .limit(1);
+  if (!existing[0]) return false;
+  await db
+    .delete(offerings)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+  if (existing[0].fundId)
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+    );
+  return true;
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────
@@ -356,9 +547,9 @@ export async function listExpenses(
     .orderBy(desc(expenses.expenseDate))
     .limit(limit);
 
-  return rows.map((r) => ({
+  return rows.map(r => ({
     id: r.id,
-    amount: parseFloat(r.amount as unknown as string ?? "0"),
+    amount: parseFloat((r.amount as unknown as string) ?? "0"),
     category: r.category,
     description: r.description,
     expenseDate: r.expenseDate,
@@ -383,7 +574,7 @@ export async function getExpenseById(
   if (!row) return null;
   return {
     id: row.id,
-    amount: parseFloat(row.amount as unknown as string ?? "0"),
+    amount: parseFloat((row.amount as unknown as string) ?? "0"),
     category: row.category,
     description: row.description,
     expenseDate: row.expenseDate,
@@ -393,7 +584,10 @@ export async function getExpenseById(
   };
 }
 
-export async function createExpense(input: Omit<InsertExpense, "churchId">, churchId = DEFAULT_CHURCH_ID) {
+export async function createExpense(
+  input: Omit<InsertExpense, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db
@@ -409,6 +603,60 @@ export async function createExpense(input: Omit<InsertExpense, "churchId">, chur
   return result[0].id;
 }
 
+export async function updateExpense(
+  id: number,
+  input: Partial<Omit<InsertExpense, "churchId" | "recordedBy">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({ amount: expenses.amount, fundId: expenses.fundId })
+    .from(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+    .limit(1);
+  if (!existing[0]) return null;
+  await db
+    .update(expenses)
+    .set(input as any)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+  if (input.amount !== undefined || input.fundId !== undefined) {
+    const oldAmount = Number(existing[0].amount);
+    const newAmount =
+      input.amount === undefined ? oldAmount : Number(input.amount);
+    const oldFundId = existing[0].fundId;
+    const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
+    if (oldFundId)
+      await db.execute(
+        sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+      );
+    if (newFundId)
+      await db.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+      );
+  }
+  return id;
+}
+
+export async function deleteExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({ amount: expenses.amount, fundId: expenses.fundId })
+    .from(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+    .limit(1);
+  if (!existing[0]) return false;
+  await db
+    .delete(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+  if (existing[0].fundId)
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+    );
+  return true;
+}
+
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
 
 export async function listWithdrawalRequests(
@@ -418,7 +666,8 @@ export async function listWithdrawalRequests(
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(withdrawalRequests.churchId, churchId)];
-  if (opts.userId) conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
+  if (opts.userId)
+    conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
 
   const rows = await db
     .select()
@@ -427,9 +676,9 @@ export async function listWithdrawalRequests(
     .orderBy(desc(withdrawalRequests.createdAt))
     .limit(50);
 
-  return rows.map((r) => ({
+  return rows.map(r => ({
     ...r,
-    amount: parseFloat(r.amount as unknown as string ?? "0"),
+    amount: parseFloat((r.amount as unknown as string) ?? "0"),
   }));
 }
 
@@ -464,16 +713,174 @@ export async function approveWithdrawal(
       approvalNote: action === "approved" ? note : null,
       rejectionReason: action === "rejected" ? note : null,
     })
-    .where(and(eq(withdrawalRequests.id, id), eq(withdrawalRequests.churchId, churchId)));
+    .where(
+      and(
+        eq(withdrawalRequests.id, id),
+        eq(withdrawalRequests.churchId, churchId)
+      )
+    );
 }
 
-export async function disburseWithdrawal(id: number, churchId = DEFAULT_CHURCH_ID) {
+export async function disburseWithdrawal(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db
     .update(withdrawalRequests)
     .set({ status: "disbursed" })
-    .where(and(eq(withdrawalRequests.id, id), eq(withdrawalRequests.churchId, churchId)));
+    .where(
+      and(
+        eq(withdrawalRequests.id, id),
+        eq(withdrawalRequests.churchId, churchId)
+      )
+    );
+}
+
+// ─── Members / Notifications / Audit ──────────────────────────────────────────
+
+export async function listMembers(churchId = DEFAULT_CHURCH_ID, limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(members)
+    .where(eq(members.churchId, churchId))
+    .orderBy(asc(members.name))
+    .limit(limit);
+}
+
+export async function getMemberById(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(members)
+    .where(and(eq(members.id, id), eq(members.churchId, churchId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createMember(
+  input: Omit<InsertMember, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(members)
+    .values({ ...input, churchId })
+    .returning({ id: members.id });
+  return rows[0].id;
+}
+
+export async function updateMember(
+  id: number,
+  input: Partial<Omit<InsertMember, "churchId">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(members)
+    .set(input)
+    .where(and(eq(members.id, id), eq(members.churchId, churchId)))
+    .returning({ id: members.id });
+  return rows[0]?.id ?? null;
+}
+
+export async function deactivateMember(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  return updateMember(id, { status: "inactive" }, churchId);
+}
+
+export async function listNotifications(
+  userId: number,
+  churchId = DEFAULT_CHURCH_ID,
+  limit = 50
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(notifications)
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        eq(notifications.churchId, churchId)
+      )
+    )
+    .orderBy(desc(notifications.createdAt))
+    .limit(limit);
+}
+
+export async function markNotificationRead(
+  id: number,
+  userId: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.id, id),
+        eq(notifications.userId, userId),
+        eq(notifications.churchId, churchId)
+      )
+    );
+}
+
+export async function markAllNotificationsRead(
+  userId: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db
+    .update(notifications)
+    .set({ readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.userId, userId),
+        eq(notifications.churchId, churchId)
+      )
+    );
+}
+
+export async function createAuditLog(
+  input: Omit<
+    InsertNotification,
+    | "userId"
+    | "type"
+    | "title"
+    | "description"
+    | "link"
+    | "readAt"
+    | "createdAt"
+  > & {
+    userId: number;
+    action: string;
+    entity: string;
+    entityId?: number | null;
+    metadata?: unknown;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.insert(auditLogs).values({
+    churchId: input.churchId,
+    userId: input.userId,
+    action: input.action,
+    entity: input.entity,
+    entityId: input.entityId ?? null,
+    metadata: input.metadata,
+  });
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
@@ -496,41 +903,59 @@ export async function getFinancialReportData(
   if (!db) return [];
 
   const [offeringsRows, expensesRows] = await Promise.all([
-    db.select().from(offerings).where(
-      and(eq(offerings.churchId, churchId), between(offerings.receiptDate, fromDate, toDate))
-    ).orderBy(asc(offerings.receiptDate)),
-    db.select().from(expenses).where(
-      and(eq(expenses.churchId, churchId), between(expenses.expenseDate, fromDate, toDate))
-    ).orderBy(asc(expenses.expenseDate)),
+    db
+      .select()
+      .from(offerings)
+      .where(
+        and(
+          eq(offerings.churchId, churchId),
+          between(offerings.receiptDate, fromDate, toDate)
+        )
+      )
+      .orderBy(asc(offerings.receiptDate)),
+    db
+      .select()
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.churchId, churchId),
+          between(expenses.expenseDate, fromDate, toDate)
+        )
+      )
+      .orderBy(asc(expenses.expenseDate)),
   ]);
 
   const rows: ReportRow[] = [
-    ...offeringsRows.map((r) => ({
+    ...offeringsRows.map(r => ({
       date: r.receiptDate.toISOString().split("T")[0],
       type: "income" as const,
       category: r.category,
       description: r.notes || `ถวาย${r.category}`,
-      amount: parseFloat(r.amount as unknown as string ?? "0"),
+      amount: parseFloat((r.amount as unknown as string) ?? "0"),
       method: r.method,
     })),
-    ...expensesRows.map((r) => ({
+    ...expensesRows.map(r => ({
       date: r.expenseDate.toISOString().split("T")[0],
       type: "expense" as const,
       category: r.category,
       description: r.description,
-      amount: parseFloat(r.amount as unknown as string ?? "0"),
+      amount: parseFloat((r.amount as unknown as string) ?? "0"),
     })),
   ];
 
   return rows.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function getBudgetComparison(churchId = DEFAULT_CHURCH_ID, year: number) {
+export async function getBudgetComparison(
+  churchId = DEFAULT_CHURCH_ID,
+  year: number
+) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(budgetPlans).where(
-    and(eq(budgetPlans.churchId, churchId), eq(budgetPlans.year, year))
-  );
+  return db
+    .select()
+    .from(budgetPlans)
+    .where(and(eq(budgetPlans.churchId, churchId), eq(budgetPlans.year, year)));
 }
 
 // ─── News & Events (existing) ─────────────────────────────────────────────────
@@ -541,7 +966,12 @@ export async function listPublishedChurchNews(limit = 12) {
   return db
     .select()
     .from(churchNews)
-    .where(and(eq(churchNews.churchId, DEFAULT_CHURCH_ID), eq(churchNews.status, "published")))
+    .where(
+      and(
+        eq(churchNews.churchId, DEFAULT_CHURCH_ID),
+        eq(churchNews.status, "published")
+      )
+    )
     .orderBy(desc(churchNews.publishedAt), desc(churchNews.createdAt))
     .limit(limit);
 }
@@ -552,7 +982,12 @@ export async function listPublishedChurchEvents(limit = 12) {
   return db
     .select()
     .from(churchEvents)
-    .where(and(eq(churchEvents.churchId, DEFAULT_CHURCH_ID), eq(churchEvents.status, "published")))
+    .where(
+      and(
+        eq(churchEvents.churchId, DEFAULT_CHURCH_ID),
+        eq(churchEvents.status, "published")
+      )
+    )
     .orderBy(asc(churchEvents.startsAt))
     .limit(limit);
 }
@@ -579,7 +1014,9 @@ export async function listAllChurchEvents(limit = 50) {
     .limit(limit);
 }
 
-export async function createChurchNews(input: Omit<InsertChurchNews, "churchId">) {
+export async function createChurchNews(
+  input: Omit<InsertChurchNews, "churchId">
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db
@@ -589,7 +1026,9 @@ export async function createChurchNews(input: Omit<InsertChurchNews, "churchId">
   return result[0].id;
 }
 
-export async function createChurchEvent(input: Omit<InsertChurchEvent, "churchId">) {
+export async function createChurchEvent(
+  input: Omit<InsertChurchEvent, "churchId">
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db
@@ -599,38 +1038,81 @@ export async function createChurchEvent(input: Omit<InsertChurchEvent, "churchId
   return result[0].id;
 }
 
-export async function updateChurchNews(id: number, input: Omit<InsertChurchNews, "churchId" | "authorId">) {
+export async function updateChurchNews(
+  id: number,
+  input: Omit<InsertChurchNews, "churchId" | "authorId">
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchNews).set(input).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .update(churchNews)
+    .set(input)
+    .where(
+      and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
+    );
 }
 
-export async function updateChurchEvent(id: number, input: Omit<InsertChurchEvent, "churchId" | "authorId">) {
+export async function updateChurchEvent(
+  id: number,
+  input: Omit<InsertChurchEvent, "churchId" | "authorId">
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchEvents).set(input).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .update(churchEvents)
+    .set(input)
+    .where(
+      and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    );
 }
 
-export async function updateChurchNewsStatus(id: number, status: "draft" | "published" | "archived") {
+export async function updateChurchNewsStatus(
+  id: number,
+  status: "draft" | "published" | "archived"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchNews).set({ status, publishedAt: status === "published" ? new Date() : undefined }).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .update(churchNews)
+    .set({
+      status,
+      publishedAt: status === "published" ? new Date() : undefined,
+    })
+    .where(
+      and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
+    );
 }
 
-export async function updateChurchEventStatus(id: number, status: "draft" | "published" | "cancelled") {
+export async function updateChurchEventStatus(
+  id: number,
+  status: "draft" | "published" | "cancelled"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchEvents).set({ status }).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .update(churchEvents)
+    .set({ status })
+    .where(
+      and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    );
 }
 
 export async function deleteChurchNews(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.delete(churchNews).where(and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .delete(churchNews)
+    .where(
+      and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
+    );
 }
 
 export async function deleteChurchEvent(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.delete(churchEvents).where(and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID)));
+  await db
+    .delete(churchEvents)
+    .where(
+      and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    );
 }

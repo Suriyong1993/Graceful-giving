@@ -30,6 +30,7 @@ export default function Reports() {
     isLoading,
     isError,
   } = trpc.finance.monthlyStats.useQuery({ months: 6 }, { retry: false });
+  const utils = trpc.useUtils();
 
   const maxVal =
     monthlyFlow.length > 0
@@ -46,6 +47,29 @@ export default function Reports() {
     toast.info(
       "การส่งออก Excel ยังไม่พร้อมใช้งาน เนื่องจากยังไม่มีบริการสร้างไฟล์"
     );
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const result = await utils.reports.exportCsv.fetch({
+        fromDate: new Date("2026-01-01T00:00:00.000Z"),
+        toDate: new Date(),
+      });
+      const blob = new Blob(["\uFEFF" + result.csv], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `grace-giving-financial-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("ส่งออกรายงาน CSV เรียบร้อยแล้ว");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "ส่งออกรายงาน CSV ไม่สำเร็จ"
+      );
+    }
   };
 
   return (
@@ -68,6 +92,13 @@ export default function Reports() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF9EE] text-sm font-medium shadow-sm transition-colors"
+            >
+              <Download className="w-4 h-4 text-[#4F8B33]" />
+              <span>ส่งออก CSV</span>
+            </button>
             <button
               onClick={handleExportPDF}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF9EE] text-sm font-medium shadow-sm transition-colors"
