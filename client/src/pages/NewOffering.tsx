@@ -24,7 +24,7 @@ export default function NewOffering() {
 
   // Form State
   const [category, setCategory] = useState("ถวายประจำสัปดาห์");
-  const [amount, setAmount] = useState("1000");
+  const [amount, setAmount] = useState("");
   const [fundId, setFundId] = useState("1");
   const [method, setMethod] = useState("เงินสด");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -38,10 +38,8 @@ export default function NewOffering() {
       setIsSuccessOpen(true);
       toast.success("บันทึกการถวายเรียบร้อยแล้ว");
     },
-    onError: () => {
-      // Graceful simulated success if DB connection is offline
-      setIsSuccessOpen(true);
-      toast.success("บันทึกการถวายเรียบร้อยแล้ว (โหมดจำลอง)");
+    onError: error => {
+      toast.error("บันทึกการถวายไม่สำเร็จ", { description: error.message });
     },
   });
 
@@ -120,7 +118,8 @@ export default function NewOffering() {
               การถวายด้วยความยินดี
             </h2>
             <p className="text-xs text-[#927D6D] leading-relaxed">
-              "พระเจ้าทรงรักผู้ที่ให้ด้วยใจยินดี" — ทุกยอดการถวายจะถูกบันทึกอย่างถูกต้องและโปร่งใสเพื่อการงานของพระเจ้า
+              "พระเจ้าทรงรักผู้ที่ให้ด้วยใจยินดี" —
+              ทุกยอดการถวายจะถูกบันทึกอย่างถูกต้องและโปร่งใสเพื่อการงานของพระเจ้า
             </p>
           </div>
         </div>
@@ -136,7 +135,7 @@ export default function NewOffering() {
               1. เลือกประเภทการถวาย
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {categories.map((cat) => (
+              {categories.map(cat => (
                 <button
                   key={cat.id}
                   type="button"
@@ -167,7 +166,7 @@ export default function NewOffering() {
                 required
                 min="1"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
                 className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-2xl font-black text-[#1b5e3a] focus:outline-none focus:border-[#E99A4A]"
               />
@@ -175,7 +174,7 @@ export default function NewOffering() {
 
             {/* Shortcut Chips */}
             <div className="flex flex-wrap gap-2 pt-1">
-              {quickAmounts.map((q) => (
+              {quickAmounts.map(q => (
                 <button
                   key={q}
                   type="button"
@@ -195,7 +194,7 @@ export default function NewOffering() {
             </label>
             <select
               value={fundId}
-              onChange={(e) => setFundId(e.target.value)}
+              onChange={e => setFundId(e.target.value)}
               className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs sm:text-sm text-[#38251B] focus:outline-none focus:border-[#E99A4A]"
             >
               <option value="1">บัญชีทั่วไป (เพื่อการดำเนินงาน)</option>
@@ -212,7 +211,7 @@ export default function NewOffering() {
               4. วิธีการรับเงิน
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {paymentMethods.map((m) => (
+              {paymentMethods.map(m => (
                 <button
                   key={m}
                   type="button"
@@ -238,7 +237,7 @@ export default function NewOffering() {
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={e => setDate(e.target.value)}
                 className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs text-[#38251B]"
               />
             </div>
@@ -251,8 +250,12 @@ export default function NewOffering() {
                 type="text"
                 disabled={isAnonymous}
                 value={donorName}
-                onChange={(e) => setDonorName(e.target.value)}
-                placeholder={isAnonymous ? "ถวายโดยไม่เปิดเผยนาม" : "ชื่อ-นามสกุล หรือครอบครัว"}
+                onChange={e => setDonorName(e.target.value)}
+                placeholder={
+                  isAnonymous
+                    ? "ถวายโดยไม่เปิดเผยนาม"
+                    : "ชื่อ-นามสกุล หรือครอบครัว"
+                }
                 className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs text-[#38251B] disabled:opacity-50"
               />
             </div>
@@ -263,13 +266,16 @@ export default function NewOffering() {
               type="checkbox"
               id="anon"
               checked={isAnonymous}
-              onChange={(e) => {
+              onChange={e => {
                 setIsAnonymous(e.target.checked);
                 if (e.target.checked) setDonorName("");
               }}
               className="rounded text-[#E99A4A] focus:ring-[#E99A4A] w-4 h-4 border-[#E9D9BF]"
             />
-            <label htmlFor="anon" className="text-xs text-[#70452E] cursor-pointer">
+            <label
+              htmlFor="anon"
+              className="text-xs text-[#70452E] cursor-pointer"
+            >
               ไม่ระบุชื่อผู้ถวาย (ถวายโดยไม่เปิดเผยนาม)
             </label>
           </div>
@@ -281,7 +287,7 @@ export default function NewOffering() {
             <textarea
               rows={2}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
               placeholder="เช่น ถวายขอบพระคุณสำหรับวันเกิด, พันธกิจเด็ก"
               className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs text-[#38251B]"
             />
@@ -294,7 +300,11 @@ export default function NewOffering() {
             className="w-full py-4 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow transition-all flex items-center justify-center gap-2"
           >
             <HandCoins className="w-5 h-5" />
-            <span>{createMutation.isPending ? "กำลังบันทึก..." : "ยืนยันบันทึกการถวาย"}</span>
+            <span>
+              {createMutation.isPending
+                ? "กำลังบันทึก..."
+                : "ยืนยันบันทึกการถวาย"}
+            </span>
           </button>
         </form>
       </div>
