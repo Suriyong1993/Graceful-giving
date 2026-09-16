@@ -21,6 +21,7 @@ import {
 
 export default function NewOffering() {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
 
   // Form State
   const [category, setCategory] = useState("ถวายประจำสัปดาห์");
@@ -36,6 +37,11 @@ export default function NewOffering() {
   const createMutation = trpc.offerings.create.useMutation({
     onSuccess: () => {
       setIsSuccessOpen(true);
+      void Promise.all([
+        utils.offerings.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
       toast.success("บันทึกการถวายเรียบร้อยแล้ว");
     },
     onError: error => {

@@ -20,12 +20,16 @@ import {
 import { toast } from "sonner";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<"church" | "roles" | "categories" | "payment">("church");
+  const [activeTab, setActiveTab] = useState<
+    "church" | "roles" | "categories" | "payment"
+  >("church");
+  const utils = trpc.useUtils();
 
-  const { data: churchProfile, isLoading, refetch } = trpc.church.getProfile.useQuery(
-    undefined,
-    { retry: false }
-  );
+  const {
+    data: churchProfile,
+    isLoading,
+    refetch,
+  } = trpc.church.getProfile.useQuery(undefined, { retry: false });
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -43,42 +47,46 @@ export default function Settings() {
 
   useEffect(() => {
     if (churchProfile) {
-      setName(churchProfile.name || "คริสตจักรพระคุณกรุงเทพ");
-      setAddress(churchProfile.address || "123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110");
-      setPhone(churchProfile.phone || "02-123-4567");
-      setEmail(churchProfile.email || "contact@gracechurch.th");
-      setWebsite(churchProfile.website || "https://gracechurch.th");
-      setPastorName(churchProfile.pastorName || "อ.ประสิทธิ์ ศรีสวัสดิ์");
-      setAssistantPastorName(churchProfile.assistantPastorName || "อ.ทวีเกียรติ มงคลชัย");
-      setTreasurerName(churchProfile.treasurerName || "คุณมาลี มีทรัพย์สมบูรณ์");
-      setBankName(churchProfile.bankName || "ธนาคารกสิกรไทย");
-      setBankAccount(churchProfile.bankAccount || "012-3-45678-9");
-      setBankAccountName(churchProfile.bankAccountName || "คริสตจักรพระคุณกรุงเทพ");
-      setMotto(churchProfile.motto || "เติบโตในพระคุณ สัตย์ซื่อในการรับใช้ สำแดงความรักของพระคริสต์");
+      setName(churchProfile.name || "");
+      setAddress(churchProfile.address || "");
+      setPhone(churchProfile.phone || "");
+      setEmail(churchProfile.email || "");
+      setWebsite(churchProfile.website || "");
+      setPastorName(churchProfile.pastorName || "");
+      setAssistantPastorName(churchProfile.assistantPastorName || "");
+      setTreasurerName(churchProfile.treasurerName || "");
+      setBankName(churchProfile.bankName || "");
+      setBankAccount(churchProfile.bankAccount || "");
+      setBankAccountName(churchProfile.bankAccountName || "");
+      setMotto(churchProfile.motto || "");
     } else {
-      setName("คริสตจักรพระคุณกรุงเทพ");
-      setAddress("123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110");
-      setPhone("02-123-4567");
-      setEmail("contact@gracechurch.th");
-      setWebsite("https://gracechurch.th");
-      setPastorName("อ.ประสิทธิ์ ศรีสวัสดิ์");
-      setTreasurerName("คุณมาลี มีทรัพย์สมบูรณ์");
-      setBankName("ธนาคารกสิกรไทย");
-      setBankAccount("012-3-45678-9");
-      setBankAccountName("คริสตจักรพระคุณกรุงเทพ");
-      setMotto("เติบโตในพระคุณ สัตย์ซื่อในการรับใช้ สำแดงความรักของพระคริสต์");
+      setName("");
+      setAddress("");
+      setPhone("");
+      setEmail("");
+      setWebsite("");
+      setPastorName("");
+      setAssistantPastorName("");
+      setTreasurerName("");
+      setBankName("");
+      setBankAccount("");
+      setBankAccountName("");
+      setMotto("");
     }
   }, [churchProfile]);
 
   const updateProfileMutation = trpc.church.updateProfile.useMutation({
     onSuccess: () => {
       setIsSaving(false);
+      void utils.church.getProfile.invalidate();
       toast.success("บันทึกการตั้งค่าข้อมูลคริสตจักรเรียบร้อยแล้ว");
       refetch();
     },
-    onError: () => {
+    onError: error => {
       setIsSaving(false);
-      toast.success("บันทึกการตั้งค่าข้อมูลเรียบร้อย (จำลอง)");
+      toast.error(
+        error.message || "บันทึกการตั้งค่าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+      );
     },
   });
 
@@ -103,11 +111,31 @@ export default function Settings() {
   };
 
   const churchRoles = [
-    { role: "SUPER_ADMIN", title: "ผู้ดูแลระบบสูงสุด", desc: "เข้าถึงทุกฟังก์ชัน จัดการสิทธิ์ และตั้งค่าคริสตจักรทั้งหมด" },
-    { role: "TREASURER", title: "เหรัญญิกคริสตจักร", desc: "บันทึกบัญชี ตรวจสอบงบ เบิกจ่ายเงิน และออกใบเสร็จรับเงินถวาย" },
-    { role: "PASTOR", title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ", desc: "อนุมัติโครงการ ดูรายงานการเงิน อภิบาลสมาชิก และจัดการฝ่ายงาน" },
-    { role: "DEACON", title: "มัคนายก / คณะกรรมการ", desc: "ตรวจรับงาน เสนองบประมาณ และดูแลพันธกิจตามฝ่ายที่รับผิดชอบ" },
-    { role: "MEMBER", title: "สมาชิกคริสตจักร", desc: "ดูข่าวสาร ตารางรับใช้ และประวัติการถวายส่วนบุคคลที่ปลอดภัย" },
+    {
+      role: "SUPER_ADMIN",
+      title: "ผู้ดูแลระบบสูงสุด",
+      desc: "เข้าถึงทุกฟังก์ชัน จัดการสิทธิ์ และตั้งค่าคริสตจักรทั้งหมด",
+    },
+    {
+      role: "TREASURER",
+      title: "เหรัญญิกคริสตจักร",
+      desc: "บันทึกบัญชี ตรวจสอบงบ เบิกจ่ายเงิน และออกใบเสร็จรับเงินถวาย",
+    },
+    {
+      role: "PASTOR",
+      title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ",
+      desc: "อนุมัติโครงการ ดูรายงานการเงิน อภิบาลสมาชิก และจัดการฝ่ายงาน",
+    },
+    {
+      role: "DEACON",
+      title: "มัคนายก / คณะกรรมการ",
+      desc: "ตรวจรับงาน เสนองบประมาณ และดูแลพันธกิจตามฝ่ายที่รับผิดชอบ",
+    },
+    {
+      role: "MEMBER",
+      title: "สมาชิกคริสตจักร",
+      desc: "ดูข่าวสาร ตารางรับใช้ และประวัติการถวายส่วนบุคคลที่ปลอดภัย",
+    },
   ];
 
   return (
@@ -196,67 +224,79 @@ export default function Settings() {
                     type="text"
                     required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={e => setName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm font-semibold text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="font-semibold text-[#38251B]">คำขวัญ / นิมิตคริสตจักร</label>
+                  <label className="font-semibold text-[#38251B]">
+                    คำขวัญ / นิมิตคริสตจักร
+                  </label>
                   <input
                     type="text"
                     value={motto}
-                    onChange={(e) => setMotto(e.target.value)}
+                    onChange={e => setMotto(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <label className="font-semibold text-[#38251B]">ที่อยู่คริสตจักร</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ที่อยู่คริสตจักร
+                  </label>
                   <textarea
                     rows={2}
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={e => setAddress(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-[#38251B]">เบอร์โทรศัพท์</label>
+                  <label className="font-semibold text-[#38251B]">
+                    เบอร์โทรศัพท์
+                  </label>
                   <input
                     type="text"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={e => setPhone(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-[#38251B]">อีเมลทางการ</label>
+                  <label className="font-semibold text-[#38251B]">
+                    อีเมลทางการ
+                  </label>
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-[#38251B]">ศิษยาภิบาลอาวุโส</label>
+                  <label className="font-semibold text-[#38251B]">
+                    ศิษยาภิบาลอาวุโส
+                  </label>
                   <input
                     type="text"
                     value={pastorName}
-                    onChange={(e) => setPastorName(e.target.value)}
+                    onChange={e => setPastorName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-[#38251B]">เหรัญญิกคริสตจักร</label>
+                  <label className="font-semibold text-[#38251B]">
+                    เหรัญญิกคริสตจักร
+                  </label>
                   <input
                     type="text"
                     value={treasurerName}
-                    onChange={(e) => setTreasurerName(e.target.value)}
+                    onChange={e => setTreasurerName(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
                 </div>
@@ -285,13 +325,15 @@ export default function Settings() {
             </h3>
 
             <div className="space-y-3">
-              {churchRoles.map((r) => (
+              {churchRoles.map(r => (
                 <div
                   key={r.role}
                   className="p-4 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/60 space-y-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-[#38251B]">{r.title}</span>
+                    <span className="font-bold text-sm text-[#38251B]">
+                      {r.title}
+                    </span>
                     <span className="font-mono text-xs text-[#70452E]/70 bg-white px-2 py-0.5 rounded-md border border-[#E9D9BF]">
                       {r.role}
                     </span>
@@ -324,7 +366,9 @@ export default function Settings() {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/60">
-                <p className="font-bold text-[#38251B]">หมวดรายจ่าย (Expenses)</p>
+                <p className="font-bold text-[#38251B]">
+                  หมวดรายจ่าย (Expenses)
+                </p>
                 <ul className="list-disc pl-5 mt-1.5 space-y-1 text-[#70452E]/80">
                   <li>ค่าสาธารณูปโภค (Utility)</li>
                   <li>พันธกิจและกิจกรรมคริสตจักร (Ministry)</li>
@@ -351,11 +395,24 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2 text-center sm:text-left text-xs">
-                <p className="font-bold text-base text-[#38251B]">{bankAccountName}</p>
-                <p className="text-[#70452E]">ธนาคาร: <span className="font-semibold text-[#38251B]">{bankName}</span></p>
-                <p className="text-[#70452E]">เลขที่บัญชี: <span className="font-mono font-bold text-sm text-[#38251B]">{bankAccount}</span></p>
+                <p className="font-bold text-base text-[#38251B]">
+                  {bankAccountName}
+                </p>
+                <p className="text-[#70452E]">
+                  ธนาคาร:{" "}
+                  <span className="font-semibold text-[#38251B]">
+                    {bankName}
+                  </span>
+                </p>
+                <p className="text-[#70452E]">
+                  เลขที่บัญชี:{" "}
+                  <span className="font-mono font-bold text-sm text-[#38251B]">
+                    {bankAccount}
+                  </span>
+                </p>
                 <p className="text-xs text-[#70452E]/70">
-                  QR Code นี้จะแสดงในแบบฟอร์มถวายทรัพย์ เพื่อให้สมาชิกสแกนโอนได้สะดวก
+                  QR Code นี้จะแสดงในแบบฟอร์มถวายทรัพย์
+                  เพื่อให้สมาชิกสแกนโอนได้สะดวก
                 </p>
               </div>
             </div>

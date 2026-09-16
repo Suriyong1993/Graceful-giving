@@ -23,6 +23,7 @@ import { toast } from "sonner";
 
 export default function NewExpense() {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
 
   const [amount, setAmount] = useState<string>("");
   const [category, setCategory] = useState<
@@ -53,14 +54,19 @@ export default function NewExpense() {
       setIsSubmitting(false);
       setCreatedExpenseId(data.id);
       setShowSuccessModal(true);
+      void Promise.all([
+        utils.expenses.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
       toast.success("บันทึกรายการรายจ่ายเรียบร้อยแล้ว");
     },
     onError: err => {
       setIsSubmitting(false);
-      // Even if offline/demo, show success modal for frontend testing
-      setCreatedExpenseId(Date.now());
-      setShowSuccessModal(true);
-      toast.success("บันทึกรายการรายจ่ายเรียบร้อย (ระบบจำลอง)");
+      setShowSuccessModal(false);
+      toast.error(
+        err.message || "บันทึกรายการรายจ่ายไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+      );
     },
   });
 
@@ -172,7 +178,7 @@ export default function NewExpense() {
       const reader = new FileReader();
       reader.onload = () => {
         setReceiptFile(reader.result as string);
-        toast.success("แนบไฟล์ใบเสร็จสำเร็จ");
+        toast.info("แนบไฟล์ไว้ในแบบฟอร์มแล้ว แต่ยังไม่ได้บันทึกไฟล์ลงระบบ");
       };
       reader.readAsDataURL(file);
     }

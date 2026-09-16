@@ -37,11 +37,15 @@ export default function Reports() {
       : 0;
 
   const handleExportPDF = () => {
-    toast.success("กำลังสร้างรายงาน PDF สรุปงบการเงินสำหรับคณะธรรมกิจ...");
+    toast.info(
+      "การส่งออก PDF ยังไม่พร้อมใช้งาน เนื่องจากยังไม่มีบริการสร้างไฟล์"
+    );
   };
 
   const handleExportExcel = () => {
-    toast.success("ส่งออกข้อมูล Excel ทางบัญชีเรียบร้อย");
+    toast.info(
+      "การส่งออก Excel ยังไม่พร้อมใช้งาน เนื่องจากยังไม่มีบริการสร้างไฟล์"
+    );
   };
 
   return (
