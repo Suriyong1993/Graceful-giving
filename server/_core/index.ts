@@ -23,6 +23,28 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+function getConfiguredHost(): string {
+  const hostFlagIndex = process.argv.indexOf("--host");
+  if (hostFlagIndex >= 0 && process.argv[hostFlagIndex + 1]) {
+    return process.argv[hostFlagIndex + 1];
+  }
+
+  return process.env.HOST || "127.0.0.1";
+}
+
+function getConfiguredPort(defaultPort: number): number {
+  const portFlagIndex = process.argv.indexOf("--port");
+  if (portFlagIndex >= 0 && process.argv[portFlagIndex + 1]) {
+    const requestedPort = Number(process.argv[portFlagIndex + 1]);
+    if (!Number.isNaN(requestedPort)) {
+      return requestedPort;
+    }
+  }
+
+  const envPort = Number(process.env.PORT || "");
+  return Number.isFinite(envPort) && envPort > 0 ? envPort : defaultPort;
+}
+
 async function startServer() {
   const app = createApp();
   const server = createServer(app);
@@ -34,15 +56,16 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
+  const host = getConfiguredHost();
+  const preferredPort = getConfiguredPort(5500);
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, host, () => {
+    console.log(`Server running on http://${host}:${port}/`);
   });
 }
 

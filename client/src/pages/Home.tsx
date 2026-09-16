@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
@@ -90,6 +90,39 @@ function fmtThaiDate(d: Date | string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(d));
+}
+
+// ─── Balance count-up (first-impression polish) ─────────────────────────────
+// Animates the hero balance figure from 0 to its real value on mount/update
+// instead of just appearing — skips straight to the final value for
+// prefers-reduced-motion so no one is forced to watch a number tick up.
+function useCountUp(target: number, durationMs = 900): number {
+  const [value, setValue] = useState(target);
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setValue(target);
+      return;
+    }
+    const start = performance.now();
+    let frameId: number;
+    const tick = (now: number) => {
+      const progress = Math.min((now - start) / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(target * eased);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, durationMs, prefersReducedMotion]);
+
+  return value;
 }
 
 // ─── Static Mock Fallbacks ───────────────────────────────────────────────────
@@ -398,6 +431,7 @@ export default function Home() {
   const isSampleData = !summaryLoading && (summaryError || !summaryData);
   const isPositiveBalance = totalBalance >= 0;
   const isPositiveNet = netMonthly >= 0;
+  const animatedBalance = useCountUp(totalBalance);
 
   const chartData =
     monthlyStatsData && monthlyStatsData.length > 0
@@ -796,12 +830,21 @@ export default function Home() {
           {activeTab === "home" && (
             <div className="space-y-5 md:space-y-7">
               {/* ─── 1. HERO SECTION ─────────────────────────────────────────── */}
-              {/* Desktop/Tablet Layout: Side-by-side with split hero (image 35-45%)
-                  Mobile Layout: Responsive stack with image below/behind branding with complete legibility */}
+              {/* Side-by-side at every breakpoint (text col + image col) so the
+                  illustration never drops into an orphaned centered block below
+                  the headline on mobile; md+ switches to the wider 12-col split
+                  with the extra scripture speech card. */}
               <section
                 aria-label="Grace-giving ส่วนต้อนรับ"
-                className="relative rounded-[28px] md:rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-3.5 sm:p-5 md:p-7"
+                className="animate-fade-up relative rounded-[28px] md:rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-3.5 sm:p-5 md:p-7"
               >
+                {/* Decorative depth blob — purely atmospheric, never carries
+                    meaning on its own, so it stays out of the a11y tree. */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 md:w-56 md:h-56 rounded-full bg-[#A8C978]/15 blur-3xl"
+                />
+
                 {/* Notification Bell (Top-Right) */}
                 <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
                   <button
@@ -815,7 +858,7 @@ export default function Home() {
                 </div>
 
                 {/* Hero Content Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-5 items-center relative z-10">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-12 gap-3 sm:gap-5 items-center relative z-10">
                   {/* Left Column: Stacked Typography, Tagline, Bible Verse */}
                   <div className="min-w-0 md:col-span-7 space-y-1.5 sm:space-y-3.5">
                     {/* Stacked "Grace" + "Ledger" Typography — compact on mobile so balance is visible without scrolling */}
@@ -848,8 +891,11 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image — shrunk on mobile so the balance card sits above the fold */}
-                  <div className="min-w-0 md:col-span-5 flex flex-col sm:flex-row md:flex-col items-center justify-center gap-3 pt-1.5 sm:pt-2 md:pt-10">
+                  {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image — sits
+                      beside the headline at every breakpoint (not stacked below it),
+                      so mobile stays compact without the image reading as an
+                      orphaned icon. */}
+                  <div className="min-w-0 flex items-center justify-center md:col-span-5 md:flex-col md:justify-center md:gap-3 md:pt-10">
                     {/* Desktop Scripture Speech Card */}
                     <div className="hidden md:block w-full max-w-56 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] text-xs space-y-1.5">
                       <p className="text-[#70452E] font-medium leading-relaxed">
@@ -864,7 +910,7 @@ export default function Home() {
                     </div>
 
                     {/* 3D Clay Jesus & Fluffy Lamb Illustration */}
-                    <div className="relative w-24 h-24 sm:w-48 sm:h-64 md:w-full md:max-w-56 md:h-64 rounded-2xl sm:rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
+                    <div className="relative w-24 h-28 sm:w-40 sm:h-52 md:w-full md:max-w-64 md:h-72 rounded-2xl sm:rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
                       <Illustration
                         src="/illustrations/hero_jesus_shepherd.jpg"
                         alt="พระเยซูคริสต์และลูกแกะ"
@@ -883,7 +929,8 @@ export default function Home() {
                   status-based color (never color alone — always paired with text) */}
               <section
                 aria-label="ยอดเงินคงเหลือรวม"
-                className={`bg-gradient-to-br from-white via-white to-[#F7FBF4] rounded-[30px] p-5 md:p-7 border relative overflow-hidden ${isPositiveBalance ? "border-[#DCECC5]/90" : "border-[#F2C9BE]"} clay-card-shadow`}
+                style={{ animationDelay: "90ms" }}
+                className={`animate-fade-up bg-gradient-to-br from-white via-white to-[#F7FBF4] rounded-[30px] p-5 md:p-7 border relative overflow-hidden ${isPositiveBalance ? "border-[#DCECC5]/90" : "border-[#F2C9BE]"} ${isPositiveBalance ? "clay-balance-glow" : "clay-card-shadow"}`}
               >
                 <div className="flex items-center justify-between gap-4">
                   {/* Left: Prominent financial figures */}
@@ -933,7 +980,9 @@ export default function Home() {
                       <div
                         className={`break-words text-3xl sm:text-4xl md:text-5xl font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#1b5e3a]" : "text-[#B3261E]"}`}
                       >
-                        {showBalance ? fmtBaht(totalBalance) : "฿ ••••••••"}
+                        {showBalance
+                          ? fmtBaht(animatedBalance)
+                          : "฿ ••••••••"}
                       </div>
                     )}
 
@@ -983,7 +1032,8 @@ export default function Home() {
               {/* ─── 3. FINANCIAL SUMMARY CARDS (Row of 3 cards: รายรับ, รายจ่าย, คงเหลือ) ── */}
               <section
                 aria-label="สรุปตัวเลขการเงินรายเดือน"
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
+                style={{ animationDelay: "160ms" }}
+                className="animate-fade-up grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"
               >
                 {/* Card 1: รายรับ (Income) — green tone, consistent with the
                     income = green convention used everywhere on this page */}
@@ -1102,7 +1152,8 @@ export default function Home() {
                   tap away without competing with the secondary menu below. ── */}
               <section
                 aria-label="การดำเนินการหลัก"
-                className="grid grid-cols-2 gap-3 md:gap-4"
+                style={{ animationDelay: "230ms" }}
+                className="animate-fade-up grid grid-cols-2 gap-3 md:gap-4"
               >
                 <button
                   onClick={() => {

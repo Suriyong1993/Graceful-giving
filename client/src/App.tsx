@@ -33,8 +33,16 @@ import Approvals from "./pages/Approvals";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Updates from "./pages/Updates";
+import ComponentShowcase from "./pages/ComponentShowcase";
 
-const SETUP_EXEMPT_PATHS = ["/setup", "/login", "/register", "/404"];
+const SETUP_EXEMPT_PATHS = [
+  "/setup",
+  "/login",
+  "/register",
+  "/404",
+  // Dev-only UI gallery; the route itself is also unmounted in prod (see Router).
+  ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
+];
 
 // Hybrid onboarding gate: logged-in users whose church profile is missing or
 // not yet set up are nudged to the wizard — unless they skipped it in this
@@ -123,6 +131,12 @@ function Router() {
 
       {/* News & Updates */}
       <Route path="/updates" component={Updates} />
+
+      {/* Dev UI showcase (incl. adapted ObsidianUI components) — dev builds
+          only; statically stripped from production bundles. */}
+      {import.meta.env.DEV && (
+        <Route path="/ui-showcase" component={ComponentShowcase} />
+      )}
 
       {/* 404 Fallback */}
       <Route path="/404" component={NotFound} />

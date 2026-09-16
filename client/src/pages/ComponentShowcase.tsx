@@ -138,6 +138,9 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
+import { ArrowFillButton } from "@/components/ui/arrow-fill-button";
+import { FlipText } from "@/components/ui/flip-text";
+import { InteractiveHoverButton } from "@/components/ui/interactive-hover-button";
 import { Switch } from "@/components/ui/switch";
 import {
   Table,
@@ -1028,7 +1031,8 @@ export default function ComponentsShowcase() {
                       <DialogHeader>
                         <DialogTitle>Test Input</DialogTitle>
                         <DialogDescription>
-                          Enter some text below. Press Enter to submit (IME composition supported).
+                          Enter some text below. Press Enter to submit (IME
+                          composition supported).
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 py-4">
@@ -1038,7 +1042,7 @@ export default function ComponentsShowcase() {
                             id="dialog-input"
                             placeholder="Type something..."
                             value={dialogInput}
-                            onChange={(e) => setDialogInput(e.target.value)}
+                            onChange={e => setDialogInput(e.target.value)}
                             onKeyDown={handleDialogKeyDown}
                             autoFocus
                           />
@@ -1391,6 +1395,38 @@ export default function ComponentsShowcase() {
             </Card>
           </section>
 
+          {/* ObsidianUI (adapted) Section */}
+          <section className="space-y-4">
+            <h3 className="text-2xl font-semibold">ObsidianUI — Adapted</h3>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  <div className="text-sm text-muted-foreground">
+                    <p>
+                      Free ObsidianUI components (MIT) re-themed to the clay
+                      palette. Hover the buttons to see the fill animation.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <InteractiveHoverButton>ถวายตอนนี้</InteractiveHoverButton>
+                    <ArrowFillButton>ดูรายงานการเงิน</ArrowFillButton>
+                  </div>
+                  <div className="rounded-2xl border bg-card p-6 text-center">
+                    <FlipText
+                      className="text-3xl font-bold text-clay-brown"
+                      loop={false}
+                    >
+                      Graceful Giving
+                    </FlipText>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      FlipText plays once on mount (loop disabled for
+                      readability)
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </section>
           {/* AI ChatBox Section */}
           <section className="space-y-4">
             <h3 className="text-2xl font-semibold">AI ChatBox</h3>
@@ -1399,11 +1435,13 @@ export default function ComponentsShowcase() {
                 <div className="space-y-4">
                   <div className="text-sm text-muted-foreground">
                     <p>
-                      A ready-to-use chat interface component that integrates with the LLM system.
-                      Features markdown rendering, auto-scrolling, and loading states.
+                      A ready-to-use chat interface component that integrates
+                      with the LLM system. Features markdown rendering,
+                      auto-scrolling, and loading states.
                     </p>
                     <p className="mt-2">
-                      This is a demo with simulated responses. In a real app, you'd connect it to a tRPC mutation.
+                      This is a demo with simulated responses. In a real app,
+                      you'd connect it to a tRPC mutation.
                     </p>
                   </div>
                   <AIChatBox
