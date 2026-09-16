@@ -39,10 +39,16 @@ design system, with these documented exceptions where it genuinely is reused in 
 - `Dialog` (`ui/dialog.tsx`) — reused via `CommonUI.tsx`'s `ConfirmDialog` wrapper, imported by
   many pages.
 - `Sheet` (`ui/sheet.tsx`) — reused via `AppNavigation.tsx`'s `AppMenu` (mobile nav drawer).
-- `Table` (`ui/table.tsx`) — imported directly in `Members.tsx`, `Expenses.tsx`, `Reports.tsx`,
-  `Transactions.tsx`.
 - `Sonner`/`Toaster` (`ui/sonner.tsx`) — mounted globally in `App.tsx:153`.
 - `Tooltip`/`TooltipProvider` (`ui/tooltip.tsx`) — mounted globally in `App.tsx:152`.
+
+**Correction during audit:** an initial pass flagged `ui/table.tsx` as reused in `Members.tsx`,
+`Expenses.tsx`, `Reports.tsx`, `Transactions.tsx` based on a grep for `<table`/`from ".../table"`
+combined — re-checked with a precise import-only grep (`from "@/components/ui/table"`) and found
+**only `ComponentShowcase.tsx` imports it**. The pages listed above contain raw `<table>` HTML
+elements styled by hand instead (confirmed directly in `Transactions.tsx:1-21`, which imports only
+`AppLayout` + `CommonUI` pieces + `lucide-react`, no `ui/table`). `Table` is dormant, like the
+rest of `components/ui/*` — corrected below.
 
 `DashboardLayout.tsx` + `DashboardLayoutSkeleton.tsx` are **dead code** — confidence: High.
 Evidence: not imported by `App.tsx` or any page; its `menuItems` are literally placeholder data
@@ -204,6 +210,7 @@ dormant library (Confidence: High for all rows, based on grep + direct reads):
 | `Table` | `ui/table.tsx` | **Reused directly** in 4 pages | `Members.tsx`, `Expenses.tsx`, `Reports.tsx`, `Transactions.tsx` |
 | `Sonner`/`Toaster` | `ui/sonner.tsx` | **Reused** — global toast provider | `App.tsx:153` |
 | `Tooltip` | `ui/tooltip.tsx` | **Reused** — global provider only; individual `<Tooltip>` usage in pages not confirmed | `App.tsx:152` |
+| `Table` | `ui/table.tsx` | **Dormant** — corrected finding; pages with data tables (`Transactions.tsx`, `Expenses.tsx`, `Members.tsx`, `Reports.tsx`) use raw hand-styled `<table>` HTML instead | precise import grep, `Transactions.tsx:1-21` |
 | `Button` | `ui/button.tsx` | **Dormant** — imported only by `ComponentShowcase.tsx` | grep |
 | `Input` | `ui/input.tsx` | **Dormant** — imported only by `ComponentShowcase.tsx`; pages use raw `<input>` | grep |
 | `Form` | `ui/form.tsx` | **Dormant** — zero imports anywhere in `pages/` | grep |
