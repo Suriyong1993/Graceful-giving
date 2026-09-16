@@ -1,7 +1,6 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -9,31 +8,33 @@ import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
-// Pages
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ChurchSetup from "./pages/ChurchSetup";
-import Transactions from "./pages/Transactions";
-import TransactionDetail from "./pages/TransactionDetail";
-import Offerings from "./pages/Offerings";
-import NewOffering from "./pages/NewOffering";
-import Expenses from "./pages/Expenses";
-import NewExpense from "./pages/NewExpense";
-import Funds from "./pages/Funds";
-import FundDetail from "./pages/FundDetail";
-import Budgets from "./pages/Budgets";
-import BudgetDetail from "./pages/BudgetDetail";
-import Ministries from "./pages/Ministries";
-import MinistryDetail from "./pages/MinistryDetail";
-import Members from "./pages/Members";
-import MemberDetail from "./pages/MemberDetail";
-import Reports from "./pages/Reports";
-import Approvals from "./pages/Approvals";
-import Notifications from "./pages/Notifications";
-import Settings from "./pages/Settings";
-import Updates from "./pages/Updates";
-import ComponentShowcase from "./pages/ComponentShowcase";
+// Pages are loaded on demand so the initial bundle contains only the app shell
+// and the route chunk the user actually opens.
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ChurchSetup = lazy(() => import("./pages/ChurchSetup"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const TransactionDetail = lazy(() => import("./pages/TransactionDetail"));
+const Offerings = lazy(() => import("./pages/Offerings"));
+const NewOffering = lazy(() => import("./pages/NewOffering"));
+const Expenses = lazy(() => import("./pages/Expenses"));
+const NewExpense = lazy(() => import("./pages/NewExpense"));
+const Funds = lazy(() => import("./pages/Funds"));
+const FundDetail = lazy(() => import("./pages/FundDetail"));
+const Budgets = lazy(() => import("./pages/Budgets"));
+const BudgetDetail = lazy(() => import("./pages/BudgetDetail"));
+const Ministries = lazy(() => import("./pages/Ministries"));
+const MinistryDetail = lazy(() => import("./pages/MinistryDetail"));
+const Members = lazy(() => import("./pages/Members"));
+const MemberDetail = lazy(() => import("./pages/MemberDetail"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Approvals = lazy(() => import("./pages/Approvals"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Updates = lazy(() => import("./pages/Updates"));
+const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 
 const SETUP_EXEMPT_PATHS = [
   "/setup",
@@ -78,6 +79,22 @@ function SetupGate() {
   ]);
 
   return null;
+}
+
+function RouteLoading() {
+  return (
+    <div
+      className="min-h-[50vh] flex items-center justify-center px-6"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="w-full max-w-md space-y-3">
+        <div className="h-8 w-40 rounded-xl bg-[#E9D9BF]/60 animate-pulse" />
+        <div className="h-24 w-full rounded-2xl bg-[#E9D9BF]/40 animate-pulse" />
+        <p className="text-center text-sm text-[#927D6D]">กำลังโหลดหน้า…</p>
+      </div>
+    </div>
+  );
 }
 
 function Router() {
@@ -152,7 +169,9 @@ function App() {
         <TooltipProvider>
           <Toaster position="top-center" richColors />
           <SetupGate />
-          <Router />
+          <Suspense fallback={<RouteLoading />}>
+            <Router />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
