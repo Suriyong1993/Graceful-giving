@@ -282,6 +282,32 @@ export async function listOfferings(
   }));
 }
 
+export async function getOfferingById(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID,
+  showDonorNames = false
+): Promise<OfferingRow | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(offerings)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    amount: parseFloat(row.amount as unknown as string ?? "0"),
+    category: row.category,
+    donorName: showDonorNames ? row.donorName : (row.donorName ? "ผู้ถวายนิรนาม" : null),
+    receiptDate: row.receiptDate,
+    method: row.method,
+    notes: row.notes,
+    fundId: row.fundId,
+  };
+}
+
 export async function createOffering(input: Omit<InsertOffering, "churchId">, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
@@ -340,6 +366,31 @@ export async function listExpenses(
     status: r.status,
     fundId: r.fundId,
   }));
+}
+
+export async function getExpenseById(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+): Promise<ExpenseRow | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    amount: parseFloat(row.amount as unknown as string ?? "0"),
+    category: row.category,
+    description: row.description,
+    expenseDate: row.expenseDate,
+    payee: row.payee,
+    status: row.status,
+    fundId: row.fundId,
+  };
 }
 
 export async function createExpense(input: Omit<InsertExpense, "churchId">, churchId = DEFAULT_CHURCH_ID) {

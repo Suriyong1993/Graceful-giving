@@ -16,9 +16,11 @@ import {
   deleteChurchNews,
   disburseWithdrawal,
   getChurchProfile,
+  getExpenseById,
   getFinancialReportData,
   getFinancialSummary,
   getMonthlyStats,
+  getOfferingById,
   listAllChurchEvents,
   listAllChurchNews,
   listExpenses,
@@ -200,6 +202,15 @@ export const appRouter = router({
           toDate: input?.toDate,
         });
       }),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        return await getOfferingById(
+          input.id,
+          DEFAULT_CHURCH_ID,
+          canViewDonorNames(ctx.user)
+        );
+      }),
     create: financeProcedure
       .input(z.object({
         amount: z.number().positive(),
@@ -241,6 +252,11 @@ export const appRouter = router({
           fromDate: input?.fromDate,
           toDate: input?.toDate,
         });
+      }),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        return await getExpenseById(input.id, DEFAULT_CHURCH_ID);
       }),
     create: financeProcedure
       .input(z.object({

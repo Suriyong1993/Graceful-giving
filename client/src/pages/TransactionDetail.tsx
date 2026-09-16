@@ -14,17 +14,22 @@ export default function TransactionDetail() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute("/transactions/:id");
   const txId = params?.id;
-  const { data: offerings, isLoading: offeringsLoading } =
-    trpc.offerings.list.useQuery({ limit: 200 }, { retry: false });
-  const { data: expenses, isLoading: expensesLoading } =
-    trpc.expenses.list.useQuery({ limit: 200 }, { retry: false });
+  const isOffering = txId?.startsWith("offering-") ?? false;
+  const isExpense = txId?.startsWith("expense-") ?? false;
+  const recordId = Number(txId?.split("-")[1]);
+  const hasValidId = Number.isInteger(recordId) && recordId > 0;
+  const offeringQuery = trpc.offerings.getById.useQuery(
+    { id: recordId },
+    { enabled: isOffering && hasValidId, retry: false }
+  );
+  const expenseQuery = trpc.expenses.getById.useQuery(
+    { id: recordId },
+    { enabled: isExpense && hasValidId, retry: false }
+  );
 
   const transaction = useMemo(() => {
-    if (!txId) return null;
-    if (txId.startsWith("offering-")) {
-      const item = offerings?.find(
-        row => String(row.id) === txId.replace("offering-", "")
-      );
+    if (isOffering) {
+      const item = offeringQuery.data;
       if (!item) return null;
       return {
         id: txId,
@@ -46,10 +51,8 @@ export default function TransactionDetail() {
         notes: item.notes,
       };
     }
-    if (txId.startsWith("expense-")) {
-      const item = expenses?.find(
-        row => String(row.id) === txId.replace("expense-", "")
-      );
+    if (isExpense) {
+      const item = expenseQuery.data;
       if (!item) return null;
       return {
         id: txId,
@@ -67,9 +70,9 @@ export default function TransactionDetail() {
       };
     }
     return null;
-  }, [txId, offerings, expenses]);
+  }, [expenseQuery.data, isExpense, isOffering, offeringQuery.data]);
 
-  const loading = offeringsLoading || expensesLoading;
+  const loading = offeringQuery.isLoading || expenseQuery.isLoading;
   return (
     <AppLayout
       activeRoute="/transactions"
