@@ -524,3 +524,329 @@ Confidence: High this pattern exists; Medium on whether it has caused an actual 
 | Dark surfaces / dark mode | **Missing** | No `.dark` overrides exist despite scaffolding (§1, §13) |
 | Glassmorphism / blur | **Local** | Only `backdrop-blur-md` on the mobile bottom nav bg (`AppLayout.tsx:210`) — a single functional use (readability over scrolling content), not a broader glass aesthetic |
 | Gradients | **Not found** in audited files — Confidence: Medium, not exhaustively searched across all 24 pages | — |
+
+## 13. Page Pattern Audit
+
+Derived from `App.tsx`'s route table (24 routes, grouped by comment into 12 domains: Transactions,
+Offerings, Expenses, Funds, Budgets, Ministries, Members, Reports, Approvals, Notifications,
+Settings, Updates — plus Core/Auth) and direct reads of `Home.tsx`, `Transactions.tsx`,
+`NewExpense.tsx`. Every domain follows a **List → Detail** shape, some also add a **Create** page;
+Reports/Settings/Approvals/Notifications/Updates are singletons (no detail/create sub-route).
+
+### List pattern (e.g. `Transactions.tsx`, `Expenses.tsx`, `Offerings.tsx`, `Funds.tsx`,
+`Budgets.tsx`, `Ministries.tsx`, `Members.tsx`) — Confidence: High for `Transactions.tsx`
+(directly read), Medium for siblings (inferred from shared import pattern, not each individually
+re-read in full)
+
+```text
+<AppLayout title=... subtitle=... action={...}>
+├── FilterBar (search + filter chips)              — CommonUI.tsx
+├── Main content
+│   ├── LoadingSkeleton                             — while trpc query pending
+│   ├── EmptyState                                  — if list is empty after load
+│   └── Row list (hand-rolled <div>/<table> rows)    — StatusBadge + MoneyDisplay per row
+└── Responsive: FilterBar stacks full-width on mobile; rows likely reflow narrower
+    (table behavior on mobile not independently confirmed, see §9)
+```
+
+Data source: tRPC list queries (e.g. `trpc.offerings.list.useQuery`), client-side combined/derived
+via `useMemo` when a page blends multiple entities (`Transactions.tsx` merges offerings +
+expenses into one feed, `Transactions.tsx:36-60`).
+
+### Detail pattern (e.g. `TransactionDetail.tsx`, `FundDetail.tsx`, `BudgetDetail.tsx`,
+`MinistryDetail.tsx`, `MemberDetail.tsx`) — Confidence: Medium, inferred from route shape
+(`/:id` params) and shared `AppLayout`/`CommonUI` imports; not individually read in full this pass.
+
+```text
+<AppLayout title=... action={...}>
+├── Header/summary card (likely PageHeader or ad hoc equivalent)
+├── Detail content (entity-specific fields, likely MoneyDisplay for amounts)
+└── Secondary content (related records / history — not confirmed per page)
+```
+
+### Create/Form pattern (`NewOffering.tsx`, `NewExpense.tsx`) — Confidence: High for
+`NewExpense.tsx` (directly read)
+
+```text
+<AppLayout>
+├── Back navigation (ArrowLeft icon button)
+├── Form fields — plain useState per field, native <input>/<select>, NOT react-hook-form
+├── Submit handler — manual validation via toast.error(), then trpc mutation
+└── Success state — ConfirmDialog-style modal (showSuccessModal), not a route redirect
+```
+
+Notably, `NewExpense.tsx`'s `onError` handler for the create mutation shows success anyway
+("ระบบจำลอง" / "simulated system", `NewExpense.tsx:58-64`) — a demo/offline-friendly fallback
+worth knowing about if Figma prototyping needs to represent real error states, since the current
+code intentionally masks them here.
+
+### Singleton pattern (`Reports.tsx`, `Settings.tsx`, `Approvals.tsx`, `Notifications.tsx`,
+`Updates.tsx`) — Confidence: Medium, `Reports.tsx` partially read (header/toolbar/chart section),
+others inferred.
+
+```text
+<AppLayout>
+├── Hero/summary card (large, own background tint — e.g. Reports.tsx:47 bg-[#FFF4DF])
+├── Toolbar (period toggle buttons, date picker, export action)
+└── Content panels (hand-built chart, tables, or status lists per domain)
+```
+
+### Auth/onboarding pattern (`Login.tsx`, `Register.tsx`, `ChurchSetup.tsx`) — Confidence: Low,
+not read this pass; route-gated by `SetupGate` in `App.tsx:51-81` which redirects logged-in users
+without a completed church profile to `/setup` unless explicitly skipped.
+
+## 14. Figma MCP Mapping Rules
+
+| Code concept | Figma concept | Status |
+|---|---|---|
+| `index.css` `:root`/`@theme inline` CSS custom properties | Figma Variables (color/number collections) | **Recommended mapping** — not currently represented in any Figma file audited (none was available to this audit; this is a code-side readiness assessment only) |
+| Undeclared hex literals (§3.1 table, `#DE8640`, `#EAF5E4` family, `#1b5e3a`/`#c7382d`, etc.) | Figma Variables | **RECOMMENDED — NOT CURRENTLY IMPLEMENTED** in code as tokens; must be formalized in code *before* or *alongside* Figma variable creation, or Figma and code will drift immediately |
+| `components/ui/*` (Dialog, Sheet, Sonner, Tooltip — the 4 genuinely-reused pieces) | Figma Component + variants | **Recommended mapping**, existing mapping candidate — these are real, shared, token-driven code, safe to treat as source of truth |
+| `components/ui/*` (Button, Input, Card, Table, Badge, Form — dormant) | Figma Component | **Not currently representative of production** — mapping these would produce a Figma library that doesn't match shipped screens. Map the *clay* patterns below instead, or explicitly mark these as "future/aspirational system" in Figma if kept |
+| `CommonUI.tsx` exports (`EmptyState`, `StatusBadge`, `MoneyDisplay`, `PageHeader`, `FilterBar`, `ConfirmDialog`, `LoadingSkeleton`) | Figma Component + variants | **Existing mapping candidate — highest priority.** This is the actual reused production component set; each should become a real Figma component with variants matching the states documented in §5/§10 |
+| Per-page hand-rolled buttons/cards (no shared component in code) | Figma Component (net-new) | **Recommended — not currently implemented in code.** Figma can/should define a single Button and Card component even though code doesn't yet have one; this is the clearest normalization opportunity (see §17) |
+| Nav item registry (`AppNavigation.tsx` `navItems`, label + icon + color per item) | Figma Component instance list / Figma Variables (per-item color) | **Existing mapping candidate** — this is a clean, already-structured data source or navigation |
+| `AppLayout.tsx` (sidebar + header + bottom nav shell) | Figma Frame (page template / layout grid) | **Existing mapping candidate** — one shell, reused by every page |
+| Lucide icons | Figma Component / Instance, via a Lucide-for-Figma icon set (official community library) | **Existing mapping candidate** — use the same icon names 1:1 (`Sprout`, `Bell`, `Plus`, etc.) so Figma instance swaps map directly to `lucide-react` import names |
+| Font families (`Prompt`, `Noto Sans Thai`, `Caveat`) | Figma Text Styles | **Recommended mapping** — must include Thai glyph coverage for `Noto Sans Thai` styles specifically, since production copy is Thai-dominant |
+| `.clay-card-shadow`/`.clay-button-shadow`/`.clay-balance-glow` | Figma Effect Styles | **Existing mapping candidate** — 3 real, reusable shadow definitions |
+| Radius values (`rounded-2xl`, arbitrary `rounded-[Npx]`) | Figma corner-radius tokens | **Recommended mapping**, but first needs code-side normalization (§17) — mapping the current arbitrary-pixel sprawl 1:1 would produce 10+ near-duplicate radius tokens in Figma |
+| `.animate-fade-up` / button press-scale / transition durations | Figma prototyping "Smart Animate" + easing curve presets | **Recommended mapping** — durations/easing exist in code but aren't named tokens; name them first (§17) |
+| Dark mode (`.dark` class, `ThemeContext`, `THEMES.dark` in `chart.tsx`) | Figma mode/variable collection (Light/Dark) | **Not currently implemented in code** — do not build dark-mode Figma frames as if translating an existing implementation; this is 100% new scope |
+
+## 15. Figma Variable Taxonomy
+
+Proposed structure, built only from values verified to exist in code (§3). Items with no current
+code-side value are explicitly marked `RECOMMENDED — NOT CURRENTLY IMPLEMENTED`.
+
+```text
+Primitives
+├── Color
+│   ├── clay/bg          #fff9ee
+│   ├── clay/cream       #fff4df
+│   ├── clay/sage        #a8c978
+│   ├── clay/lightsage   #dcecc5
+│   ├── clay/peach       #f7b6a6
+│   ├── clay/orange      #e99a4a
+│   ├── clay/orange-hover #de8640   (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN, real hex found 3x in code)
+│   ├── clay/sky         #a9d4ed
+│   ├── clay/brown       #70452e
+│   ├── clay/dark        #38251b
+│   ├── clay/muted       #927d6d
+│   ├── clay/border      #e9d9bf
+│   ├── status/success-bg    #eaf5e4  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── status/success-text  #4f8b33  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── status/danger-bg     #ffebe5  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── status/danger-text   #d45945  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── status/pending-bg    #fff3df  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── status/pending-text  #c26b1e  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   ├── money/income     #1b5e3a  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+│   └── money/expense    #c7382d  (RECOMMENDED — NOT CURRENTLY A NAMED TOKEN)
+├── Spacing        — Tailwind default scale, no custom primitive tokens exist
+├── Radius
+│   ├── radius/sm   (--radius - 4px = 12px)
+│   ├── radius/md   (--radius - 2px = 14px)
+│   ├── radius/lg   (--radius = 16px)
+│   ├── radius/xl   (--radius + 6px = 22px)
+│   ├── radius/2xl  (--radius + 12px = 28px)
+│   ├── radius/3xl  (1.75rem = 28px, independently declared, numerically equal to 2xl — flag as
+│   │                 a near-duplicate to resolve, see §16)
+│   └── radius/full
+├── Typography
+│   ├── font/sans     "Prompt", "Noto Sans Thai", sans-serif
+│   ├── font/script    "Caveat", cursive (decorative, single use — do not over-generalize)
+│   └── Named size/weight tiers — RECOMMENDED — NOT CURRENTLY IMPLEMENTED (see §3.2; only ad hoc
+│       Tailwind classes exist today, no declared H1/H2/Body/Caption tokens)
+└── Motion
+    ├── duration/fast   180ms   (RECOMMENDED as a named token — currently inlined only)
+    ├── duration/normal 600ms   (RECOMMENDED as a named token — currently inlined only)
+    └── ease/out-expo   cubic-bezier(0.16,1,0.3,1)  (RECOMMENDED as a named token)
+
+Semantic
+├── Background   → clay/bg
+├── Foreground   → clay/dark
+├── Primary      → clay/orange (+ clay/orange-hover for interaction state)
+├── Secondary    → clay/cream
+├── Muted        → clay/muted (text), a near-duplicate of clay/cream (surface) — see §16
+├── Border       → clay/border
+├── Success      → status/success-bg + status/success-text (RECOMMENDED, unifies StatusBadge
+│                   "approved" with the declared clay/sage-lightsage family — currently distinct)
+├── Warning      → status/pending-bg + status/pending-text (RECOMMENDED — NOT CURRENTLY UNIFIED
+│                   with any existing token)
+└── Destructive  → status/danger-bg + status/danger-text (RECOMMENDED — currently split between
+                    the declared --destructive token, the StatusBadge "rejected" hex family, and
+                    MoneyDisplay's expense hex — three different reds for one semantic role, see §16)
+```
+
+## 16. Design System Inconsistency Report
+
+| Issue | Evidence | Impact | Recommended Resolution |
+|---|---|---|---|
+| Two disjoint component systems: `components/ui/*` (token-driven, dormant) vs. hand-rolled clay pages (hex-hardcoded, production) | §1 — 1046 hex literals vs. 26 semantic-token uses (all in dev-only `ComponentShowcase.tsx`); zero pages import `Button`/`Input`/`Form`/`Table`/`Card`/`Badge` | **High** — every future feature built by copying an existing page inherits hardcoded hex instead of tokens, widening the gap permanently | Decide deliberately: either (a) retire/relabel `components/ui/*` as "internal primitives only" and formalize the clay pattern as the real system, or (b) migrate pages onto `components/ui/*` incrementally. Do not keep drifting silently |
+| Three+ separate red/green/amber color families for one semantic role each | §3.1 — `--destructive` (`#f7b6a6`), `StatusBadge` rejected (`#D45945`/`#FFEBE5`), `MoneyDisplay` expense (`#c7382d`) all mean roughly "negative/danger" but are visually different reds | **High** — a designer picking "the red" in Figma has no single correct answer | Consolidate to one `status/danger` + one `money/expense` pair (money ≠ status semantically, so 2 tokens is correct, not 1 — see taxonomy §15) and update all 3 call sites |
+| Duplicate/near-identical radius: `rounded-3xl` (1.75rem/28px, independently hardcoded) vs. `rounded-2xl` (`--radius` + 12px = also 28px) vs. arbitrary `rounded-[28px]` | §3.4, `index.css:16` vs. `CommonUI.tsx:60` | **Medium** — visually invisible today (same computed value) but three different ways to express one radius makes Figma↔code sync error-prone | Pick one canonical expression (`rounded-3xl`) and replace the arbitrary-pixel and derived-2xl usages that were intended to mean "the largest radius" |
+| Two elevation systems coexisting: `.clay-card-shadow` vs. plain Tailwind `shadow-sm`/`shadow-xs` for what reads as the same "card" role | §3.5, `CommonUI.tsx:60` vs. `Reports.tsx:47` | **Medium** | Standardize all card-level surfaces on the `.clay-*` shadow family; reserve bare Tailwind shadow utilities for non-card chrome only |
+| `--muted` (`#f8f2e6`) declared but effectively unused; pages reach for `--color-clay-cream`/`#FFF4DF` for the same "muted surface" role instead | §3.1 | **Low-Medium** | Either retire `--muted` or intentionally redefine one of the two as the canonical muted-surface token |
+| Icon sizing split: `w-4 h-4`/`w-5 h-5` (clay pages, 173 occurrences) vs. `size-4`/`size-5` (shadcn internals) | §6 | **Medium** — the two conventions don't compose safely inside `ui/button.tsx`'s auto-size rule | Standardize on one sizing convention codebase-wide; if keeping both, document which convention applies inside `components/ui/*` vs. page code |
+| Typography scale not centralized: two different "big number" scales (`text-2xl md:text-3xl font-bold` in Reports vs. `text-3xl sm:text-4xl md:text-5xl font-black` in MoneyDisplay `xl`); H1 weight varies `font-extrabold` vs. `font-bold` across pages | §3.2 | **Medium** | Name a small set of type-scale tokens (Display, H1, Body, Caption at minimum) and apply consistently |
+| `react-hook-form`/`zod`/`ui/form.tsx` fully installed and built, zero production usage; forms are manual per-field `useState` with toast-based (not inline) validation | §1, §2, `NewExpense.tsx` | **Medium** — inconsistent validation UX, duplicated boilerplate per form page, no schema reuse between client validation and the tRPC/Zod server schema that likely already exists server-side | Either adopt `react-hook-form` + `zod` for new/edited forms (reusing server-side Zod schemas where they exist) or remove the unused dependency to reduce confusion |
+| `recharts` + `ui/chart.tsx` installed and built, zero usage; `Reports.tsx` hand-builds a bar chart from raw `<div>`s with 2 hardcoded colors | §2, §4, `Reports.tsx:152+` | **Medium** — hand-rolled charts don't get recharts' accessibility/responsiveness/tooltip features for free, and can't scale past the 2 hardcoded series colors already observed | Migrate `Reports.tsx` onto `recharts` via `ui/chart.tsx`, defining `--chart-1`..`n` tokens (currently absent entirely) |
+| `DashboardLayout.tsx` + `DashboardLayoutSkeleton.tsx` — full dead-code alternate layout with placeholder content ("Page 1"/"Page 2") | §1 | **Low** (no user-facing impact, but a real maintenance/onboarding hazard — an unfamiliar contributor or AI agent could mistake it for the real shell) | Delete, or clearly mark as an unused starter-template remnant if kept for reference |
+| Dark mode scaffolded three separate places (`ThemeContext.tsx`, `@custom-variant dark` in `index.css`, `THEMES.dark` in `chart.tsx`) but functionally inert — no `.dark {}` token overrides, no UI toggle, `switchable` defaults false | §1, §3.6, §14 | **Low** (not currently a bug — dark mode simply doesn't exist yet) | Either finish the implementation (add `.dark {}` token overrides + a toggle) or remove the scaffolding to avoid implying a feature that isn't there |
+| `cn()` (tailwind-merge) used in `components/ui/*` but bypassed by string-concatenation in clay pages | §11, `AppLayout.tsx:98-102` | **Low-Medium** | Adopt `cn()` in page-level conditional className logic for conflict-safety, especially as the codebase grows |
+| Hand-rolled buttons across call sites don't share a disabled-state visual treatment | §10, `CommonUI.tsx:332-350` | **Medium (a11y/UX)** | Consolidate on one button implementation with declared disabled/hover/focus states (ties into the component-system decision above) |
+
+## 17. Design System Maturity
+
+No overall score — evaluated per category with evidence.
+
+| Category | Status | Evidence |
+|---|---|---|
+| Tokens | **Partially established** | Colors/radius/shadow/font-family tokens exist and are correctly structured in `index.css`, but are bypassed by ~all production page code in favor of hardcoded hex (§1, §3) |
+| Typography | **Inconsistent** | No named type-scale tokens; ad hoc size/weight combinations per page with observed drift on equivalent roles (§3.2) |
+| Color | **Inconsistent** | Declared palette exists, but at least 4 undeclared color families are load-bearing in production (status pills, money display) with no token backing (§3.1, §16) |
+| Components | **Partially established, bifurcated** | A complete, well-built component library exists (`components/ui/*`) but is almost entirely unused; the actually-used component set (`CommonUI.tsx`, 7 exports) is smaller and informally maintained (§4) |
+| Variants | **Inconsistent** | Where variant systems exist (`ui/button.tsx`) they're unused; where components are actually reused (buttons, cards in pages) there is no variant system, just N ad hoc implementations (§5) |
+| Icons | **Partially established** | Single library (`lucide-react`) consistently chosen — good — but sizing convention (`w-5 h-5` vs `size-5`) is split (§6) |
+| Assets | **Established** for the narrow slice audited (6 illustration JPGs, consistent `object-cover` + explicit dimensions via `Illustration.tsx`); **no** responsive/optimization pipeline exists (§7) |
+| Layout | **Established** | `AppLayout.tsx` is a single, consistently-applied shell for every page; deliberate 2-tier (mobile/desktop) breakpoint model (§8) |
+| Responsive | **Partially established** | Shell responsiveness is solid and deliberate (safe-area handling, touch targets, iOS zoom-prevention font size); table mobile behavior and true tablet-specific layout are unverified/likely absent (§9) |
+| Accessibility | **Partially established** | Strong, repeated patterns for `aria-current`/`aria-label`/`aria-hidden`/focus-visible in the shared layout layer; gaps in disabled-state styling and unverified color contrast (§10) |
+| Motion | **Partially established** | A working, reduced-motion-safe animation exists for one use case; no centralized duration/easing tokens (§3.6) |
+| Documentation | **Missing** | No Storybook, no component docs site; `ComponentShowcase.tsx` is the closest artifact but documents the dormant system, not the production one |
+| Figma readiness | **Missing → this document is the first step** | No prior Figma variable/component mapping existed to audit; this document establishes the baseline (§14/§15) |
+
+## 18. Rules for AI-Generated UI
+
+```text
+DO:
+- Build new production UI following the hand-rolled "clay" pattern (AppLayout + CommonUI.tsx
+  exports + per-page hex-matched-to-clay-palette classes) — this is what actually ships, per §1.
+- Reuse CommonUI.tsx's EmptyState, StatusBadge, MoneyDisplay, PageHeader, FilterBar,
+  ConfirmDialog, LoadingSkeleton before writing new equivalents.
+- Match colors to the declared clay hex values (§3.1) exactly — #E99A4A, #38251B, #FFF9EE,
+  #70452E, #927D6D, #E9D9BF, #A8C978, #F7B6A6, #DCECC5, #A9D4ED — and to the undeclared-but-real
+  status/money hex families documented in §3.1/§15 rather than inventing new ones.
+- Use lucide-react exclusively for icons; match existing sizing (w-5 h-5 nav/header, w-4 h-4
+  secondary) and the per-nav-item color registry in AppNavigation.tsx where extending nav.
+- Reuse the .clay-card-shadow / .clay-button-shadow / .clay-balance-glow shadow utilities for
+  elevation instead of introducing new box-shadow values.
+- Preserve the safe-area-aware mobile bottom-nav padding and 44px+ touch targets already
+  established in AppLayout.tsx.
+- Preserve the aria-current/aria-label/aria-hidden/focus-visible patterns already used
+  consistently in AppLayout.tsx/AppNavigation.tsx when adding new nav or interactive elements.
+- Keep bilingual readiness in mind — Thai (Noto Sans Thai) glyph coverage is required for any
+  new text-bearing UI, since production copy is Thai-dominant.
+- Use cn() (clsx + tailwind-merge) for any conditional className logic, even in clay-pattern page
+  code, for conflict-safety — this is a genuine improvement over the current string-concatenation
+  norm (§16), not a deviation from it.
+
+DO NOT:
+- Do not import Button/Input/Form/Card/Badge/Table from components/ui/* into new pages as if they
+  were the established production system — they are dormant (§1/§4); using them would create a
+  third, even-more-fragmented visual language unless a deliberate migration decision is made
+  first.
+- Do not invent new hex colors for status/success/warning/money roles — reuse the undeclared-but-
+  real families already documented in §3.1/§15 (there are already 4 too many; don't add a 5th).
+- Do not introduce a second icon library alongside lucide-react.
+- Do not add a new arbitrary-pixel border-radius value without checking whether an existing
+  rounded-2xl/3xl/full already expresses it (§3.4/§16).
+- Do not assume dark mode exists or needs matching — it is scaffolded but inert (§1/§16); adding
+  dark-mode-specific styling is net-new scope, not a translation task.
+- Do not assume this is a Next.js project — it is a Vite SPA with wouter routing (§2). Do not
+  apply App Router/RSC/Server Component conventions.
+- Do not silently duplicate CommonUI.tsx-equivalent logic (another status badge, another money
+  formatter) — grep for an existing implementation first.
+```
+
+## 19. Rules for Figma → Code
+
+1. Before translating any Figma frame, check whether it matches an existing `CommonUI.tsx` export
+   or `AppLayout`/`AppNavigation` pattern (§4/§13) — most "new" screens are recompositions of the
+   same handful of primitives (list row, status badge, money figure, empty state, filter bar).
+2. Map Figma color styles to the clay hex palette (§3.1) first; if a Figma color doesn't match any
+   entry in §3.1 or §15's taxonomy, flag it for a design decision rather than inlining a new hex
+   value into code.
+3. Map Figma text styles to the observed role table in §3.2 (Page H1, Section H3, Body, Caption,
+   Micro) — do not introduce a 6th unrelated size tier without checking whether an existing role
+   already covers the intent.
+4. Map Figma corner-radius values to the canonical scale in §15 (`sm`/`md`/`lg`/`xl`/`2xl`/`3xl`/
+   `full`) — reject arbitrary Figma radius values that don't round to one of these.
+5. Map Figma elevation/shadow styles to `.clay-card-shadow`/`.clay-button-shadow`/
+   `.clay-balance-glow` (§3.5) — `.clay-balance-glow` is reserved for the single most important
+   figure on a page per its own code comment; don't reuse it generically even if visually similar.
+6. Map Figma icons to `lucide-react` by matching icon intent to the closest existing Lucide
+   component name — do not export custom SVGs for icons Lucide already covers.
+7. For new interactive components (buttons, inputs, cards) with no current shared code
+   implementation, build them following the *visual* conventions already established per-instance
+   (§5) even though no shared component exists yet — and flag to the team that this is an
+   opportunity to finally create one (§17), rather than adding yet another one-off.
+8. Respect the two-tier responsive model — `lg:` (1024px) is the only breakpoint that changes the
+   page *shell* (sidebar vs. bottom nav); other breakpoints (`sm:`/`md:`/`xl:`) only affect
+   in-page content reflow (§9). Don't design a third shell-level tablet state unless explicitly
+   scoped as new work.
+9. For Thai-language frames, verify text renders correctly in `Noto Sans Thai`/`Prompt` before
+   treating a translation as complete.
+
+## 20. Rules for Code → Figma
+
+1. Export the `CommonUI.tsx` component set (§4) as the first and highest-priority Figma component
+   library — it is small (7 components), genuinely reused, and already has documented
+   variants/states (§5/§10).
+2. Export `AppLayout.tsx`'s sidebar/header/bottom-nav shell as reusable Figma frames/templates,
+   including the safe-area-aware mobile spacing as real frame padding, not a visual approximation.
+3. Export `AppNavigation.tsx`'s `navItems` registry as a structured Figma component-instance list
+   (12 items, label + icon + per-item color) rather than 12 independently-drawn nav rows — this
+   preserves the fact that it's genuinely data-driven in code.
+4. When exporting colors, export the corrected/deduplicated taxonomy from §15 (which folds in the
+   4 undeclared color families), not a literal 1:1 dump of `index.css`'s current tokens alone —
+   otherwise the Figma library will be missing colors that are load-bearing in real screens
+   (status badges, money figures).
+5. Do not export `components/ui/*`'s dormant components (Button, Input, Card, Table, Badge, Form)
+   as if they represent shipped UI — if exported at all, label them explicitly as "internal/
+   unused library" so designers don't build new screens against components no page actually uses.
+6. Do not export dark-mode variants — there is nothing to export yet (§1/§16).
+7. Flag the radius/color/typography near-duplicates in §16 during export rather than silently
+   picking one value — this is a decision for the design/eng team, not something to resolve
+   unilaterally in a one-way export.
+
+## 21. Evidence / Source Files
+
+Primary files read or grepped during this audit:
+
+```text
+package.json
+vite.config.ts
+client/src/index.css
+client/src/App.tsx
+client/src/lib/utils.ts
+client/src/contexts/ThemeContext.tsx
+client/src/components/layout/AppLayout.tsx
+client/src/components/layout/AppNavigation.tsx
+client/src/components/common/CommonUI.tsx
+client/src/components/DashboardLayout.tsx
+client/src/components/ui/button.tsx
+client/src/components/ui/card.tsx
+client/src/components/ui/badge.tsx
+client/src/components/ui/input.tsx
+client/src/components/ui/alert.tsx
+client/src/components/ui/table.tsx
+client/src/components/ui/chart.tsx
+client/src/pages/Transactions.tsx
+client/src/pages/NewExpense.tsx
+client/src/pages/Reports.tsx (partial — header/toolbar/chart section)
+client/src/pages/ComponentShowcase.tsx (referenced via grep, not fully read this pass)
+client/public/ (directory listing)
+```
+
+Directory-wide greps run across `client/src`, `client/src/pages`, and `client/src/components/ui`
+for: clay hex literals, shadcn semantic token classes, `<Button`/`<Input`/`<Form` imports,
+`useForm(`/`zodResolver`, `cva(`, radius classes, breakpoint prefixes, icon-sizing classes,
+`aria-*`/`role=`/`focus-visible:`, and chart-related patterns. Exact counts are cited inline in
+each relevant section rather than repeated here.
+
+**Explicit confidence caveats:** 12 of 24 page files (List/Detail siblings beyond `Transactions.tsx`
+and `NewExpense.tsx`) were not individually read in full — their described patterns are inferred
+from shared imports (`AppLayout`, `CommonUI` exports) and route structure, marked **Confidence:
+Medium** throughout. Before relying on any Medium/Low-confidence claim for an implementation
+decision, re-verify against the specific page file in question.
