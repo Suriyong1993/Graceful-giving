@@ -17,6 +17,8 @@ const Register = lazy(() => import("./pages/Register"));
 const ChurchSetup = lazy(() => import("./pages/ChurchSetup"));
 const Transactions = lazy(() => import("./pages/Transactions"));
 const TransactionDetail = lazy(() => import("./pages/TransactionDetail"));
+const Counting = lazy(() => import("./pages/Counting"));
+const CountingDetail = lazy(() => import("./pages/CountingDetail"));
 const Offerings = lazy(() => import("./pages/Offerings"));
 const NewOffering = lazy(() => import("./pages/NewOffering"));
 const Expenses = lazy(() => import("./pages/Expenses"));
@@ -111,6 +113,10 @@ function Router() {
       <Route path="/transactions/:id" component={TransactionDetail} />
 
       {/* Offerings */}
+      {/* Weekly offering count */}
+      <Route path="/counting" component={Counting} />
+      <Route path="/counting/:id" component={CountingDetail} />
+
       <Route path="/offerings" component={Offerings} />
       <Route path="/offerings/new" component={NewOffering} />
 

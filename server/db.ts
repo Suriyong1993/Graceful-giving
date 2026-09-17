@@ -496,7 +496,7 @@ export async function createOffering(
     // Update fund balance in the same transaction as the offering insert.
     if (input.fundId) {
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
       );
     }
     return result[0].id;
@@ -543,11 +543,11 @@ export async function updateOffering(
       const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
       if (oldFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND "churchId" = ${churchId}`
         );
       if (newFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND "churchId" = ${churchId}`
         );
     }
     return id;
@@ -650,7 +650,7 @@ export async function createExpense(
     // Deduct fund balance in the same transaction as the expense insert.
     if (input.fundId) {
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
       );
     }
     return result[0].id;
@@ -697,11 +697,11 @@ export async function updateExpense(
       const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
       if (oldFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND "churchId" = ${churchId}`
         );
       if (newFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND "churchId" = ${churchId}`
         );
     }
     return id;
@@ -746,7 +746,7 @@ export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
     if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND "churchId" = ${churchId}`
       );
     return true;
   });
@@ -786,7 +786,7 @@ export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
     if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND "churchId" = ${churchId}`
       );
     return true;
   });
@@ -1662,7 +1662,7 @@ export async function postCountingSession(
       });
       if (envelope.fundId) {
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance + ${envelope.amount} WHERE id = ${envelope.fundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance + ${envelope.amount} WHERE id = ${envelope.fundId} AND "churchId" = ${churchId}`
         );
       }
       offeringCount += 1;
@@ -1696,7 +1696,7 @@ export async function postCountingSession(
         .where(eq(sessionDeductions.id, deduction.id));
       if (deduction.fundId) {
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance - ${deduction.amount} WHERE id = ${deduction.fundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance - ${deduction.amount} WHERE id = ${deduction.fundId} AND "churchId" = ${churchId}`
         );
       }
       deductionCount += 1;

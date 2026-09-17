@@ -4,6 +4,7 @@ import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
   CheckCircle2,
+  Coins,
   CreditCard,
   FileBarChart,
   HandCoins,
@@ -33,6 +34,12 @@ export const navItems = [
     path: "/transactions",
     icon: ReceiptText,
     iconColor: "text-[#A8C978]",
+  },
+  {
+    label: "นับเงินถวาย",
+    path: "/counting",
+    icon: Coins,
+    iconColor: "text-[#E99A4A]",
   },
   {
     label: "ถวายทรัพย์",

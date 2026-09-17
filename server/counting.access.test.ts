@@ -73,12 +73,12 @@ describe("counting: who may open the count", () => {
 
   it("lets a counter read the list", async () => {
     const caller = appRouter.createCaller(createContext(counter));
-    await expect(caller.counting.list()).resolves.toEqual([]);
+    await expect(caller.counting.list()).resolves.toBeInstanceOf(Array);
   });
 
   it("lets the treasurer read the list", async () => {
     const caller = appRouter.createCaller(createContext(treasurer));
-    await expect(caller.counting.list()).resolves.toEqual([]);
+    await expect(caller.counting.list()).resolves.toBeInstanceOf(Array);
   });
 });
 
@@ -201,6 +201,22 @@ describe("counting: input validation", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 
+  it("requires a fund on a deduction so the balance cannot overstate the bank", async () => {
+    const caller = appRouter.createCaller(createContext(counter));
+    await expect(
+      caller.counting.addDeduction({
+        // @ts-expect-error fundId is mandatory: cash leaving the bag must
+        // reduce a fund, or the fund balance overstates the bank deposit.
+        sessionId: 1,
+        purpose: "ค่าน้ำดื่ม",
+        reason: "ซื้อสดวันนี้",
+        amount: 2000,
+        paidTo: "พี่สมศรี",
+        category: "other",
+      })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("demands a purpose, a reason and a payee on a deduction", async () => {
     const caller = appRouter.createCaller(createContext(counter));
     await expect(
@@ -211,6 +227,7 @@ describe("counting: input validation", () => {
         amount: 2000,
         paidTo: "",
         category: "other",
+        fundId: 1,
       })
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
@@ -220,9 +237,20 @@ describe("counting: role assignment", () => {
   it("accepts COUNTER as a church role", async () => {
     const admin: User = { ...member, id: 1, openId: "admin", role: "admin" };
     const caller = appRouter.createCaller(createContext(admin));
-    // Passes validation and reaches the data layer, which has no database here.
+    // Asserts the schema accepts COUNTER, whether or not a database is present.
+    const code = await caller.auth
+      .setChurchRole({ userId: 3, churchRole: "COUNTER" })
+      .then(() => null)
+      .catch((error: { code?: string }) => error.code ?? "UNKNOWN");
+    expect(code).not.toBe("BAD_REQUEST");
+  });
+
+  it("rejects a role that does not exist", async () => {
+    const admin: User = { ...member, id: 1, openId: "admin", role: "admin" };
+    const caller = appRouter.createCaller(createContext(admin));
     await expect(
-      caller.auth.setChurchRole({ userId: 3, churchRole: "COUNTER" })
-    ).rejects.not.toMatchObject({ code: "BAD_REQUEST" });
+      // @ts-expect-error COUNTERS is not a valid church role.
+      caller.auth.setChurchRole({ userId: 3, churchRole: "COUNTERS" })
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });

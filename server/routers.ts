@@ -629,7 +629,7 @@ export const appRouter = router({
           amount: input.amount.toFixed(2),
           purpose: input.purpose,
           details: input.details ?? null,
-          fundId: input.fundId ?? null,
+          fundId: input.fundId,
           requestedBy: ctx.user.id,
           requestDate: new Date(),
         } as any);
@@ -1100,7 +1100,11 @@ export const appRouter = router({
           amount: z.number().positive(),
           paidTo: z.string().trim().min(2).max(180),
           category: expenseCategory.default("other"),
-          fundId: z.number().int().positive().optional(),
+          /**
+           * Required: cash leaving the bag must reduce a fund, otherwise the
+           * fund balance overstates what actually reached the bank.
+           */
+          fundId: z.number().int().positive(),
         })
       )
       .mutation(async ({ ctx, input }) => {
