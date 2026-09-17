@@ -242,6 +242,7 @@ export async function getFinancialSummary(
           .where(
             and(
               eq(offerings.churchId, churchId),
+              ne(offerings.status, "voided"),
               between(offerings.receiptDate, thisMonthStart, thisMonthEnd)
             )
           ),
@@ -251,6 +252,7 @@ export async function getFinancialSummary(
           .where(
             and(
               eq(offerings.churchId, churchId),
+              ne(offerings.status, "voided"),
               between(offerings.receiptDate, prevMonthStart, prevMonthEnd)
             )
           ),
@@ -260,6 +262,7 @@ export async function getFinancialSummary(
           .where(
             and(
               eq(expenses.churchId, churchId),
+              ne(expenses.status, "voided"),
               between(expenses.expenseDate, thisMonthStart, thisMonthEnd)
             )
           ),
@@ -269,6 +272,7 @@ export async function getFinancialSummary(
           .where(
             and(
               eq(expenses.churchId, churchId),
+              ne(expenses.status, "voided"),
               between(expenses.expenseDate, prevMonthStart, prevMonthEnd)
             )
           ),
@@ -347,6 +351,7 @@ export async function getMonthlyStats(
         .where(
           and(
             eq(offerings.churchId, churchId),
+            ne(offerings.status, "voided"),
             between(offerings.receiptDate, start, end)
           )
         ),
@@ -356,6 +361,7 @@ export async function getMonthlyStats(
         .where(
           and(
             eq(expenses.churchId, churchId),
+            ne(expenses.status, "voided"),
             between(expenses.expenseDate, start, end)
           )
         ),
@@ -436,7 +442,13 @@ export async function getOfferingById(
   const rows = await db
     .select()
     .from(offerings)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+    .where(
+      and(
+        eq(offerings.id, id),
+        eq(offerings.churchId, churchId),
+        ne(offerings.status, "voided")
+      )
+    )
     .limit(1);
   const row = rows[0];
   if (!row) return null;
@@ -488,13 +500,27 @@ export async function updateOffering(
     const existing = await tx
       .select({ amount: offerings.amount, fundId: offerings.fundId })
       .from(offerings)
-      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+      .where(
+        and(
+          eq(offerings.id, id),
+          eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided")
+        )
+      )
       .limit(1);
     if (!existing[0]) return null;
-    await tx
+    const updatedRows = await tx
       .update(offerings)
       .set(input as any)
-      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+      .where(
+        and(
+          eq(offerings.id, id),
+          eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided")
+        )
+      )
+      .returning({ id: offerings.id });
+    if (!updatedRows[0]) return null;
     if (input.amount !== undefined || input.fundId !== undefined) {
       const oldAmount = Number(existing[0].amount);
       const newAmount =
@@ -574,7 +600,13 @@ export async function getExpenseById(
   const rows = await db
     .select()
     .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+    .where(
+      and(
+        eq(expenses.id, id),
+        eq(expenses.churchId, churchId),
+        ne(expenses.status, "voided")
+      )
+    )
     .limit(1);
   const row = rows[0];
   if (!row) return null;
@@ -622,13 +654,27 @@ export async function updateExpense(
     const existing = await tx
       .select({ amount: expenses.amount, fundId: expenses.fundId })
       .from(expenses)
-      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+      .where(
+        and(
+          eq(expenses.id, id),
+          eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided")
+        )
+      )
       .limit(1);
     if (!existing[0]) return null;
-    await tx
+    const updatedRows = await tx
       .update(expenses)
       .set(input as any)
-      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+      .where(
+        and(
+          eq(expenses.id, id),
+          eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided")
+        )
+      )
+      .returning({ id: expenses.id });
+    if (!updatedRows[0]) return null;
     if (input.amount !== undefined || input.fundId !== undefined) {
       const oldAmount = Number(existing[0].amount);
       const newAmount =
@@ -663,13 +709,27 @@ export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
         status: offerings.status,
       })
       .from(offerings)
-      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+      .where(
+        and(
+          eq(offerings.id, id),
+          eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided")
+        )
+      )
       .limit(1);
     if (!existing[0] || existing[0].status === "voided") return false;
-    await tx
+    const updatedRows = await tx
       .update(offerings)
       .set({ status: "voided", voidedAt: new Date() })
-      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+      .where(
+        and(
+          eq(offerings.id, id),
+          eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided")
+        )
+      )
+      .returning({ id: offerings.id });
+    if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
         sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
@@ -689,13 +749,27 @@ export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
         status: expenses.status,
       })
       .from(expenses)
-      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+      .where(
+        and(
+          eq(expenses.id, id),
+          eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided")
+        )
+      )
       .limit(1);
     if (!existing[0] || existing[0].status === "voided") return false;
-    await tx
+    const updatedRows = await tx
       .update(expenses)
       .set({ status: "voided" })
-      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+      .where(
+        and(
+          eq(expenses.id, id),
+          eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided")
+        )
+      )
+      .returning({ id: expenses.id });
+    if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
         sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
@@ -751,7 +825,7 @@ export async function approveWithdrawal(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db
+  const rows = await db
     .update(withdrawalRequests)
     .set({
       status: action,
@@ -763,9 +837,12 @@ export async function approveWithdrawal(
     .where(
       and(
         eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId)
+        eq(withdrawalRequests.churchId, churchId),
+        eq(withdrawalRequests.status, "pending")
       )
-    );
+    )
+    .returning({ id: withdrawalRequests.id });
+  return rows.length > 0;
 }
 
 export async function disburseWithdrawal(
@@ -774,15 +851,18 @@ export async function disburseWithdrawal(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db
+  const rows = await db
     .update(withdrawalRequests)
     .set({ status: "disbursed" })
     .where(
       and(
         eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId)
+        eq(withdrawalRequests.churchId, churchId),
+        eq(withdrawalRequests.status, "approved")
       )
-    );
+    )
+    .returning({ id: withdrawalRequests.id });
+  return rows.length > 0;
 }
 
 // ─── Members / Notifications / Audit ──────────────────────────────────────────
@@ -969,6 +1049,7 @@ export async function getFinancialReportData(
       .where(
         and(
           eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided"),
           between(offerings.receiptDate, fromDate, toDate)
         )
       )
@@ -979,6 +1060,7 @@ export async function getFinancialReportData(
       .where(
         and(
           eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided"),
           between(expenses.expenseDate, fromDate, toDate)
         )
       )
