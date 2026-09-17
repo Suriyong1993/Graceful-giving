@@ -18,6 +18,10 @@ import {
   User,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 
 export default function TransactionDetail() {
   const [, setLocation] = useLocation();
@@ -30,6 +34,8 @@ export default function TransactionDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editAmount, setEditAmount] = useState("");
   const [editText, setEditText] = useState("");
+  const [baselineAmount, setBaselineAmount] = useState("");
+  const [baselineText, setBaselineText] = useState("");
   const utils = trpc.useUtils();
   const deleteOffering = trpc.offerings.delete.useMutation({
     onSuccess: async () => {
@@ -140,14 +146,20 @@ export default function TransactionDetail() {
   const loading = offeringQuery.isLoading || expenseQuery.isLoading;
   useEffect(() => {
     if (transaction) {
-      setEditAmount(String(transaction.amount));
-      setEditText(
+      const amount = String(transaction.amount);
+      const text =
         transaction.type === "income"
           ? transaction.notes || ""
-          : transaction.title
-      );
+          : transaction.title;
+      setEditAmount(amount);
+      setEditText(text);
+      setBaselineAmount(amount);
+      setBaselineText(text);
     }
   }, [transaction]);
+  const isDirty =
+    isEditing && (editAmount !== baselineAmount || editText !== baselineText);
+  useUnsavedChanges(isDirty);
   const submitEdit = (event: React.FormEvent) => {
     event.preventDefault();
     const amount = Number(editAmount);
@@ -181,7 +193,10 @@ export default function TransactionDetail() {
         <div className="flex items-center gap-2">
           {transaction && (
             <button
-              onClick={() => setIsEditing(value => !value)}
+              onClick={() => {
+                if (isEditing && !confirmDiscardChanges(isDirty)) return;
+                setIsEditing(value => !value);
+              }}
               className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#EAF5E4] text-[#4F8B33] text-xs font-bold border border-[#A8C978] flex items-center gap-1.5"
             >
               <Pencil className="w-4 h-4" />
@@ -208,7 +223,9 @@ export default function TransactionDetail() {
             </button>
           )}
           <button
-            onClick={() => setLocation("/transactions")}
+            onClick={() => {
+              if (confirmDiscardChanges(isDirty)) setLocation("/transactions");
+            }}
             className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" />

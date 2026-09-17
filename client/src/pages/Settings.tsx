@@ -18,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<
@@ -44,36 +45,50 @@ export default function Settings() {
   const [bankAccountName, setBankAccountName] = useState("");
   const [motto, setMotto] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [baseline, setBaseline] = useState({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    pastorName: "",
+    treasurerName: "",
+    motto: "",
+  });
 
   useEffect(() => {
-    if (churchProfile) {
-      setName(churchProfile.name || "");
-      setAddress(churchProfile.address || "");
-      setPhone(churchProfile.phone || "");
-      setEmail(churchProfile.email || "");
-      setWebsite(churchProfile.website || "");
-      setPastorName(churchProfile.pastorName || "");
-      setAssistantPastorName(churchProfile.assistantPastorName || "");
-      setTreasurerName(churchProfile.treasurerName || "");
-      setBankName(churchProfile.bankName || "");
-      setBankAccount(churchProfile.bankAccount || "");
-      setBankAccountName(churchProfile.bankAccountName || "");
-      setMotto(churchProfile.motto || "");
-    } else {
-      setName("");
-      setAddress("");
-      setPhone("");
-      setEmail("");
-      setWebsite("");
-      setPastorName("");
-      setAssistantPastorName("");
-      setTreasurerName("");
-      setBankName("");
-      setBankAccount("");
-      setBankAccountName("");
-      setMotto("");
-    }
+    const loaded = {
+      name: churchProfile?.name || "",
+      address: churchProfile?.address || "",
+      phone: churchProfile?.phone || "",
+      email: churchProfile?.email || "",
+      pastorName: churchProfile?.pastorName || "",
+      treasurerName: churchProfile?.treasurerName || "",
+      motto: churchProfile?.motto || "",
+    };
+    setName(loaded.name);
+    setAddress(loaded.address);
+    setPhone(loaded.phone);
+    setEmail(loaded.email);
+    setWebsite(churchProfile?.website || "");
+    setPastorName(loaded.pastorName);
+    setAssistantPastorName(churchProfile?.assistantPastorName || "");
+    setTreasurerName(loaded.treasurerName);
+    setBankName(churchProfile?.bankName || "");
+    setBankAccount(churchProfile?.bankAccount || "");
+    setBankAccountName(churchProfile?.bankAccountName || "");
+    setMotto(loaded.motto);
+    setBaseline(loaded);
   }, [churchProfile]);
+
+  const isDirty =
+    name !== baseline.name ||
+    address !== baseline.address ||
+    phone !== baseline.phone ||
+    email !== baseline.email ||
+    pastorName !== baseline.pastorName ||
+    treasurerName !== baseline.treasurerName ||
+    motto !== baseline.motto;
+  useUnsavedChanges(isDirty);
 
   const updateProfileMutation = trpc.church.updateProfile.useMutation({
     onSuccess: () => {

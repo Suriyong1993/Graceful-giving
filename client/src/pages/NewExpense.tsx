@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Illustration } from "@/components/Illustration";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 import {
   ArrowLeft,
   Building,
@@ -48,33 +52,21 @@ export default function NewExpense() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdExpenseId, setCreatedExpenseId] = useState<number | null>(null);
-  const isDirty = Boolean(
-    amount ||
-      description ||
-      payee ||
-      receiptRef ||
-      details ||
-      receiptFile ||
-      fundId ||
-      category !== "utilities"
-  );
-  useEffect(() => {
-    if (!isDirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [isDirty]);
+  const isDirty =
+    !showSuccessModal &&
+    Boolean(
+      amount ||
+        description ||
+        payee ||
+        receiptRef ||
+        details ||
+        receiptFile ||
+        fundId ||
+        category !== "utilities"
+    );
+  useUnsavedChanges(isDirty);
   const goBack = () => {
-    if (
-      !isDirty ||
-      window.confirm(
-        "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
-      )
-    )
-      setLocation("/expenses");
+    if (confirmDiscardChanges(isDirty)) setLocation("/expenses");
   };
 
   const createExpenseMutation = trpc.expenses.create.useMutation({

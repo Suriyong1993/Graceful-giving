@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Illustration } from "@/components/Illustration";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 import {
   ArrowLeft,
   Calendar,
@@ -33,31 +37,20 @@ export default function NewOffering() {
   const [donorName, setDonorName] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const isDirty = Boolean(
-    amount ||
-      notes ||
-      donorName ||
-      isAnonymous ||
-      fundId ||
-      category !== "ถวายประจำสัปดาห์" ||
-      method !== "เงินสด"
-  );
-  useEffect(() => {
-    if (!isDirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [isDirty]);
+  const isDirty =
+    !isSuccessOpen &&
+    Boolean(
+      amount ||
+        notes ||
+        donorName ||
+        isAnonymous ||
+        fundId ||
+        category !== "ถวายประจำสัปดาห์" ||
+        method !== "เงินสด"
+    );
+  useUnsavedChanges(isDirty);
   const goBack = () => {
-    if (
-      !isDirty ||
-      window.confirm(
-        "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
-      )
-    ) {
+    if (confirmDiscardChanges(isDirty)) {
       setLocation("/offerings");
     }
   };

@@ -9,6 +9,10 @@ import {
 import { trpc } from "@/lib/trpc";
 import { Plus, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 
 export default function Members() {
   const [, setLocation] = useLocation();
@@ -17,6 +21,16 @@ export default function Members() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const isDirty = Boolean(showCreate && (name || phone || email || notes));
+  useUnsavedChanges(isDirty);
+  const closeCreateForm = () => {
+    if (!confirmDiscardChanges(isDirty)) return;
+    setShowCreate(false);
+    setName("");
+    setPhone("");
+    setEmail("");
+    setNotes("");
+  };
   const utils = trpc.useUtils();
   const membersQuery = trpc.members.list.useQuery(undefined, { retry: false });
   const createMember = trpc.members.create.useMutation({
@@ -53,7 +67,13 @@ export default function Members() {
       action={
         <button
           type="button"
-          onClick={() => setShowCreate(value => !value)}
+          onClick={() => {
+            if (showCreate) {
+              closeCreateForm();
+            } else {
+              setShowCreate(true);
+            }
+          }}
           className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2 text-xs font-bold text-white"
         >
           <Plus className="h-4 w-4" />
@@ -86,7 +106,7 @@ export default function Members() {
               <h2 className="font-bold text-[#38251B]">เพิ่มสมาชิกใหม่</h2>
               <button
                 type="button"
-                onClick={() => setShowCreate(false)}
+                onClick={closeCreateForm}
                 className="text-[#927D6D]"
               >
                 <X className="h-5 w-5" />
