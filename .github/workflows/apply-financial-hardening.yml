@@ -7,34 +7,42 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   harden:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Clone branch
+      - name: Apply and verify hardening
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone --branch fix/financial-integrity-hardening "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
-      - name: Apply targeted fixes
-        run: cd repo && python3 scripts/apply_financial_hardening.py
-      - name: Enable pnpm and install
-        run: |
-          cd repo
-          corepack enable
-          corepack prepare pnpm@10.4.1 --activate
-          pnpm install --frozen-lockfile
-      - name: Verify
-        run: |
-          cd repo
-          pnpm check
-          pnpm test
-          pnpm build
-          git checkout -- api/index.js || true
-      - name: Commit verified fixes
-        run: |
+          set +e
+          LOG=/tmp/hardening.log
+          {
+            git clone --branch fix/financial-integrity-hardening "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+            cd repo
+            python3 scripts/apply_financial_hardening.py
+            corepack enable
+            corepack prepare pnpm@10.4.1 --activate
+            pnpm install --frozen-lockfile
+            pnpm check
+            pnpm test
+            pnpm build
+            git checkout -- api/index.js || true
+          } >"$LOG" 2>&1
+          STATUS=$?
+          if [ "$STATUS" -ne 0 ]; then
+            BODY=$(tail -c 50000 "$LOG" | jq -Rs '{body: ("Automated hardening failed:\n\n```text\n" + . + "\n```")}')
+            curl -fsS -X POST \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
+              -d "$BODY" || true
+            exit "$STATUS"
+          fi
           cd repo
           rm -f .github/workflows/apply-financial-hardening.yml scripts/apply_financial_hardening.py
           git config user.name "github-actions[bot]"
