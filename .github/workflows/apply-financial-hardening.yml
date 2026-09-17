@@ -7,46 +7,29 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  issues: write
 
 jobs:
   harden:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Apply and verify hardening
+      - name: Apply, verify, and commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set +e
-          LOG=/tmp/hardening.log
-          {
-            git clone --branch fix/financial-integrity-hardening "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
-            cd repo
-            python3 scripts/apply_financial_hardening.py
-            corepack enable
-            corepack prepare pnpm@10.4.1 --activate
-            pnpm install --frozen-lockfile
-            pnpm check
-            pnpm test
-            pnpm build
-            git checkout -- api/index.js || true
-          } >"$LOG" 2>&1
-          STATUS=$?
-          if [ "$STATUS" -ne 0 ]; then
-            BODY=$(tail -c 50000 "$LOG" | jq -Rs '{body: ("Automated hardening failed:\n\n```text\n" + . + "\n```")}')
-            curl -fsS -X POST \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/4/comments" \
-              -d "$BODY" || true
-            exit "$STATUS"
-          fi
+          git clone --branch fix/financial-integrity-hardening "https://github.com/${GITHUB_REPOSITORY}.git" repo
           cd repo
+          python3 scripts/apply_financial_hardening.py
+          corepack enable
+          corepack prepare pnpm@10.4.1 --activate
+          pnpm install --frozen-lockfile
+          pnpm check
+          pnpm test
+          pnpm build
+          git checkout -- api/index.js || true
           rm -f .github/workflows/apply-financial-hardening.yml scripts/apply_financial_hardening.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "fix: enforce financial integrity and access controls"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin HEAD:fix/financial-integrity-hardening
