@@ -462,17 +462,19 @@ export async function createOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db
-    .insert(offerings)
-    .values({ ...input, churchId })
-    .returning({ id: offerings.id });
-  // Update fund balance
-  if (input.fundId) {
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
-    );
-  }
-  return result[0].id;
+  return db.transaction(async tx => {
+    const result = await tx
+      .insert(offerings)
+      .values({ ...input, churchId })
+      .returning({ id: offerings.id });
+    // Update fund balance in the same transaction as the offering insert.
+    if (input.fundId) {
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+      );
+    }
+    return result[0].id;
+  });
 }
 
 export async function updateOffering(
@@ -482,51 +484,38 @@ export async function updateOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({ amount: offerings.amount, fundId: offerings.fundId })
-    .from(offerings)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
-    .limit(1);
-  if (!existing[0]) return null;
-  await db
-    .update(offerings)
-    .set(input as any)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
-  if (input.amount !== undefined || input.fundId !== undefined) {
-    const oldAmount = Number(existing[0].amount);
-    const newAmount =
-      input.amount === undefined ? oldAmount : Number(input.amount);
-    const oldFundId = existing[0].fundId;
-    const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
-    if (oldFundId)
-      await db.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
-      );
-    if (newFundId)
-      await db.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
-      );
-  }
-  return id;
+  return db.transaction(async tx => {
+    const existing = await tx
+      .select({ amount: offerings.amount, fundId: offerings.fundId })
+      .from(offerings)
+      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+      .limit(1);
+    if (!existing[0]) return null;
+    await tx
+      .update(offerings)
+      .set(input as any)
+      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+    if (input.amount !== undefined || input.fundId !== undefined) {
+      const oldAmount = Number(existing[0].amount);
+      const newAmount =
+        input.amount === undefined ? oldAmount : Number(input.amount);
+      const oldFundId = existing[0].fundId;
+      const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
+      if (oldFundId)
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+        );
+      if (newFundId)
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+        );
+    }
+    return id;
+  });
 }
 
 export async function deleteOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({ amount: offerings.amount, fundId: offerings.fundId })
-    .from(offerings)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
-    .limit(1);
-  if (!existing[0]) return false;
-  await db
-    .delete(offerings)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
-  if (existing[0].fundId)
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
-    );
-  return true;
+  return voidOffering(id, churchId);
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────
@@ -607,17 +596,19 @@ export async function createExpense(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const result = await db
-    .insert(expenses)
-    .values({ ...input, churchId })
-    .returning({ id: expenses.id });
-  // Deduct fund balance
-  if (input.fundId) {
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
-    );
-  }
-  return result[0].id;
+  return db.transaction(async tx => {
+    const result = await tx
+      .insert(expenses)
+      .values({ ...input, churchId })
+      .returning({ id: expenses.id });
+    // Deduct fund balance in the same transaction as the expense insert.
+    if (input.fundId) {
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+      );
+    }
+    return result[0].id;
+  });
 }
 
 export async function updateExpense(
@@ -627,99 +618,90 @@ export async function updateExpense(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({ amount: expenses.amount, fundId: expenses.fundId })
-    .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
-    .limit(1);
-  if (!existing[0]) return null;
-  await db
-    .update(expenses)
-    .set(input as any)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
-  if (input.amount !== undefined || input.fundId !== undefined) {
-    const oldAmount = Number(existing[0].amount);
-    const newAmount =
-      input.amount === undefined ? oldAmount : Number(input.amount);
-    const oldFundId = existing[0].fundId;
-    const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
-    if (oldFundId)
-      await db.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
-      );
-    if (newFundId)
-      await db.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
-      );
-  }
-  return id;
+  return db.transaction(async tx => {
+    const existing = await tx
+      .select({ amount: expenses.amount, fundId: expenses.fundId })
+      .from(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+      .limit(1);
+    if (!existing[0]) return null;
+    await tx
+      .update(expenses)
+      .set(input as any)
+      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+    if (input.amount !== undefined || input.fundId !== undefined) {
+      const oldAmount = Number(existing[0].amount);
+      const newAmount =
+        input.amount === undefined ? oldAmount : Number(input.amount);
+      const oldFundId = existing[0].fundId;
+      const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
+      if (oldFundId)
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+        );
+      if (newFundId)
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+        );
+    }
+    return id;
+  });
 }
 
 export async function deleteExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({ amount: expenses.amount, fundId: expenses.fundId })
-    .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
-    .limit(1);
-  if (!existing[0]) return false;
-  await db
-    .delete(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
-  if (existing[0].fundId)
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
-    );
-  return true;
+  return voidExpense(id, churchId);
 }
 
 export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({
-      amount: offerings.amount,
-      fundId: offerings.fundId,
-      status: offerings.status,
-    })
-    .from(offerings)
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
-    .limit(1);
-  if (!existing[0] || existing[0].status === "voided") return false;
-  await db
-    .update(offerings)
-    .set({ status: "voided", voidedAt: new Date() })
-    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
-  if (existing[0].fundId)
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
-    );
-  return true;
+  return db.transaction(async tx => {
+    const existing = await tx
+      .select({
+        amount: offerings.amount,
+        fundId: offerings.fundId,
+        status: offerings.status,
+      })
+      .from(offerings)
+      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+      .limit(1);
+    if (!existing[0] || existing[0].status === "voided") return false;
+    await tx
+      .update(offerings)
+      .set({ status: "voided", voidedAt: new Date() })
+      .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+    if (existing[0].fundId)
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+      );
+    return true;
+  });
 }
 
 export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const existing = await db
-    .select({
-      amount: expenses.amount,
-      fundId: expenses.fundId,
-      status: expenses.status,
-    })
-    .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
-    .limit(1);
-  if (!existing[0] || existing[0].status === "voided") return false;
-  await db
-    .update(expenses)
-    .set({ status: "voided" })
-    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
-  if (existing[0].fundId)
-    await db.execute(
-      sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
-    );
-  return true;
+  return db.transaction(async tx => {
+    const existing = await tx
+      .select({
+        amount: expenses.amount,
+        fundId: expenses.fundId,
+        status: expenses.status,
+      })
+      .from(expenses)
+      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+      .limit(1);
+    if (!existing[0] || existing[0].status === "voided") return false;
+    await tx
+      .update(expenses)
+      .set({ status: "voided" })
+      .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+    if (existing[0].fundId)
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+      );
+    return true;
+  });
 }
 
 // ─── Withdrawal Requests ──────────────────────────────────────────────────────
