@@ -70,7 +70,7 @@ export const EmptyState: React.FC<{
       </div>
       <div className="space-y-1 max-w-sm">
         <h3 className="text-base font-bold text-[#70452E]">{title}</h3>
-        <p className="text-xs text-[#927D6D] leading-relaxed">{description}</p>
+        <p className="text-sm text-[#674F42] leading-relaxed">{description}</p>
       </div>
       {actionText && onAction && (
         <button
@@ -84,6 +84,40 @@ export const EmptyState: React.FC<{
   );
 };
 
+export const ErrorState: React.FC<{
+  title?: string;
+  description: string;
+  onRetry?: () => void;
+  className?: string;
+}> = ({
+  title = "โหลดข้อมูลไม่สำเร็จ",
+  description,
+  onRetry,
+  className = "",
+}) => (
+  <div
+    className={`py-12 px-6 rounded-[28px] bg-[#FFF8F6] border border-[#F7D5CD] flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+    role="alert"
+  >
+    <div className="w-14 h-14 rounded-full bg-[#FFEBE5] text-[#D45945] flex items-center justify-center text-2xl font-bold">
+      !
+    </div>
+    <div className="space-y-1 max-w-sm">
+      <h3 className="text-base font-bold text-[#7C2A1E]">{title}</h3>
+      <p className="text-sm text-[#674F42] leading-relaxed">{description}</p>
+    </div>
+    {onRetry && (
+      <button
+        type="button"
+        onClick={onRetry}
+        className="min-h-11 rounded-full bg-[#D45945] px-5 py-2.5 text-sm font-bold text-white"
+      >
+        ลองใหม่
+      </button>
+    )}
+  </div>
+);
+
 // ─── 3. Status Badge ─────────────────────────────────────────────────────────
 
 export type StatusType =
@@ -92,7 +126,8 @@ export type StatusType =
   | "rejected"
   | "completed"
   | "active"
-  | "inactive";
+  | "inactive"
+  | "voided";
 
 export const StatusBadge: React.FC<{
   status: StatusType | string;
@@ -114,6 +149,11 @@ export const StatusBadge: React.FC<{
           bg: "bg-[#FFEBE5] text-[#D45945] border-[#F7D5CD]",
           defaultLabel: "ปฏิเสธ / ยกเลิก",
         };
+      case "voided":
+        return {
+          bg: "bg-stone-100 text-stone-600 border-stone-200",
+          defaultLabel: "ยกเลิกรายการ",
+        };
       case "pending":
       default:
         return {
@@ -127,7 +167,7 @@ export const StatusBadge: React.FC<{
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold border ${style.bg} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold border ${style.bg} ${className}`}
     >
       <span
         className="w-1.5 h-1.5 shrink-0 rounded-full bg-current"
@@ -324,7 +364,7 @@ export const ConfirmDialog: React.FC<{
           <DialogTitle className="text-lg font-bold text-[#70452E]">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-xs text-[#927D6D] leading-relaxed">
+          <DialogDescription className="text-sm text-[#674F42] leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>

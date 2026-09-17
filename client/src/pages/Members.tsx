@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+} from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { Plus, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
@@ -136,11 +140,10 @@ export default function Members() {
         {membersQuery.isLoading ? (
           <LoadingSkeleton count={4} />
         ) : membersQuery.isError ? (
-          <EmptyState
+          <ErrorState
             title="โหลดข้อมูลสมาชิกไม่สำเร็จ"
             description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่"
-            actionText="ลองใหม่"
-            onAction={() => membersQuery.refetch()}
+            onRetry={() => membersQuery.refetch()}
           />
         ) : !membersQuery.data?.length ? (
           <EmptyState

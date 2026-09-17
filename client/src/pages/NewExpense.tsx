@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -38,7 +38,7 @@ export default function NewExpense() {
   >("utilities");
   const [description, setDescription] = useState("");
   const [payee, setPayee] = useState("");
-  const [fundId, setFundId] = useState<number>(1);
+  const [fundId, setFundId] = useState<number | null>(null);
   const [expenseDate, setExpenseDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
@@ -48,6 +48,34 @@ export default function NewExpense() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdExpenseId, setCreatedExpenseId] = useState<number | null>(null);
+  const isDirty = Boolean(
+    amount ||
+      description ||
+      payee ||
+      receiptRef ||
+      details ||
+      receiptFile ||
+      fundId ||
+      category !== "utilities"
+  );
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty]);
+  const goBack = () => {
+    if (
+      !isDirty ||
+      window.confirm(
+        "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
+      )
+    )
+      setLocation("/expenses");
+  };
 
   const createExpenseMutation = trpc.expenses.create.useMutation({
     onSuccess: data => {
@@ -79,6 +107,10 @@ export default function NewExpense() {
     }
     if (!description.trim()) {
       toast.error("กรุณาระบุชื่อรายการหรือคำอธิบายรายจ่าย");
+      return;
+    }
+    if (!fundId) {
+      toast.error("กรุณาเลือกกองทุนก่อนบันทึก");
       return;
     }
 
@@ -190,7 +222,7 @@ export default function NewExpense() {
         {/* Navigation & Header */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => setLocation("/expenses")}
+            onClick={goBack}
             className="inline-flex items-center gap-2 text-sm font-medium text-[#70452E] hover:text-[#38251B] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -361,10 +393,11 @@ export default function NewExpense() {
                   ตัดจ่ายจากกองทุน <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={fundId}
+                  value={fundId ?? ""}
                   onChange={e => setFundId(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
                 >
+                  <option value="">เลือกกองทุนที่ใช้จ่าย</option>
                   {funds.map(f => (
                     <option key={f.id} value={f.id}>
                       {f.name} (คงเหลือ {f.balance})
@@ -472,7 +505,7 @@ export default function NewExpense() {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setLocation("/expenses")}
+              onClick={goBack}
               className="px-6 py-3 rounded-2xl border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]/50 font-medium text-sm transition-colors"
             >
               ยกเลิก

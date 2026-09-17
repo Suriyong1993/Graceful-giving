@@ -14,7 +14,7 @@ import {
   CreditCard,
   Landmark,
   Pencil,
-  Trash2,
+  Ban,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,10 +38,10 @@ export default function TransactionDetail() {
         utils.finance.summary.invalidate(),
         utils.finance.monthlyStats.invalidate(),
       ]);
-      toast.success("ลบรายการถวายเรียบร้อยแล้ว");
+      toast.success("ยกเลิกรายการถวายเรียบร้อยแล้ว");
       setLocation("/transactions");
     },
-    onError: error => toast.error(error.message || "ลบรายการถวายไม่สำเร็จ"),
+    onError: error => toast.error(error.message || "ยกเลิกรายการถวายไม่สำเร็จ"),
   });
   const deleteExpense = trpc.expenses.delete.useMutation({
     onSuccess: async () => {
@@ -50,10 +50,11 @@ export default function TransactionDetail() {
         utils.finance.summary.invalidate(),
         utils.finance.monthlyStats.invalidate(),
       ]);
-      toast.success("ลบรายการรายจ่ายเรียบร้อยแล้ว");
+      toast.success("ยกเลิกรายการรายจ่ายเรียบร้อยแล้ว");
       setLocation("/transactions");
     },
-    onError: error => toast.error(error.message || "ลบรายการรายจ่ายไม่สำเร็จ"),
+    onError: error =>
+      toast.error(error.message || "ยกเลิกรายการรายจ่ายไม่สำเร็จ"),
   });
   const updateOffering = trpc.offerings.update.useMutation({
     onSuccess: async () => {
@@ -192,7 +193,7 @@ export default function TransactionDetail() {
               onClick={() => {
                 if (
                   !window.confirm(
-                    "ต้องการลบรายการนี้หรือไม่? การดำเนินการนี้ไม่สามารถยกเลิกได้"
+                    "ต้องการยกเลิกรายการนี้หรือไม่? ข้อมูลจะไม่ถูกลบถาวร แต่ยอดกองทุนจะถูกปรับกลับ"
                   )
                 )
                   return;
@@ -202,8 +203,8 @@ export default function TransactionDetail() {
               disabled={deleteOffering.isPending || deleteExpense.isPending}
               className="min-h-11 px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1.5 disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>ลบรายการ</span>
+              <Ban className="w-4 h-4" />
+              <span>ยกเลิกรายการ</span>
             </button>
           )}
           <button
@@ -221,7 +222,7 @@ export default function TransactionDetail() {
       ) : !transaction ? (
         <EmptyState
           title="ไม่พบรายการธุรกรรม"
-          description="รายการนี้ไม่มีอยู่ในข้อมูลที่คุณมีสิทธิ์เข้าถึง หรืออาจถูกลบไปแล้ว"
+          description="รายการนี้ไม่มีอยู่ในข้อมูลที่คุณมีสิทธิ์เข้าถึง หรืออาจถูกยกเลิกไปแล้ว"
           actionText="กลับหน้ารายการ"
           onAction={() => setLocation("/transactions")}
         />

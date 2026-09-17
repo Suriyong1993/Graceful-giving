@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
+  ErrorState,
   EmptyState,
   FilterBar,
   LoadingSkeleton,
@@ -162,7 +163,7 @@ export default function Transactions() {
           <div>
             <MoneyDisplay amount={totalIncome} type="income" size="lg" />
           </div>
-          <p className="text-[11px] text-[#927D6D]">
+          <p className="text-sm text-[#674F42]">
             {filtered.filter(t => t.type === "income").length} รายการ
           </p>
         </div>
@@ -174,7 +175,7 @@ export default function Transactions() {
           <div>
             <MoneyDisplay amount={totalExpense} type="expense" size="lg" />
           </div>
-          <p className="text-[11px] text-[#927D6D]">
+          <p className="text-sm text-[#674F42]">
             {filtered.filter(t => t.type === "expense").length} รายการ
           </p>
         </div>
@@ -188,7 +189,7 @@ export default function Transactions() {
               size="lg"
             />
           </div>
-          <p className="text-[11px] text-[#927D6D]">คงเหลือในรอบที่เลือก</p>
+          <p className="text-sm text-[#674F42]">คงเหลือในรอบที่เลือก</p>
         </div>
       </div>
 
@@ -220,11 +221,10 @@ export default function Transactions() {
       {isLoading ? (
         <LoadingSkeleton count={5} />
       ) : isError ? (
-        <EmptyState
+        <ErrorState
           title="โหลดรายการธุรกรรมไม่สำเร็จ"
           description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
-          actionText="ลองใหม่"
-          onAction={() => {
+          onRetry={() => {
             void refetchOfferings();
             void refetchExpenses();
           }}
@@ -310,7 +310,7 @@ export default function Transactions() {
                       <p className="text-sm font-bold text-[#38251B] truncate">
                         {tx.title}
                       </p>
-                      <p className="text-[11px] text-[#927D6D] pt-0.5">
+                      <p className="text-sm text-[#674F42] pt-0.5">
                         {new Intl.DateTimeFormat("th-TH", {
                           day: "numeric",
                           month: "short",

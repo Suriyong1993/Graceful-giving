@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -26,13 +26,41 @@ export default function NewOffering() {
   // Form State
   const [category, setCategory] = useState("ถวายประจำสัปดาห์");
   const [amount, setAmount] = useState("");
-  const [fundId, setFundId] = useState("1");
+  const [fundId, setFundId] = useState("");
   const [method, setMethod] = useState("เงินสด");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [donorName, setDonorName] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const isDirty = Boolean(
+    amount ||
+      notes ||
+      donorName ||
+      isAnonymous ||
+      fundId ||
+      category !== "ถวายประจำสัปดาห์" ||
+      method !== "เงินสด"
+  );
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty]);
+  const goBack = () => {
+    if (
+      !isDirty ||
+      window.confirm(
+        "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
+      )
+    ) {
+      setLocation("/offerings");
+    }
+  };
 
   const createMutation = trpc.offerings.create.useMutation({
     onSuccess: () => {
@@ -53,6 +81,10 @@ export default function NewOffering() {
     e.preventDefault();
     if (!amount || Number(amount) <= 0) {
       toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
+      return;
+    }
+    if (!fundId) {
+      toast.error("กรุณาเลือกกองทุนก่อนบันทึก");
       return;
     }
 
@@ -99,7 +131,7 @@ export default function NewOffering() {
       subtitle="บันทึกรายการเงินถวายเข้าสู่บัญชีและกองทุนคริสตจักร"
       action={
         <button
-          onClick={() => setLocation("/offerings")}
+          onClick={goBack}
           className="px-3.5 py-2 rounded-2xl bg-[#FFF4DF] hover:bg-[#FBE9CD] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 transition-all"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -203,6 +235,7 @@ export default function NewOffering() {
               onChange={e => setFundId(e.target.value)}
               className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs sm:text-sm text-[#38251B] focus:outline-none focus:border-[#E99A4A]"
             >
+              <option value="">เลือกกองทุนที่รับรายการ</option>
               <option value="1">บัญชีทั่วไป (เพื่อการดำเนินงาน)</option>
               <option value="2">กองทุนพันธกิจและการประกาศ</option>
               <option value="3">กองทุนอาคารและสถานที่</option>
