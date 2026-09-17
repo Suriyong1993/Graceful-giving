@@ -1,18 +1,69 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
 
 export default function MemberDetail() {
   const [, setLocation] = useLocation();
   const params = useParams();
   const id = Number(params.id);
+  const utils = trpc.useUtils();
   const query = trpc.members.getById.useQuery(
     { id },
     { enabled: Number.isInteger(id) && id > 0, retry: false }
   );
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  useEffect(() => {
+    if (query.data) {
+      setName(query.data.name);
+      setPhone(query.data.phone || "");
+      setEmail(query.data.email || "");
+      setNotes(query.data.notes || "");
+    }
+  }, [query.data]);
+  const update = trpc.members.update.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.members.getById.invalidate({ id }),
+        utils.members.list.invalidate(),
+      ]);
+      toast.success("บันทึกข้อมูลสมาชิกแล้ว");
+    },
+    onError: error =>
+      toast.error(error.message || "บันทึกข้อมูลสมาชิกไม่สำเร็จ"),
+  });
+  const deactivate = trpc.members.deactivate.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.members.getById.invalidate({ id }),
+        utils.members.list.invalidate(),
+      ]);
+      toast.success("เปลี่ยนสถานะสมาชิกเป็น inactive แล้ว");
+    },
+    onError: error =>
+      toast.error(error.message || "เปลี่ยนสถานะสมาชิกไม่สำเร็จ"),
+  });
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (name.trim().length < 2) {
+      toast.error("กรุณาระบุชื่อสมาชิก");
+      return;
+    }
+    update.mutate({
+      id,
+      name: name.trim(),
+      phone: phone.trim() || null,
+      email: email.trim() || null,
+      notes: notes.trim() || null,
+    });
+  };
+
   return (
     <AppLayout title="รายละเอียดสมาชิก" subtitle="ข้อมูลจากฐานข้อมูลจริง">
       <div className="max-w-3xl space-y-6">
@@ -41,36 +92,78 @@ export default function MemberDetail() {
             onAction={() => setLocation("/members")}
           />
         ) : (
-          <div className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8">
-            <div className="flex items-center justify-between gap-4">
-              <h1 className="text-2xl font-bold text-[#38251B]">
-                {query.data.name}
-              </h1>
-              <span className="rounded-full bg-[#DCECC5] px-3 py-1 text-xs text-[#38251B]">
-                {query.data.status}
-              </span>
+          <form
+            onSubmit={submit}
+            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8"
+          >
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-[#38251B]">
+                  แก้ไขข้อมูลสมาชิก
+                </h1>
+                <p className="mt-1 text-sm text-[#927D6D]">
+                  สถานะปัจจุบัน: {query.data.status}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={
+                  deactivate.isPending || query.data.status === "inactive"
+                }
+                onClick={() => {
+                  if (window.confirm("ต้องการปิดใช้งานสมาชิกนี้หรือไม่?"))
+                    deactivate.mutate({ id });
+                }}
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50"
+              >
+                ปิดใช้งาน
+              </button>
             </div>
-            <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs text-[#927D6D]">โทรศัพท์</dt>
-                <dd className="mt-1 text-sm font-semibold text-[#38251B]">
-                  {query.data.phone || "ไม่ระบุ"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-[#927D6D]">อีเมล</dt>
-                <dd className="mt-1 text-sm font-semibold text-[#38251B]">
-                  {query.data.email || "ไม่ระบุ"}
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs text-[#927D6D]">ข้อมูลเพิ่มเติม</dt>
-                <dd className="mt-1 text-sm text-[#38251B]">
-                  {query.data.notes || "ไม่มีข้อมูลเพิ่มเติม"}
-                </dd>
-              </div>
-            </dl>
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="text-sm font-semibold text-[#70452E]">
+                ชื่อ-นามสกุล *
+                <input
+                  required
+                  value={name}
+                  onChange={event => setName(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E]">
+                โทรศัพท์
+                <input
+                  value={phone}
+                  onChange={event => setPhone(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E]">
+                อีเมล
+                <input
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E] md:col-span-2">
+                หมายเหตุ
+                <textarea
+                  value={notes}
+                  onChange={event => setNotes(event.target.value)}
+                  rows={4}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+            </div>
+            <button
+              disabled={update.isPending}
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {update.isPending ? "กำลังบันทึก…" : "บันทึกการแก้ไข"}
+            </button>
+          </form>
         )}
       </div>
     </AppLayout>

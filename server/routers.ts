@@ -8,6 +8,7 @@ import {
   createChurchEvent,
   createChurchNews,
   createAuditLog,
+  createNotification,
   createExpense,
   createFinanceAccount,
   createOffering,
@@ -39,6 +40,8 @@ import {
   markSetupCompleted,
   updateExpense,
   updateOffering,
+  voidExpense,
+  voidOffering,
   updateMember,
   deactivateMember,
   markNotificationRead,
@@ -317,6 +320,13 @@ export const appRouter = router({
           entityId: id,
           metadata: input,
         });
+        await createNotification({
+          userId: ctx.user.id,
+          type: "finance_created",
+          title: "บันทึกรายการการเงินแล้ว",
+          description: `บันทึก ${input.amount.toLocaleString()} บาทเรียบร้อยแล้ว`,
+          link: null,
+        });
         return { id };
       }),
     update: financeProcedure
@@ -342,7 +352,7 @@ export const appRouter = router({
         if (updated === null)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "ไม่พบรายการถวาย",
+            message: "ไม่พบรายการถวายหรือรายการถูกยกเลิกไปแล้ว",
           });
         await createAuditLog({
           churchId: DEFAULT_CHURCH_ID,
@@ -357,16 +367,16 @@ export const appRouter = router({
     delete: financeProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
-        const deleted = await deleteOffering(input.id);
+        const deleted = await voidOffering(input.id);
         if (!deleted)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "ไม่พบรายการถวาย",
+            message: "ไม่พบรายการถวายหรือรายการถูกยกเลิกไปแล้ว",
           });
         await createAuditLog({
           churchId: DEFAULT_CHURCH_ID,
           userId: ctx.user.id,
-          action: "DELETE",
+          action: "VOID",
           entity: "offering",
           entityId: input.id,
         });
@@ -432,6 +442,13 @@ export const appRouter = router({
           entityId: id,
           metadata: input,
         });
+        await createNotification({
+          userId: ctx.user.id,
+          type: "finance_created",
+          title: "บันทึกรายการรายจ่ายแล้ว",
+          description: `บันทึก ${input.amount.toLocaleString()} บาทเรียบร้อยแล้ว`,
+          link: null,
+        });
         return { id };
       }),
     update: financeProcedure
@@ -458,7 +475,7 @@ export const appRouter = router({
         if (updated === null)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "ไม่พบรายการรายจ่าย",
+            message: "ไม่พบรายการรายจ่ายหรือรายการถูกยกเลิกไปแล้ว",
           });
         await createAuditLog({
           churchId: DEFAULT_CHURCH_ID,
@@ -473,16 +490,16 @@ export const appRouter = router({
     delete: financeProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
-        const deleted = await deleteExpense(input.id);
+        const deleted = await voidExpense(input.id);
         if (!deleted)
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "ไม่พบรายการรายจ่าย",
+            message: "ไม่พบรายการรายจ่ายหรือรายการถูกยกเลิกไปแล้ว",
           });
         await createAuditLog({
           churchId: DEFAULT_CHURCH_ID,
           userId: ctx.user.id,
-          action: "DELETE",
+          action: "VOID",
           entity: "expense",
           entityId: input.id,
         });

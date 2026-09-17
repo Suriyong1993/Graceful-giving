@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -13,6 +13,7 @@ import {
   Calendar,
   CreditCard,
   Landmark,
+  Pencil,
   Trash2,
   User,
 } from "lucide-react";
@@ -26,6 +27,9 @@ export default function TransactionDetail() {
   const isExpense = txId?.startsWith("expense-") ?? false;
   const recordId = Number(txId?.split("-")[1]);
   const hasValidId = Number.isInteger(recordId) && recordId > 0;
+  const [isEditing, setIsEditing] = useState(false);
+  const [editAmount, setEditAmount] = useState("");
+  const [editText, setEditText] = useState("");
   const utils = trpc.useUtils();
   const deleteOffering = trpc.offerings.delete.useMutation({
     onSuccess: async () => {
@@ -50,6 +54,33 @@ export default function TransactionDetail() {
       setLocation("/transactions");
     },
     onError: error => toast.error(error.message || "ลบรายการรายจ่ายไม่สำเร็จ"),
+  });
+  const updateOffering = trpc.offerings.update.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.offerings.getById.invalidate({ id: recordId }),
+        utils.offerings.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
+      setIsEditing(false);
+      toast.success("แก้ไขรายการถวายเรียบร้อยแล้ว");
+    },
+    onError: error => toast.error(error.message || "แก้ไขรายการถวายไม่สำเร็จ"),
+  });
+  const updateExpense = trpc.expenses.update.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.expenses.getById.invalidate({ id: recordId }),
+        utils.expenses.list.invalidate(),
+        utils.finance.summary.invalidate(),
+        utils.finance.monthlyStats.invalidate(),
+      ]);
+      setIsEditing(false);
+      toast.success("แก้ไขรายการรายจ่ายเรียบร้อยแล้ว");
+    },
+    onError: error =>
+      toast.error(error.message || "แก้ไขรายการรายจ่ายไม่สำเร็จ"),
   });
   const offeringQuery = trpc.offerings.getById.useQuery(
     { id: recordId },
@@ -106,6 +137,36 @@ export default function TransactionDetail() {
   }, [expenseQuery.data, isExpense, isOffering, offeringQuery.data]);
 
   const loading = offeringQuery.isLoading || expenseQuery.isLoading;
+  useEffect(() => {
+    if (transaction) {
+      setEditAmount(String(transaction.amount));
+      setEditText(
+        transaction.type === "income"
+          ? transaction.notes || ""
+          : transaction.title
+      );
+    }
+  }, [transaction]);
+  const submitEdit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const amount = Number(editAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
+      return;
+    }
+    if (isOffering)
+      updateOffering.mutate({
+        id: recordId,
+        amount,
+        notes: editText.trim() || null,
+      });
+    if (isExpense)
+      updateExpense.mutate({
+        id: recordId,
+        amount,
+        description: editText.trim() || undefined,
+      });
+  };
   return (
     <AppLayout
       activeRoute="/transactions"
@@ -117,6 +178,15 @@ export default function TransactionDetail() {
       }
       action={
         <div className="flex items-center gap-2">
+          {transaction && (
+            <button
+              onClick={() => setIsEditing(value => !value)}
+              className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#EAF5E4] text-[#4F8B33] text-xs font-bold border border-[#A8C978] flex items-center gap-1.5"
+            >
+              <Pencil className="w-4 h-4" />
+              <span>{isEditing ? "ยกเลิก" : "แก้ไข"}</span>
+            </button>
+          )}
           {transaction && (
             <button
               onClick={() => {
@@ -157,6 +227,43 @@ export default function TransactionDetail() {
         />
       ) : (
         <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] clay-card-shadow space-y-6">
+          {isEditing && (
+            <form
+              onSubmit={submitEdit}
+              className="rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF] p-4 space-y-3"
+            >
+              <p className="text-sm font-bold text-[#38251B]">
+                แก้ไขข้อมูลรายการ
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-[#70452E]">
+                  จำนวนเงิน
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={editAmount}
+                    onChange={event => setEditAmount(event.target.value)}
+                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-semibold text-[#70452E]">
+                  {isOffering ? "หมายเหตุ" : "รายละเอียดรายการ"}
+                  <input
+                    value={editText}
+                    onChange={event => setEditText(event.target.value)}
+                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm"
+                  />
+                </label>
+              </div>
+              <button
+                disabled={updateOffering.isPending || updateExpense.isPending}
+                className="rounded-xl bg-[#4F8B33] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                บันทึกการแก้ไข
+              </button>
+            </form>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E9D9BF]/60">
             <div className="space-y-1">
               <div className="flex items-center gap-2">

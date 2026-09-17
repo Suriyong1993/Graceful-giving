@@ -1,16 +1,62 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
-import { UsersRound } from "lucide-react";
+import { Plus, UsersRound, X } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Members() {
   const [, setLocation] = useLocation();
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  const utils = trpc.useUtils();
   const membersQuery = trpc.members.list.useQuery(undefined, { retry: false });
+  const createMember = trpc.members.create.useMutation({
+    onSuccess: async () => {
+      await utils.members.list.invalidate();
+      setName("");
+      setPhone("");
+      setEmail("");
+      setNotes("");
+      setShowCreate(false);
+      toast.success("เพิ่มสมาชิกเรียบร้อยแล้ว");
+    },
+    onError: error => toast.error(error.message || "เพิ่มสมาชิกไม่สำเร็จ"),
+  });
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (name.trim().length < 2) {
+      toast.error("กรุณาระบุชื่อสมาชิก");
+      return;
+    }
+    createMember.mutate({
+      name: name.trim(),
+      phone: phone.trim() || undefined,
+      email: email.trim() || undefined,
+      notes: notes.trim() || undefined,
+    });
+  };
 
   return (
-    <AppLayout title="สมาชิกคริสตจักร" subtitle="ข้อมูลสมาชิกจากฐานข้อมูลจริง">
+    <AppLayout
+      title="สมาชิกคริสตจักร"
+      subtitle="ข้อมูลสมาชิกจากฐานข้อมูลจริง"
+      action={
+        <button
+          type="button"
+          onClick={() => setShowCreate(value => !value)}
+          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2 text-xs font-bold text-white"
+        >
+          <Plus className="h-4 w-4" />
+          เพิ่มสมาชิก
+        </button>
+      }
+    >
       <div className="space-y-6">
         <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
@@ -22,11 +68,71 @@ export default function Members() {
                 สมาชิกคริสตจักร
               </h1>
               <p className="mt-1 text-sm text-[#70452E]/80">
-                รายชื่อและสถานะจะถูกอ่านจากฐานข้อมูลของคริสตจักรนี้
+                รายชื่อและสถานะจะถูกอ่านและบันทึกจากฐานข้อมูลของคริสตจักรนี้
               </p>
             </div>
           </div>
         </section>
+        {showCreate && (
+          <form
+            onSubmit={submit}
+            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="font-bold text-[#38251B]">เพิ่มสมาชิกใหม่</h2>
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="text-[#927D6D]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="text-sm font-semibold text-[#70452E]">
+                ชื่อ-นามสกุล *
+                <input
+                  required
+                  value={name}
+                  onChange={event => setName(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E]">
+                โทรศัพท์
+                <input
+                  value={phone}
+                  onChange={event => setPhone(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E]">
+                อีเมล
+                <input
+                  type="email"
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+              <label className="text-sm font-semibold text-[#70452E] md:col-span-2">
+                หมายเหตุ
+                <textarea
+                  value={notes}
+                  onChange={event => setNotes(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                />
+              </label>
+            </div>
+            <button
+              disabled={createMember.isPending}
+              className="mt-5 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+            >
+              {createMember.isPending ? "กำลังบันทึก…" : "บันทึกสมาชิก"}
+            </button>
+          </form>
+        )}
         {membersQuery.isLoading ? (
           <LoadingSkeleton count={4} />
         ) : membersQuery.isError ? (
@@ -39,9 +145,9 @@ export default function Members() {
         ) : !membersQuery.data?.length ? (
           <EmptyState
             title="ยังไม่มีข้อมูลสมาชิก"
-            description="เพิ่มสมาชิกผ่าน data layer ที่ได้รับอนุญาต เพื่อให้ข้อมูลถูกบันทึกในฐานข้อมูลจริง"
-            actionText="กลับหน้าหลัก"
-            onAction={() => setLocation("/")}
+            description="เพิ่มสมาชิกด้วยแบบฟอร์มด้านบนเพื่อบันทึกลงฐานข้อมูลจริง"
+            actionText="เพิ่มสมาชิก"
+            onAction={() => setShowCreate(true)}
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
@@ -54,7 +160,9 @@ export default function Members() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="font-bold text-[#38251B]">{member.name}</h2>
-                  <span className="rounded-full bg-[#DCECC5] px-2 py-1 text-[11px] text-[#38251B]">
+                  <span
+                    className={`rounded-full px-2 py-1 text-[11px] ${member.status === "active" ? "bg-[#DCECC5] text-[#38251B]" : "bg-stone-100 text-stone-600"}`}
+                  >
                     {member.status}
                   </span>
                 </div>

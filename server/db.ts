@@ -1,4 +1,15 @@
-import { and, asc, between, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
+import {
+  and,
+  asc,
+  between,
+  desc,
+  eq,
+  gte,
+  lte,
+  ne,
+  sql,
+  sum,
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
@@ -385,7 +396,10 @@ export async function listOfferings(
   if (!db) return [];
   const { limit = 50, showDonorNames = false, fromDate, toDate } = opts;
 
-  const conditions = [eq(offerings.churchId, churchId)];
+  const conditions = [
+    eq(offerings.churchId, churchId),
+    ne(offerings.status, "voided"),
+  ];
   if (fromDate) conditions.push(gte(offerings.receiptDate, fromDate));
   if (toDate) conditions.push(lte(offerings.receiptDate, toDate));
 
@@ -536,7 +550,10 @@ export async function listExpenses(
   if (!db) return [];
   const { limit = 50, fromDate, toDate } = opts;
 
-  const conditions = [eq(expenses.churchId, churchId)];
+  const conditions = [
+    eq(expenses.churchId, churchId),
+    ne(expenses.status, "voided"),
+  ];
   if (fromDate) conditions.push(gte(expenses.expenseDate, fromDate));
   if (toDate) conditions.push(lte(expenses.expenseDate, toDate));
 
@@ -649,6 +666,54 @@ export async function deleteExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
   if (!existing[0]) return false;
   await db
     .delete(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
+  if (existing[0].fundId)
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+    );
+  return true;
+}
+
+export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({
+      amount: offerings.amount,
+      fundId: offerings.fundId,
+      status: offerings.status,
+    })
+    .from(offerings)
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)))
+    .limit(1);
+  if (!existing[0] || existing[0].status === "voided") return false;
+  await db
+    .update(offerings)
+    .set({ status: "voided", voidedAt: new Date() })
+    .where(and(eq(offerings.id, id), eq(offerings.churchId, churchId)));
+  if (existing[0].fundId)
+    await db.execute(
+      sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+    );
+  return true;
+}
+
+export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const existing = await db
+    .select({
+      amount: expenses.amount,
+      fundId: expenses.fundId,
+      status: expenses.status,
+    })
+    .from(expenses)
+    .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)))
+    .limit(1);
+  if (!existing[0] || existing[0].status === "voided") return false;
+  await db
+    .update(expenses)
+    .set({ status: "voided" })
     .where(and(eq(expenses.id, id), eq(expenses.churchId, churchId)));
   if (existing[0].fundId)
     await db.execute(
@@ -815,6 +880,19 @@ export async function listNotifications(
     )
     .orderBy(desc(notifications.createdAt))
     .limit(limit);
+}
+
+export async function createNotification(
+  input: Omit<InsertNotification, "churchId" | "createdAt" | "readAt">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(notifications)
+    .values({ ...input, churchId })
+    .returning({ id: notifications.id });
+  return rows[0].id;
 }
 
 export async function markNotificationRead(

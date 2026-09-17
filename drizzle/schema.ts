@@ -49,6 +49,11 @@ export const expenseStatusEnum = pgEnum("expense_status", [
   "draft",
   "approved",
   "paid",
+  "voided",
+]);
+export const offeringStatusEnum = pgEnum("offering_status", [
+  "active",
+  "voided",
 ]);
 export const withdrawalStatusEnum = pgEnum("withdrawal_status", [
   "pending",
@@ -230,6 +235,8 @@ export const offerings = pgTable("offerings", {
   /** Bank transfer reference or cheque number */
   reference: varchar("reference", { length: 120 }),
   notes: text("notes"),
+  status: offeringStatusEnum("status").default("active").notNull(),
+  voidedAt: timestamp("voidedAt"),
   recordedBy: integer("recordedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")

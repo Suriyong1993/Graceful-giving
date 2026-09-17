@@ -1,4 +1,6 @@
 CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending');--> statement-breakpoint
+CREATE TYPE "public"."offering_status" AS ENUM('active', 'voided');--> statement-breakpoint
+ALTER TYPE "public"."expense_status" ADD VALUE IF NOT EXISTS 'voided';--> statement-breakpoint
 CREATE TABLE "members" (
   "id" serial PRIMARY KEY NOT NULL,
   "churchId" varchar(64) NOT NULL,
@@ -32,6 +34,8 @@ CREATE TABLE "audit_logs" (
   "metadata" jsonb,
   "createdAt" timestamp DEFAULT now() NOT NULL
 );--> statement-breakpoint
+ALTER TABLE "offerings" ADD COLUMN "status" "offering_status" DEFAULT 'active' NOT NULL;--> statement-breakpoint
+ALTER TABLE "offerings" ADD COLUMN "voidedAt" timestamp;--> statement-breakpoint
 CREATE INDEX "members_church_idx" ON "members" USING btree ("churchId");--> statement-breakpoint
 CREATE INDEX "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");--> statement-breakpoint
 CREATE INDEX "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");
