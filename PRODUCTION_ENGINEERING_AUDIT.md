@@ -1,8 +1,8 @@
 # Production Engineering Audit
 
-**Repository:** `Suriyong1993/Graceful-giving`  
-**Branch:** `main`  
-**Baseline commit:** `8f1f400` (`fix: clarify finance UX and protect form data`)  
+**Repository:** `Suriyong1993/Graceful-giving`
+**Branch:** `main`
+**Baseline commit:** `8f1f400` (`fix: clarify finance UX and protect form data`)
 **Audit mode:** Gate-by-gate; no feature is marked PASS from UI presence alone.
 
 ## Gate 0 — Repository and Baseline
@@ -34,7 +34,7 @@
 
 ## Gate Decision
 
-**Gate 0: PASS.** Baseline tooling and repository evidence are reproducible.  
+**Gate 0: PASS.** Baseline tooling and repository evidence are reproducible.
 **Gate 1: BLOCKED / NOT READY.** Production deployment, production database, and RLS cannot be declared verified from repository evidence alone; additional P0 financial defects are already confirmed by source inspection.
 
 ## Next Gate
@@ -59,5 +59,27 @@ Before changing behavior, reproduce and test the confirmed P0 defects, then appl
 
 ## Updated Gate Decision
 
-**Gate 2 P0 hardening: PASS for the implemented source-level controls.**  
+**Gate 2 P0 hardening: PASS for the implemented source-level controls.**
 This does not prove database execution, RLS, concurrency behavior against a live database, or production behavior. Those remain NOT VERIFIED/BLOCKED because no Supabase project or Vercel project was available through the enabled connectors.
+
+## Gate 1 v2 — Production Evidence and Domain Applicability
+
+| Area | Status | Evidence |
+|---|---|---|
+| GitHub → production deployment mapping | PASS | GitHub deployment `6505085026` maps exactly to commit `178ad2e7d2410ee9ac9447b0d71855d50fd78bcb`; deployment environment is `Production`, status is `success`, and Vercel target is `https://graceful-giving-2fphn2puk-tlcs-projects-ab505ecc.vercel.app`. |
+| Vercel commit status | PASS | GitHub commit status for `178ad2e` is `success`; context `Vercel`; deployment completed. |
+| Production branch alignment | PASS | `origin/main` and local `HEAD` both point to `178ad2e`; deployment ref points to the same SHA. |
+| Anonymous production smoke test | NOT VERIFIED | Root and `/api/health` return Vercel SSO redirect, so application HTML/API behavior cannot be inspected without an authorized browser session. |
+| Production environment values | NOT VERIFIED | GitHub environment names `Preview` and `Production` exist; secret values were not read. Vercel runtime environment values remain unverified. |
+| Supabase project/database | NOT VERIFIED | Enabled Supabase connector returned no projects; no live database truth was available in this session. |
+| Candidate `transactions` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+| Candidate `transaction_splits` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+| Candidate `fund_transfers` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+| Candidate `member_giving_records` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+| Candidate `action_confirmations` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+| Candidate `auth_pins` | NOT APPLICABLE | No product, server, schema, migration, or workflow reference found outside audit documents. |
+
+## Updated Gate Decision
+
+**Gate 1 v2 deployment mapping: PASS.**
+**Gate 1 v2 runtime/database truth: NOT VERIFIED.** SSO prevents anonymous application smoke testing, and no Supabase project is available through the enabled connector. Candidate entities with no product evidence are explicitly **NOT APPLICABLE**; no schema was invented.

@@ -1,8 +1,8 @@
 # Final Engineering Verification
 
-**Repository:** `Suriyong1993/Graceful-giving`  
-**Branch:** `main`  
-**Audited baseline:** `8f1f400`  
+**Repository:** `Suriyong1993/Graceful-giving`
+**Branch:** `main`
+**Audited baseline:** `8f1f400`
 **Status:** **NOT READY** — production readiness cannot be declared while required database, RLS, deployment, and critical journey evidence is unavailable or incomplete.
 
 | Area | Status | Evidence | Remaining Risk |
@@ -45,6 +45,36 @@ RLS: NOT VERIFIED
 CRUD: PARTIAL
 Financial Integrity: PARTIAL (source-level P0 hardening PASS; live verification unavailable)
 Production Smoke Test: NOT VERIFIED
+
+Production Readiness: NOT READY
+```
+
+## v2 Evidence Update
+
+| Area | Status | Evidence | Remaining Risk |
+|---|---|---|---|
+| Current production deployment | PASS | Deployment `6505085026` succeeded for exact commit `178ad2e`; target URL: `https://graceful-giving-2fphn2puk-tlcs-projects-ab505ecc.vercel.app`. | Anonymous runtime smoke test is blocked by Vercel SSO. |
+| GitHub/Vercel commit mapping | PASS | `origin/main`, local `HEAD`, deployment `sha`, and Vercel commit status all point to `178ad2e7d2410ee9ac9447b0d71855d50fd78bcb`. | None for mapping. |
+| Anonymous production smoke | NOT VERIFIED | `/` and `/api/health` redirect to Vercel SSO. | Authorized browser session is required for application-level smoke tests. |
+| Production environment | NOT VERIFIED | GitHub exposes `Preview` and `Production` environment names; values were not read. | Runtime env and database connectivity remain unknown. |
+| Candidate financial tables | NOT APPLICABLE | `transactions`, `transaction_splits`, `fund_transfers`, `member_giving_records`, `action_confirmations`, and `auth_pins` have no product/code/schema/workflow references. | Do not create these tables without new product evidence. |
+
+## Corrected Domain Interpretation
+
+The previous migration concern treated checklist candidate entities as required schema. Under Master Engineering Prompt v2, the repository evidence shows those candidates are **NOT APPLICABLE**, not FAIL. The actual implemented domain is centered on `offerings`, `expenses`, `finance_accounts`, `withdrawal_requests`, `members`, `notifications`, and `audit_logs`.
+
+## Current Final Gate
+
+```text
+Build: PASS
+Tests: PASS
+E2E: NOT VERIFIED
+Database: NOT VERIFIED
+RLS: NOT VERIFIED
+CRUD: PARTIAL
+Financial Integrity: PARTIAL (source-level P0 hardening PASS)
+Production Deployment Mapping: PASS
+Production Smoke Test: NOT VERIFIED (SSO blocked anonymous access)
 
 Production Readiness: NOT READY
 ```
