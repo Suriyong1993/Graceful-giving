@@ -13,29 +13,29 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: fix/financial-integrity-hardening
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Enable pnpm
+      - name: Clone branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          git clone --branch fix/financial-integrity-hardening "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo
+      - name: Apply targeted fixes
+        run: cd repo && python3 scripts/apply_financial_hardening.py
+      - name: Enable pnpm and install
+        run: |
+          cd repo
           corepack enable
           corepack prepare pnpm@10.4.1 --activate
-      - name: Apply targeted fixes
-        run: python3 scripts/apply_financial_hardening.py
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          pnpm install --frozen-lockfile
       - name: Verify
         run: |
+          cd repo
           pnpm check
           pnpm test
           pnpm build
           git checkout -- api/index.js || true
       - name: Commit verified fixes
         run: |
+          cd repo
           rm -f .github/workflows/apply-financial-hardening.yml scripts/apply_financial_hardening.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
