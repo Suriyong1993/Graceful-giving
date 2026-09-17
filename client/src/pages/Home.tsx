@@ -165,7 +165,7 @@ export default function Home() {
   const [offeringStep, setOfferingStep] = useState<1 | 2 | 3>(1);
   const [offeringType, setOfferingType] = useState("ถวายประจำสัปดาห์");
   const [offeringAmount, setOfferingAmount] = useState("");
-  const [offeringFund, setOfferingFund] = useState("บัญชีทั่วไป");
+  const [offeringFund, setOfferingFund] = useState("");
   const [offeringMethod, setOfferingMethod] = useState("เงินสด");
   const [offeringNotes, setOfferingNotes] = useState("");
   const [offeringAnon, setOfferingAnon] = useState(false);
@@ -226,16 +226,19 @@ export default function Home() {
   const createOfferingMutation = trpc.offerings.create.useMutation({
     onSuccess: () => {
       refetchOfferings();
+      const fundName =
+        (accountsData ?? []).find((fa: any) => String(fa.id) === offeringFund)
+          ?.name ?? "กองทุนที่เลือก";
       setSubmittedOffering({
         type: offeringType,
         amount: Number(offeringAmount),
-        fund: offeringFund,
+        fund: fundName,
         method: offeringMethod,
       });
       setOfferingSuccess(true);
       setOfferingOpen(false);
       toast.success("บันทึกการถวายเรียบร้อยแล้ว", {
-        description: `ยอดเงิน ฿${Number(offeringAmount).toLocaleString()} เข้า${offeringFund}`,
+        description: `ยอดเงิน ฿${Number(offeringAmount).toLocaleString()} เข้า${fundName}`,
       });
     },
     onError: error => {
@@ -453,10 +456,14 @@ export default function Home() {
 
   const handleQuickOfferingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!offeringFund) {
+      toast.error("กรุณาเลือกกองทุนก่อนบันทึกการถวาย");
+      return;
+    }
     createOfferingMutation.mutate({
       category: mapOfferingCategory(offeringType),
       amount: Number(offeringAmount),
-      fundId: 1,
+      fundId: Number(offeringFund),
       method: mapPaymentMethod(offeringMethod),
       notes: offeringNotes || undefined,
     });
@@ -1768,24 +1775,25 @@ export default function Home() {
                   เข้ากองทุน
                 </label>
                 <select
+                  required
                   value={offeringFund}
                   onChange={e => setOfferingFund(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs font-medium text-[#38251B]"
                 >
-                  <option value="บัญชีทั่วไป">
-                    บัญชีทั่วไป (เพื่อการดำเนินงาน)
+                  <option value="" disabled>
+                    -- เลือกกองทุน --
                   </option>
-                  <option value="กองทุนพันธกิจ">
-                    กองทุนพันธกิจและการประกาศ
-                  </option>
-                  <option value="กองทุนอาคาร">กองทุนอาคารและสถานที่</option>
-                  <option value="กองทุนการสงเคราะห์">
-                    กองทุนการสงเคราะห์สมาชิก
-                  </option>
-                  <option value="กองทุนเยาวชน">
-                    กองทุนอนุชนและรวีวารศึกษา
-                  </option>
+                  {fundAccounts.map((fa: any) => (
+                    <option key={fa.id} value={fa.id}>
+                      {fa.name}
+                    </option>
+                  ))}
                 </select>
+                {fundAccounts.length === 0 && (
+                  <p className="text-[11px] text-[#D45945] mt-1">
+                    ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกการถวาย
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1846,8 +1854,8 @@ export default function Home() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createOfferingMutation.isPending}
-                  className="flex-2 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow"
+                  disabled={createOfferingMutation.isPending || !offeringFund}
+                  className="flex-2 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
                 >
                   {createOfferingMutation.isPending
                     ? "กำลังบันทึก..."
@@ -1984,10 +1992,37 @@ export default function Home() {
                 </select>
               </div>
             </div>
+            <div>
+              <label className="text-xs font-bold text-[#70452E] mb-1 block">
+                หักจากกองทุน
+              </label>
+              <select
+                required
+                value={expenseForm.fundId}
+                onChange={e =>
+                  setExpenseForm({ ...expenseForm, fundId: e.target.value })
+                }
+                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+              >
+                <option value="" disabled>
+                  -- เลือกกองทุน --
+                </option>
+                {fundAccounts.map((fa: any) => (
+                  <option key={fa.id} value={fa.id}>
+                    {fa.name}
+                  </option>
+                ))}
+              </select>
+              {fundAccounts.length === 0 && (
+                <p className="text-[11px] text-[#D45945] mt-1">
+                  ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกรายจ่าย
+                </p>
+              )}
+            </div>
             <button
               type="submit"
-              disabled={createExpenseMutation.isPending}
-              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow"
+              disabled={createExpenseMutation.isPending || !expenseForm.fundId}
+              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
             >
               {createExpenseMutation.isPending
                 ? "กำลังบันทึก..."
@@ -2076,10 +2111,42 @@ export default function Home() {
                 </select>
               </div>
             </div>
+            <div>
+              <label className="text-xs font-bold text-[#70452E] mb-1 block">
+                เบิกจากกองทุน
+              </label>
+              <select
+                required
+                value={withdrawalForm.fundId}
+                onChange={e =>
+                  setWithdrawalForm({
+                    ...withdrawalForm,
+                    fundId: e.target.value,
+                  })
+                }
+                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+              >
+                <option value="" disabled>
+                  -- เลือกกองทุน --
+                </option>
+                {fundAccounts.map((fa: any) => (
+                  <option key={fa.id} value={fa.id}>
+                    {fa.name}
+                  </option>
+                ))}
+              </select>
+              {fundAccounts.length === 0 && (
+                <p className="text-[11px] text-[#D45945] mt-1">
+                  ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนยื่นคำขอเบิกเงิน
+                </p>
+              )}
+            </div>
             <button
               type="submit"
-              disabled={createWithdrawalMutation.isPending}
-              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow"
+              disabled={
+                createWithdrawalMutation.isPending || !withdrawalForm.fundId
+              }
+              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
             >
               {createWithdrawalMutation.isPending
                 ? "กำลังส่งคำขอ..."
