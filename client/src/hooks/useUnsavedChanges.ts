@@ -1,7 +1,26 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
 
 export const UNSAVED_CHANGES_MESSAGE =
   "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?";
+
+/**
+ * Forms currently holding unsaved edits. Shared navigation (the sidebar,
+ * the mobile bar, the menu sheet) reads this to guard a route change
+ * without needing to know which form is mounted.
+ */
+const dirtyForms = new Set<object>();
+
+export function hasUnsavedChanges(): boolean {
+  return dirtyForms.size > 0;
+}
+
+/** Guard for navigation away from whatever form is currently mounted. */
+export function confirmDiscardPendingChanges(
+  message: string = UNSAVED_CHANGES_MESSAGE
+): boolean {
+  return !hasUnsavedChanges() || window.confirm(message);
+}
 
 /**
  * Warns the user before losing unsaved form data.
@@ -21,6 +40,15 @@ export function useUnsavedChanges(
 ) {
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
+  const token = useRef({}).current;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    dirtyForms.add(token);
+    return () => {
+      dirtyForms.delete(token);
+    };
+  }, [isDirty, token]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -57,4 +85,19 @@ export function confirmDiscardChanges(
   message: string = UNSAVED_CHANGES_MESSAGE
 ): boolean {
   return !isDirty || window.confirm(message);
+}
+
+/**
+ * `setLocation` that first confirms discarding any unsaved form edits.
+ * Use it for navigation buttons in shared chrome, where the caller does
+ * not know which form is mounted.
+ */
+export function useGuardedNavigate() {
+  const [, setLocation] = useLocation();
+  return useCallback(
+    (path: string) => {
+      if (confirmDiscardPendingChanges()) setLocation(path);
+    },
+    [setLocation]
+  );
 }

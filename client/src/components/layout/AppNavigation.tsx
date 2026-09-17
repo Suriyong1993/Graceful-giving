@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
   CheckCircle2,
@@ -135,7 +136,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
             const active = isActiveRoute(location, path);
             return (
               <SheetClose asChild key={path}>
-                <Link
+                <GuardedLink
                   href={path}
                   aria-current={active ? "page" : undefined}
                   onFocus={e =>
@@ -152,7 +153,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                     aria-hidden="true"
                   />
                   {label}
-                </Link>
+                </GuardedLink>
               </SheetClose>
             );
           })}
