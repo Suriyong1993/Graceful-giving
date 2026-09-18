@@ -24,6 +24,7 @@ import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LogOut } from "lucide-react";
 import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
+import { isSuperAdmin, getChurchRoleInfo } from "@shared/roles";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -237,6 +238,36 @@ export default function Settings() {
     },
   ];
 
+  if (!isSuperAdmin(user)) {
+    return (
+      <AppLayout>
+        <div className="max-w-xl mx-auto my-12 bg-white rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-rose-100 border-2 border-rose-200 mx-auto flex items-center justify-center text-rose-600">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-[#38251B]">
+            สิทธิ์การเข้าถึงถูกจำกัด (Restricted Access)
+          </h2>
+          <p className="text-sm text-[#70452E]/80">
+            หน้านี้สงวนไว้สำหรับ{" "}
+            <strong className="text-amber-800 font-bold">
+              ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)
+            </strong>{" "}
+            เท่านั้น เพื่อความปลอดภัยของข้อมูลคริสตจักรและการกำหนดสิทธิ์ผู้ใช้งาน
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#E99A4A] text-white font-bold text-sm hover:bg-[#d88939] transition-all shadow-xs"
+            >
+              กลับสู่หน้าหลัก
+            </Link>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-6">
@@ -428,21 +459,7 @@ export default function Settings() {
                 <p className="mt-1">
                   บทบาทในระบบ:{" "}
                   <span className="font-bold text-emerald-700">
-                    {user?.churchRole === "SUPER_ADMIN"
-                      ? "👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)"
-                      : user?.churchRole === "PASTOR"
-                      ? "✝️ ศิษยาภิบาล (PASTOR)"
-                      : user?.churchRole === "TREASURER"
-                      ? "💰 เหรัญญิกคริสตจักร (TREASURER)"
-                      : user?.churchRole === "DEACON"
-                      ? "🤝 มัคนายก / คณะกรรมการ (DEACON)"
-                      : user?.churchRole === "COUNTER"
-                      ? "📝 ทีมนับเงินถวาย (COUNTER)"
-                      : user?.churchRole === "MEMBER"
-                      ? "👤 สมาชิกคริสตจักร (MEMBER)"
-                      : user?.role === "admin"
-                      ? "👑 ผู้ดูแลระบบ (Admin)"
-                      : "👤 สมาชิกทั่วไป"}
+                    {getChurchRoleInfo(user?.churchRole).badgeLabel}
                   </span>
                 </p>
               </div>

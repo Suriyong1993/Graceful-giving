@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canManageChurchSettings } from "@shared/roles";
 import { trpc } from "@/lib/trpc";
 import { clearSetupSkip, markSetupSkipped } from "@/lib/setupSkip";
 import {
@@ -370,7 +372,16 @@ function Step8({ data }: { data: SetupData }) {
 
 export default function ChurchSetup() {
   const [, setLocation] = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(1);
+
+  useEffect(() => {
+    if (!authLoading && user && !canManageChurchSettings(user)) {
+      toast.error("เฉพาะผู้ดูแลระบบสูงสุด (SUPER_ADMIN) หรือผู้นำคริสตจักรเท่านั้นที่สามารถเข้าถึงหน้านี้ได้");
+      setLocation("/");
+    }
+  }, [user, authLoading, setLocation]);
+
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<SetupData>({
     name: "",

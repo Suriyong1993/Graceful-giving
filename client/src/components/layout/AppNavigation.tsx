@@ -1,5 +1,13 @@
 import { type ReactNode } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import {
+  isSuperAdmin,
+  canManageFinance,
+  canCountOfferings,
+  canViewReports,
+  canManageChurchSettings,
+} from "@shared/roles";
 import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
@@ -110,6 +118,35 @@ export const navItems = [
   },
 ];
 
+export function getAuthorizedNavItems(
+  user?: { role?: string; churchRole?: string | null } | null
+) {
+  return navItems.filter(item => {
+    switch (item.path) {
+      case "/settings":
+        return isSuperAdmin(user);
+      case "/counting":
+        return canCountOfferings(user);
+      case "/expenses":
+      case "/funds":
+      case "/budgets":
+        return canManageFinance(user) || canManageChurchSettings(user);
+      case "/reports":
+        return canViewReports(user);
+      case "/approvals":
+        return canManageFinance(user) || canManageChurchSettings(user);
+      case "/members":
+        return (
+          canManageChurchSettings(user) ||
+          canManageFinance(user) ||
+          user?.churchRole === "DEACON"
+        );
+      default:
+        return true;
+    }
+  });
+}
+
 export function isActiveRoute(currentPath: string, path: string) {
   return (
     currentPath === path || (path !== "/" && currentPath.startsWith(`${path}/`))
@@ -118,6 +155,8 @@ export function isActiveRoute(currentPath: string, path: string) {
 
 export function AppMenu({ children }: { children?: ReactNode }) {
   const [location] = useLocation();
+  const { user } = useAuth();
+  const authorizedNavItems = getAuthorizedNavItems(user);
 
   return (
     <Sheet>
@@ -148,7 +187,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
           aria-label="เมนูทุกหมวด"
           className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
-          {navItems.map(({ path, label, icon: Icon, iconColor }) => {
+          {authorizedNavItems.map(({ path, label, icon: Icon, iconColor }) => {
             const active = isActiveRoute(location, path);
             return (
               <SheetClose asChild key={path}>

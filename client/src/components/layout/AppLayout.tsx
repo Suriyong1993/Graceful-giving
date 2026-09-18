@@ -4,7 +4,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useGuardedNavigate } from "@/hooks/useUnsavedChanges";
 import { GuardedLink } from "./GuardedLink";
-import { AppMenu, isActiveRoute, navItems } from "./AppNavigation";
+import { AppMenu, isActiveRoute, getAuthorizedNavItems } from "./AppNavigation";
+import { getChurchRoleInfo } from "@shared/roles";
 import {
   Bell,
   CircleUserRound,
@@ -89,7 +90,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             aria-label="เมนูนำทางหลัก"
             className="flex-1 space-y-1.5 text-base font-bold"
           >
-            {navItems.map(item => {
+            {getAuthorizedNavItems(user).map(item => {
               const Icon = item.icon;
               const isActive = isActiveRoute(currentPath, item.path);
 
@@ -126,11 +127,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 </p>
                 <p className="text-xs text-[#2A6E24] font-black flex items-center gap-1.5 mt-0.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#2A6E24]" />
-                  {user?.churchRole === "SUPER_ADMIN"
-                    ? "ผู้ดูแลระบบสูงสุด"
-                    : user?.churchRole === "TREASURER"
-                      ? "เหรัญญิกคริสตจักร"
-                      : "สมาชิกคริสตจักร"}
+                  {getChurchRoleInfo(user?.churchRole).label}
                 </p>
               </div>
             </GuardedLink>

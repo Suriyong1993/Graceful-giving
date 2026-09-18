@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleUserRound,
+  Coins,
   CreditCard,
   Download,
   Eye,
@@ -22,12 +23,14 @@ import {
   Landmark,
   Layers,
   Loader2,
+  LogOut,
   MoreHorizontal,
   PieChart,
   Plus,
   ReceiptText,
   Search,
   Settings2,
+  ShieldCheck,
   Sprout,
   UsersRound,
 } from "lucide-react";
@@ -64,6 +67,12 @@ import {
   type ExpenseCategory,
   type OfferingCategory,
 } from "@shared/categories";
+import {
+  getChurchRoleInfo,
+  isSuperAdmin,
+  canCountOfferings,
+  canManageFinance,
+} from "@shared/roles";
 
 export const quickActions = [
   { label: "บันทึกถวาย", icon: HandCoins, tone: "income" },
@@ -145,7 +154,7 @@ function useCountUp(target: number, durationMs = 900): number {
 
 export default function Home() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Navigation tab state: "home" | "ledger" | "reports" | "profile"
   const [activeTab, setActiveTab] = useState<
@@ -595,11 +604,7 @@ export default function Home() {
                 </p>
                 <p className="text-xs text-[#2A6E24] font-black flex items-center gap-1.5 mt-0.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#2A6E24]" />
-                  {user?.churchRole === "SUPER_ADMIN"
-                    ? "ผู้ดูแลระบบสูงสุด"
-                    : user?.churchRole === "TREASURER"
-                      ? "เหรัญญิกคริสตจักร"
-                      : "สมาชิกคริสตจักร"}
+                  {getChurchRoleInfo(user?.churchRole).label}
                 </p>
               </div>
             </div>
@@ -1447,40 +1452,105 @@ export default function Home() {
                       "คริสตจักรพระคุณสมบูรณ์ ประเทศไทย"}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF5E4] text-[#4F8B33] text-xs font-bold">
-                  <span>
-                    {user?.churchRole === "SUPER_ADMIN"
-                      ? "ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)"
-                      : user?.churchRole === "TREASURER"
-                        ? "เหรัญญิกคริสตจักร (TREASURER)"
-                        : "สมาชิกคริสตจักร (MEMBER)"}
-                  </span>
+                <div className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold ${getChurchRoleInfo(user?.churchRole).badgeColor}`}>
+                  <span>{getChurchRoleInfo(user?.churchRole).badgeLabel}</span>
                 </div>
+                <p className="text-xs text-[#70452E]/75 max-w-sm mx-auto">
+                  {getChurchRoleInfo(user?.churchRole).description}
+                </p>
               </div>
 
+              {/* Counting Team Work Section */}
+              {canCountOfferings(user) && (
+                <div className="bg-white rounded-[28px] p-5 border border-[#E9D9BF] clay-card-shadow space-y-2">
+                  <h3 className="text-sm font-bold text-[#38251B] mb-2 flex items-center gap-2">
+                    <span>📝</span>
+                    <span>งานทีมนับเงินถวาย (สำหรับกรรมการนับเงิน)</span>
+                  </h3>
+                  <button
+                    onClick={() => setLocation("/counting")}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all border border-[#E9D9BF]/80"
+                  >
+                    <span className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-orange-700 shrink-0">
+                        <Coins className="w-5 h-5" />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-sm font-bold text-[#38251B]">ห้องนับเงินถวาย (Counting Room)</div>
+                        <div className="text-[11px] text-[#927D6D] font-normal">บันทึกยอดเงินสด สแกนจ่าย และนับธนบัตรตามรอบนมัสการ</div>
+                      </div>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#927D6D] shrink-0" />
+                  </button>
+                </div>
+              )}
+
+              {/* Super Admin Settings Section (Strictly restricted to SUPER_ADMIN) */}
+              {isSuperAdmin(user) && (
+                <div className="bg-white rounded-[28px] p-5 border border-[#E9D9BF] clay-card-shadow space-y-2">
+                  <h3 className="text-sm font-bold text-[#38251B] mb-2 flex items-center gap-2">
+                    <span>👑</span>
+                    <span>การตั้งค่าและการจัดการ (เฉพาะผู้ดูแลระบบ)</span>
+                  </h3>
+                  <button
+                    onClick={() => setLocation("/settings")}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all border border-[#E9D9BF]/60"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Settings2 className="w-4 h-4 text-[#E99A4A]" />
+                      <span>ตั้งค่าระบบคริสตจักรและกำหนดสิทธิ์ผู้ใช้งาน</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#927D6D]" />
+                  </button>
+                  <button
+                    onClick={() => setLocation("/setup")}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all border border-[#E9D9BF]/60"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <ShieldCheck className="w-4 h-4 text-[#A8C978]" />
+                      <span>ตัวช่วยตั้งค่าคริสตจักร 8 ขั้นตอน (Wizard)</span>
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-[#927D6D]" />
+                  </button>
+                </div>
+              )}
+
+              {/* General Information & News for all members */}
               <div className="bg-white rounded-[28px] p-5 border border-[#E9D9BF] clay-card-shadow space-y-2">
                 <h3 className="text-sm font-bold text-[#38251B] mb-2">
-                  การตั้งค่าและการจัดการ
+                  ข้อมูลและกิจกรรมคริสตจักร
                 </h3>
                 <button
-                  onClick={() => setLocation("/setup")}
-                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all"
-                >
-                  <span className="flex items-center gap-2">
-                    <Settings2 className="w-4 h-4 text-[#E99A4A]" />
-                    <span>ตั้งค่าคริสตจักร 8 ขั้นตอน</span>
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-[#927D6D]" />
-                </button>
-                <button
                   onClick={() => setNewsOpen(true)}
-                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all"
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all border border-[#E9D9BF]/60"
                 >
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-2.5">
                     <BookOpen className="w-4 h-4 text-[#A8C978]" />
                     <span>ข่าวสารและประกาศคริสตจักร</span>
                   </span>
                   <ChevronRight className="w-4 h-4 text-[#927D6D]" />
+                </button>
+                <button
+                  onClick={() => setLocation("/profile")}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-bold text-[#70452E] transition-all border border-[#E9D9BF]/60"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <CircleUserRound className="w-4 h-4 text-[#E99A4A]" />
+                    <span>ดูโปรไฟล์และประวัติการถวายส่วนตัว</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-[#927D6D]" />
+                </button>
+              </div>
+
+              {/* Logout Button */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  className="w-full flex items-center justify-center gap-2 p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-sm transition-all shadow-2xs"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>ออกจากระบบ</span>
                 </button>
               </div>
             </div>

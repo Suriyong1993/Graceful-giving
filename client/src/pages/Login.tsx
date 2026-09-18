@@ -1,6 +1,7 @@
 import React from "react";
 import { SignIn } from "@clerk/clerk-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { startLogin } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Sprout } from "lucide-react";

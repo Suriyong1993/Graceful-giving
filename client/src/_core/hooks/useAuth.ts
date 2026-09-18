@@ -1,4 +1,4 @@
-﻿import { startLogin } from "@/const";
+import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import { useCallback, useEffect, useMemo } from "react";
@@ -17,7 +17,9 @@ export function useAuth(options?: UseAuthOptions) {
   const meQuery = trpc.auth.me.useQuery(undefined, {
     enabled: isLoaded && Boolean(isSignedIn),
     retry: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    staleTime: 5_000,
+    refetchInterval: 30_000,
   });
 
   const logout = useCallback(async () => {

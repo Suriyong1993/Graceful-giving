@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { canManageChurchSettings } from "@shared/roles";
 import { trpc } from "@/lib/trpc";
 import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -103,7 +104,9 @@ function SetupGate() {
     if (hasSkippedSetup()) return;
     if (profileQuery.isLoading || profileQuery.isError) return;
     const profile = profileQuery.data;
-    if (!profile || !profile.setupCompleted) setLocation("/setup");
+    if (canManageChurchSettings(user) && (!profile || !profile.setupCompleted)) {
+      setLocation("/setup");
+    }
   }, [
     loading,
     user,
