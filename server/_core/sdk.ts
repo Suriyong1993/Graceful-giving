@@ -1,21 +1,12 @@
-import { createClerkClient } from "@clerk/backend";
+﻿import { createClerkClient, verifyToken } from "@clerk/backend";
 import type { Request } from "express";
 import * as db from "../db";
 import { ENV } from "./env";
+import type { User } from "../../drizzle/schema";
 
 const clerkClient = createClerkClient({ secretKey: ENV.clerkSecretKey });
 
-export type AuthenticatedUser = {
-  id: number;
-  openId: string;
-  name: string | null;
-  email: string | null;
-  loginMethod: string | null;
-  role: string;
-  createdAt: Date;
-  updatedAt: Date;
-  lastSignedIn: Date | null;
-};
+export type AuthenticatedUser = User;
 
 export const sdk = {
   async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
@@ -30,7 +21,9 @@ export const sdk = {
     }
 
     // Verify with Clerk
-    const payload = await clerkClient.verifyToken(sessionToken);
+    const payload = await verifyToken(sessionToken, {
+      secretKey: ENV.clerkSecretKey,
+    });
     const clerkUserId = payload.sub;
 
     if (!clerkUserId) {
