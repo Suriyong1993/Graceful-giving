@@ -45,30 +45,30 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
-      <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
+      <div className="flex-1 flex flex-row w-full max-w-none mx-auto min-w-0">
         {/* DESKTOP FIXED SIDEBAR (Visible on lg: >= 1024px) */}
-        <aside className="hidden lg:flex flex-col w-76 xl:w-80 bg-[#FFF4DF]/90 border-r-2 border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
+        <aside className="hidden lg:flex flex-col w-76 xl:w-80 bg-[#FFF4DF]/95 border-r-2 border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
           {/* 1. Grace-giving Branding */}
           <GuardedLink
             href="/"
             className="flex items-center gap-3.5 mb-6 cursor-pointer select-none"
           >
-            <div className="w-14 h-14 rounded-2xl bg-[#E99A4A]/15 border-2 border-[#E99A4A]/30 flex items-center justify-center relative overflow-hidden shrink-0 shadow-xs">
-              <Sprout className="w-8 h-8 text-[#70452E]" />
-              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#A8C978] flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-[#D47012]/15 border-2 border-[#D47012]/30 flex items-center justify-center relative overflow-hidden shrink-0 shadow-xs">
+              <Sprout className="w-8 h-8 text-[#2C1810]" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#3D7826] flex items-center justify-center">
                 <span className="text-xs text-white font-black">✝</span>
               </div>
             </div>
             <div>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-[#38251B] tracking-tight">
+                <span className="text-2xl font-black text-[#2C1810] tracking-tight">
                   Grace
                 </span>
-                <span className="text-2xl font-black text-[#E99A4A] tracking-tight">
+                <span className="text-2xl font-black text-[#D47012] tracking-tight">
                   Ledger
                 </span>
               </div>
-              <p className="text-xs text-[#927D6D] font-bold leading-tight mt-0.5">
+              <p className="text-xs text-[#523D2E] font-extrabold leading-tight mt-0.5">
                 การเงินเชื่อมใจ เพื่อคริสตจักร
               </p>
             </div>
@@ -77,7 +77,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Quick Offering Action Button */}
           <button
             onClick={() => navigate("/offerings/new")}
-            className="w-full mb-6 py-3.5 px-5 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base xl:text-lg flex items-center justify-center gap-2.5 clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#E99A4A] min-h-[54px]"
+            className="w-full mb-6 py-3.5 px-5 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-base xl:text-lg flex items-center justify-center gap-2.5 clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#D47012] min-h-[54px]"
             aria-label="บันทึกการถวายใหม่"
           >
             <Plus className="w-6 h-6 stroke-[3]" />
@@ -100,8 +100,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   aria-current={isActive ? "page" : undefined}
                   className={`w-full flex min-h-12 items-center gap-3.5 border-2 px-4 py-3 rounded-2xl transition-all ${
                     isActive
-                      ? "bg-[#FFF9EE] text-[#70452E] font-black border-[#E9D9BF] shadow-xs"
-                      : "border-transparent text-[#70452E]/85 hover:bg-[#FFF9EE]/70 hover:text-[#70452E]"
+                      ? "bg-white text-[#2C1810] font-black border-[#D47012] shadow-xs"
+                      : "border-transparent text-[#4A2E1B] hover:bg-white/80 hover:text-[#2C1810]"
                   }`}
                 >
                   <Icon className={`w-5 h-5 xl:w-6 xl:h-6 shrink-0 ${item.iconColor}`} />
@@ -115,17 +115,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="pt-4 mt-auto border-t-2 border-[#E9D9BF]/80">
             <GuardedLink
               href="/profile"
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-[#FFF9EE] border-2 border-[#E9D9BF] cursor-pointer hover:bg-white transition-all shadow-xs"
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border-2 border-[#E9D9BF] cursor-pointer hover:bg-[#FFF9EE] transition-all shadow-xs"
             >
-              <div className="w-12 h-12 rounded-full bg-[#E99A4A]/20 flex items-center justify-center text-[#70452E] font-black text-base shrink-0">
+              <div className="w-12 h-12 rounded-full bg-[#D47012]/15 flex items-center justify-center text-[#2C1810] font-black text-base shrink-0 border border-[#D47012]/30">
                 {user?.name ? user.name.slice(0, 1) : "ศ"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-[#70452E] truncate">
+                <p className="text-sm font-black text-[#2C1810] truncate">
                   {churchName}
                 </p>
-                <p className="text-xs text-[#A8C978] font-black flex items-center gap-1.5 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-[#A8C978]" />
+                <p className="text-xs text-[#2A6E24] font-black flex items-center gap-1.5 mt-0.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2A6E24]" />
                   {user?.churchRole === "SUPER_ADMIN"
                     ? "ผู้ดูแลระบบสูงสุด"
                     : user?.churchRole === "TREASURER"
@@ -137,15 +137,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </div>
         </aside>
 
-        {/* MAIN CONTAINER */}
-        <main className="w-full max-w-full sm:max-w-2xl md:max-w-4xl xl:max-w-5xl px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-6 flex flex-col pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+        {/* MAIN CONTAINER (Auto-filling 100% available space across all screens) */}
+        <main className="flex-1 w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 flex flex-col pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
           {/* Top Bar for Desktop and Mobile */}
           <header className="flex flex-wrap items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-[#E9D9BF]/60">
             <div className="flex w-full items-center justify-between lg:hidden">
               <AppMenu />
               <GuardedLink
                 href="/notifications"
-                className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-[#E9D9BF] bg-white text-[#2C1810] hover:bg-[#FFF4DF]"
                 aria-label="การแจ้งเตือน"
               >
                 <Bell className="size-5" aria-hidden="true" />
@@ -155,11 +155,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <div className="min-w-0 flex-1 basis-full sm:basis-0">
               {title ? (
                 <div>
-                  <h1 className="text-xl md:text-2xl font-extrabold text-[#38251B] tracking-tight break-words">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#2C1810] tracking-tight break-words">
                     {title}
                   </h1>
                   {subtitle && (
-                    <p className="text-sm leading-relaxed text-[#927D6D] mt-1">
+                    <p className="text-sm sm:text-base leading-relaxed text-[#4A2E1B] font-bold mt-1">
                       {subtitle}
                     </p>
                   )}
@@ -169,14 +169,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   href="/"
                   className="flex items-center gap-2 cursor-pointer"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-[#E99A4A]/15 border border-[#E99A4A]/30 flex items-center justify-center">
-                    <Sprout className="w-5 h-5 text-[#70452E]" />
+                  <div className="w-10 h-10 rounded-xl bg-[#D47012]/15 border border-[#D47012]/30 flex items-center justify-center">
+                    <Sprout className="w-6 h-6 text-[#2C1810]" />
                   </div>
                   <div>
-                    <span className="text-base font-black text-[#38251B]">
+                    <span className="text-lg font-black text-[#2C1810]">
                       Grace{" "}
                     </span>
-                    <span className="text-base font-black text-[#E99A4A]">
+                    <span className="text-lg font-black text-[#D47012]">
                       Ledger
                     </span>
                   </div>
@@ -194,7 +194,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
               <button
                 onClick={() => navigate("/notifications")}
-                className="hidden lg:flex size-11 shrink-0 rounded-full bg-white border border-[#E9D9BF] shadow-xs items-center justify-center text-[#70452E] hover:bg-[#FFF4DF] transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+                className="hidden lg:flex size-11 shrink-0 rounded-full bg-white border-2 border-[#E9D9BF] shadow-xs items-center justify-center text-[#2C1810] hover:bg-[#FFF4DF] transition-all relative focus-visible:ring-2 focus-visible:ring-[#D47012]"
                 aria-label="การแจ้งเตือน"
               >
                 <Bell className="w-5 h-5" />
@@ -203,58 +203,58 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           </header>
 
           {/* Children Content */}
-          <div className="space-y-6">{children}</div>
+          <div className="space-y-6 w-full">{children}</div>
         </main>
       </div>
 
       {/* MOBILE FIXED BOTTOM NAVIGATION BAR */}
       <nav
         aria-label="เมนูนำทางหลักบนมือถือ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t-2 border-[#E9D9BF] px-2 sm:px-4 pt-2 pb-[max(1.15rem,env(safe-area-inset-bottom))] shadow-lg"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/98 backdrop-blur-md border-t-2 border-[#E9D9BF] px-3 sm:px-6 pt-2 pb-[max(1.15rem,env(safe-area-inset-bottom))] shadow-lg"
       >
         <div className="max-w-md sm:max-w-lg mx-auto flex items-center justify-around sm:justify-between relative">
           {/* 1. หน้าแรก */}
           <button
             onClick={() => navigate("/")}
-            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[52px] py-1.5 px-2 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[54px] py-1.5 px-2 rounded-2xl transition-all ${
               currentPath === "/"
-                ? "bg-[#FBE9CD] text-[#70452E] font-black shadow-2xs border border-[#E9D9BF]"
-                : "text-[#927D6D] hover:text-[#70452E]"
+                ? "bg-white text-[#2C1810] font-black shadow-xs border-2 border-[#D47012]"
+                : "text-[#4A2E1B] hover:text-[#2C1810] font-bold"
             }`}
             aria-label="ไปที่หน้าแรก"
             aria-current={currentPath === "/" ? "page" : undefined}
           >
-            <HomeIcon className="w-6 h-6 stroke-[2.4]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-bold">หน้าแรก</span>
+            <HomeIcon className="w-6 h-6 stroke-[2.5] text-[#D47012]" />
+            <span className="text-xs sm:text-sm mt-0.5 font-black">หน้าแรก</span>
           </button>
 
           {/* 2. รายการ */}
           <button
             onClick={() => navigate("/transactions")}
-            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[52px] py-1.5 px-2 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[54px] py-1.5 px-2 rounded-2xl transition-all ${
               currentPath.startsWith("/transactions")
-                ? "bg-[#FBE9CD] text-[#70452E] font-black shadow-2xs border border-[#E9D9BF]"
-                : "text-[#927D6D] hover:text-[#70452E]"
+                ? "bg-white text-[#2C1810] font-black shadow-xs border-2 border-[#D47012]"
+                : "text-[#4A2E1B] hover:text-[#2C1810] font-bold"
             }`}
             aria-label="ไปที่รายการการเงิน"
             aria-current={
               isActiveRoute(currentPath, "/transactions") ? "page" : undefined
             }
           >
-            <ReceiptText className="w-6 h-6 stroke-[2.4]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-bold">รายการ</span>
+            <ReceiptText className="w-6 h-6 stroke-[2.5] text-[#3D7826]" />
+            <span className="text-xs sm:text-sm mt-0.5 font-black">รายการ</span>
           </button>
 
           {/* 3. CENTER PRIMARY FAB: WARM ORANGE '+' BUTTON */}
           <div className="relative -top-6 flex flex-col items-center">
             <button
               onClick={() => navigate("/offerings/new")}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#E99A4A] shadow-md"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
               aria-label="บันทึกการถวายใหม่"
             >
-              <Plus className="w-7 h-7 sm:w-8 sm:h-8 stroke-[3]" />
+              <Plus className="w-8 h-8 stroke-[3]" />
             </button>
-            <span className="text-xs sm:text-sm font-black text-[#70452E] mt-0.5">
+            <span className="text-xs sm:text-sm font-black text-[#2C1810] mt-0.5">
               เพิ่ม
             </span>
           </div>
@@ -262,42 +262,42 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* 4. รายงาน */}
           <button
             onClick={() => navigate("/reports")}
-            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[52px] py-1.5 px-2 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[54px] py-1.5 px-2 rounded-2xl transition-all ${
               currentPath.startsWith("/reports")
-                ? "bg-[#FBE9CD] text-[#70452E] font-black shadow-2xs border border-[#E9D9BF]"
-                : "text-[#927D6D] hover:text-[#70452E]"
+                ? "bg-white text-[#2C1810] font-black shadow-xs border-2 border-[#D47012]"
+                : "text-[#4A2E1B] hover:text-[#2C1810] font-bold"
             }`}
             aria-label="ไปที่หน้ารายงาน"
             aria-current={
               isActiveRoute(currentPath, "/reports") ? "page" : undefined
             }
           >
-            <FileBarChart className="w-6 h-6 stroke-[2.4]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-bold">รายงาน</span>
+            <FileBarChart className="w-6 h-6 stroke-[2.5] text-[#2A75A0]" />
+            <span className="text-xs sm:text-sm mt-0.5 font-black">รายงาน</span>
           </button>
 
           {/* 5. ฉัน (Profile) */}
           <button
             onClick={() => navigate("/profile")}
-            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[52px] py-1.5 px-2 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[56px] sm:min-w-[64px] min-h-[54px] py-1.5 px-2 rounded-2xl transition-all ${
               currentPath.startsWith("/profile") ||
               currentPath.startsWith("/settings")
-                ? "bg-[#FBE9CD] text-[#70452E] font-black shadow-2xs border border-[#E9D9BF]"
-                : "text-[#927D6D] hover:text-[#70452E]"
+                ? "bg-white text-[#2C1810] font-black shadow-xs border-2 border-[#D47012]"
+                : "text-[#4A2E1B] hover:text-[#2C1810] font-bold"
             }`}
             aria-label="ไปที่หน้าโปรไฟล์"
             aria-current={
               currentPath.startsWith("/profile") ? "page" : undefined
             }
           >
-            <CircleUserRound className="w-6 h-6 stroke-[2.4]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-bold">ฉัน</span>
+            <CircleUserRound className="w-6 h-6 stroke-[2.5] text-[#8E44AD]" />
+            <span className="text-xs sm:text-sm mt-0.5 font-black">ฉัน</span>
           </button>
         </div>
 
         {/* Script Brand Signature */}
         <div className="pt-2 text-center">
-          <p className="font-script text-sm md:text-base text-[#927D6D] font-medium tracking-wide">
+          <p className="font-script text-sm md:text-base text-[#4A2E1B] font-bold tracking-wide">
             All for His Glory ♥
           </p>
         </div>
