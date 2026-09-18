@@ -76,14 +76,11 @@ export async function getDb() {
       if (!_schemaInitialized) {
         _schemaInitialized = true;
         try {
-          const res = await client`SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'`;
-          if (res.length === 0) {
-            console.log("[Database] Initializing tables for Neon Postgres...");
-            await runSchemaInit(client);
-            console.log("[Database] Tables initialized successfully.");
-          }
+          console.log("[Database] Ensuring tables and schema exist for Neon Postgres...");
+          await runSchemaInit(client);
+          console.log("[Database] Tables verified/created successfully.");
         } catch (initErr) {
-          console.warn("[Database] Schema init check failed:", initErr);
+          console.warn("[Database] Schema init warning:", initErr);
         }
       }
 
@@ -179,12 +176,13 @@ export async function upsertChurchProfile(input: InsertChurchProfile) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  const { id, createdAt, churchId: _c, ...updateFields } = input;
   await db
     .insert(churchProfiles)
     .values({ ...input, churchId })
     .onConflictDoUpdate({
       target: churchProfiles.churchId,
-      set: { ...input, updatedAt: new Date() },
+      set: { ...updateFields, updatedAt: new Date() },
     });
 }
 

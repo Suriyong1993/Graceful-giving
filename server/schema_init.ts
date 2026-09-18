@@ -1,61 +1,339 @@
-﻿// Auto-generated schema initialization for Neon / Postgres databases
-export const MIGRATION_STATEMENTS: string[] = [
-    "CREATE TYPE \"public\".\"event_status\" AS ENUM(\u0027draft\u0027, \u0027published\u0027, \u0027cancelled\u0027);",
-    "CREATE TYPE \"public\".\"expense_category\" AS ENUM(\u0027utilities\u0027, \u0027ministry\u0027, \u0027pastoral\u0027, \u0027admin\u0027, \u0027building\u0027, \u0027worship\u0027, \u0027welfare\u0027, \u0027other\u0027);",
-    "CREATE TYPE \"public\".\"expense_status\" AS ENUM(\u0027draft\u0027, \u0027approved\u0027, \u0027paid\u0027);",
-    "CREATE TYPE \"public\".\"finance_account_type\" AS ENUM(\u0027general\u0027, \u0027tithe\u0027, \u0027mission\u0027, \u0027building\u0027, \u0027welfare\u0027, \u0027special\u0027);",
-    "CREATE TYPE \"public\".\"news_category\" AS ENUM(\u0027announcement\u0027, \u0027ministry\u0027, \u0027finance\u0027, \u0027pastoral\u0027);",
-    "CREATE TYPE \"public\".\"news_status\" AS ENUM(\u0027draft\u0027, \u0027published\u0027, \u0027archived\u0027);",
-    "CREATE TYPE \"public\".\"offering_category\" AS ENUM(\u0027tithe\u0027, \u0027general\u0027, \u0027mission\u0027, \u0027building\u0027, \u0027welfare\u0027, \u0027special\u0027);",
-    "CREATE TYPE \"public\".\"offering_method\" AS ENUM(\u0027cash\u0027, \u0027transfer\u0027, \u0027check\u0027);",
-    "CREATE TYPE \"public\".\"user_role\" AS ENUM(\u0027user\u0027, \u0027admin\u0027);",
-    "CREATE TYPE \"public\".\"withdrawal_status\" AS ENUM(\u0027pending\u0027, \u0027approved\u0027, \u0027rejected\u0027, \u0027disbursed\u0027);",
-    "CREATE TABLE \"budget_plans\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"year\" integer NOT NULL,\r\n\t\"month\" integer,\r\n\t\"fundId\" integer,\r\n\t\"category\" varchar(80),\r\n\t\"plannedAmount\" numeric(15, 2) NOT NULL,\r\n\t\"notes\" text,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"church_events\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"authorId\" integer NOT NULL,\r\n\t\"title\" varchar(180) NOT NULL,\r\n\t\"summary\" varchar(280) NOT NULL,\r\n\t\"description\" text NOT NULL,\r\n\t\"startsAt\" timestamp NOT NULL,\r\n\t\"endsAt\" timestamp,\r\n\t\"location\" varchar(180),\r\n\t\"registrationUrl\" varchar(500),\r\n\t\"status\" \"event_status\" DEFAULT \u0027draft\u0027 NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"church_news\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"authorId\" integer NOT NULL,\r\n\t\"title\" varchar(180) NOT NULL,\r\n\t\"summary\" varchar(280) NOT NULL,\r\n\t\"body\" text NOT NULL,\r\n\t\"category\" \"news_category\" DEFAULT \u0027announcement\u0027 NOT NULL,\r\n\t\"status\" \"news_status\" DEFAULT \u0027draft\u0027 NOT NULL,\r\n\t\"publishedAt\" timestamp,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"church_profiles\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"name\" varchar(180) NOT NULL,\r\n\t\"address\" text,\r\n\t\"phone\" varchar(20),\r\n\t\"email\" varchar(320),\r\n\t\"website\" varchar(500),\r\n\t\"pastorName\" varchar(120),\r\n\t\"assistantPastorName\" varchar(120),\r\n\t\"treasurerName\" varchar(120),\r\n\t\"bankName\" varchar(120),\r\n\t\"bankAccount\" varchar(30),\r\n\t\"bankAccountName\" varchar(120),\r\n\t\"fiscalYearStartMonth\" integer DEFAULT 1 NOT NULL,\r\n\t\"logoUrl\" varchar(500),\r\n\t\"setupCompleted\" boolean DEFAULT false NOT NULL,\r\n\t\"motto\" varchar(280),\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\r\n\tCONSTRAINT \"church_profiles_churchId_unique\" UNIQUE(\"churchId\")\r\n);",
-    "CREATE TABLE \"expenses\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"category\" \"expense_category\" DEFAULT \u0027other\u0027 NOT NULL,\r\n\t\"fundId\" integer,\r\n\t\"description\" varchar(280) NOT NULL,\r\n\t\"details\" text,\r\n\t\"expenseDate\" timestamp DEFAULT now() NOT NULL,\r\n\t\"payee\" varchar(120),\r\n\t\"receiptRef\" varchar(120),\r\n\t\"status\" \"expense_status\" DEFAULT \u0027approved\u0027 NOT NULL,\r\n\t\"approvedBy\" integer,\r\n\t\"recordedBy\" integer NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"finance_accounts\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"name\" varchar(120) NOT NULL,\r\n\t\"type\" \"finance_account_type\" DEFAULT \u0027general\u0027 NOT NULL,\r\n\t\"balance\" numeric(15, 2) DEFAULT \u00270\u0027 NOT NULL,\r\n\t\"description\" text,\r\n\t\"isActive\" boolean DEFAULT true NOT NULL,\r\n\t\"sortOrder\" integer DEFAULT 0 NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"offerings\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"category\" \"offering_category\" DEFAULT \u0027general\u0027 NOT NULL,\r\n\t\"fundId\" integer,\r\n\t\"donorName\" varchar(120),\r\n\t\"donorMemberId\" integer,\r\n\t\"receiptDate\" timestamp DEFAULT now() NOT NULL,\r\n\t\"method\" \"offering_method\" DEFAULT \u0027cash\u0027 NOT NULL,\r\n\t\"reference\" varchar(120),\r\n\t\"notes\" text,\r\n\t\"recordedBy\" integer NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"users\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"openId\" varchar(64) NOT NULL,\r\n\t\"name\" text,\r\n\t\"email\" varchar(320),\r\n\t\"loginMethod\" varchar(64),\r\n\t\"role\" \"user_role\" DEFAULT \u0027user\u0027 NOT NULL,\r\n\t\"churchRole\" varchar(20),\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"lastSignedIn\" timestamp DEFAULT now() NOT NULL,\r\n\tCONSTRAINT \"users_openId_unique\" UNIQUE(\"openId\")\r\n);",
-    "CREATE TABLE \"withdrawal_requests\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"purpose\" varchar(280) NOT NULL,\r\n\t\"details\" text,\r\n\t\"fundId\" integer,\r\n\t\"requestedBy\" integer NOT NULL,\r\n\t\"requestDate\" timestamp DEFAULT now() NOT NULL,\r\n\t\"status\" \"withdrawal_status\" DEFAULT \u0027pending\u0027 NOT NULL,\r\n\t\"approvedBy\" integer,\r\n\t\"approvalDate\" timestamp,\r\n\t\"approvalNote\" text,\r\n\t\"rejectionReason\" text,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TYPE \"public\".\"member_status\" AS ENUM(\u0027active\u0027, \u0027inactive\u0027, \u0027pending\u0027);",
-    "CREATE TYPE \"public\".\"offering_status\" AS ENUM(\u0027active\u0027, \u0027voided\u0027);",
-    "ALTER TYPE \"public\".\"expense_status\" ADD VALUE IF NOT EXISTS \u0027voided\u0027;",
-    "CREATE TABLE \"members\" (\r\n  \"id\" serial PRIMARY KEY NOT NULL,\r\n  \"churchId\" varchar(64) NOT NULL,\r\n  \"name\" varchar(180) NOT NULL,\r\n  \"phone\" varchar(30),\r\n  \"email\" varchar(320),\r\n  \"status\" \"member_status\" DEFAULT \u0027active\u0027 NOT NULL,\r\n  \"avatarUrl\" varchar(500),\r\n  \"notes\" text,\r\n  \"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n  \"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"notifications\" (\r\n  \"id\" serial PRIMARY KEY NOT NULL,\r\n  \"churchId\" varchar(64) NOT NULL,\r\n  \"userId\" integer NOT NULL,\r\n  \"type\" varchar(40) NOT NULL,\r\n  \"title\" varchar(180) NOT NULL,\r\n  \"description\" text,\r\n  \"link\" varchar(500),\r\n  \"readAt\" timestamp,\r\n  \"createdAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE \"audit_logs\" (\r\n  \"id\" serial PRIMARY KEY NOT NULL,\r\n  \"churchId\" varchar(64) NOT NULL,\r\n  \"userId\" integer NOT NULL,\r\n  \"action\" varchar(40) NOT NULL,\r\n  \"entity\" varchar(80) NOT NULL,\r\n  \"entityId\" integer,\r\n  \"metadata\" jsonb,\r\n  \"createdAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "ALTER TABLE \"offerings\" ADD COLUMN \"status\" \"offering_status\" DEFAULT \u0027active\u0027 NOT NULL;",
-    "ALTER TABLE \"offerings\" ADD COLUMN \"voidedAt\" timestamp;",
-    "CREATE INDEX \"members_church_idx\" ON \"members\" USING btree (\"churchId\");",
-    "CREATE INDEX \"notifications_user_idx\" ON \"notifications\" USING btree (\"churchId\", \"userId\", \"createdAt\");",
-    "CREATE INDEX \"audit_logs_entity_idx\" ON \"audit_logs\" USING btree (\"churchId\", \"entity\", \"entityId\", \"createdAt\");",
-    "-- Weekly offering counting and reconciliation.\r\n--\r\n-- Generated with drizzle-kit by diffing drizzle/schema.ts against the previous\r\n-- committed schema, then made re-runnable: this repo\u0027s 0001 migration is not\r\n-- registered in meta/_journal.json, so migrations here are applied by hand and\r\n-- may be retried. Additive only: no existing table or column is altered.\r\n\r\nDO $$ BEGIN\r\n  CREATE TYPE \"public\".\"bank_record_type\" AS ENUM(\u0027transfer_in\u0027, \u0027cash_deposit\u0027);\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;",
-    "DO $$ BEGIN\r\n  CREATE TYPE \"public\".\"cash_kind\" AS ENUM(\u0027note\u0027, \u0027coin\u0027);\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;",
-    "DO $$ BEGIN\r\n  CREATE TYPE \"public\".\"counting_session_status\" AS ENUM(\u0027counting\u0027, \u0027counted\u0027, \u0027verified\u0027, \u0027posted\u0027, \u0027closed\u0027);\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;",
-    "DO $$ BEGIN\r\n  CREATE TYPE \"public\".\"session_document_kind\" AS ENUM(\u0027count_sheet\u0027, \u0027envelope_photo\u0027, \u0027deposit_slip\u0027, \u0027transfer_slip\u0027, \u0027passbook_page\u0027, \u0027deduction_receipt\u0027, \u0027other\u0027);\r\nEXCEPTION WHEN duplicate_object THEN null; END $$;",
-    "CREATE TABLE IF NOT EXISTS \"bank_records\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"sessionId\" integer NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"type\" \"bank_record_type\" NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"transferredBy\" integer,\r\n\t\"transferredByName\" varchar(180),\r\n\t\"bankRef\" varchar(120),\r\n\t\"occurredAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"passbookMatched\" boolean DEFAULT false NOT NULL,\r\n\t\"passbookDate\" timestamp,\r\n\t\"matchedBy\" integer,\r\n\t\"recordedBy\" integer NOT NULL,\r\n\t\"notes\" text,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE IF NOT EXISTS \"cash_counts\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"sessionId\" integer NOT NULL,\r\n\t\"denomination\" numeric(8, 2) NOT NULL,\r\n\t\"kind\" \"cash_kind\" NOT NULL,\r\n\t\"quantity\" integer DEFAULT 0 NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE IF NOT EXISTS \"counting_sessions\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"serviceDate\" timestamp NOT NULL,\r\n\t\"serviceRound\" integer DEFAULT 1 NOT NULL,\r\n\t\"serviceName\" varchar(120),\r\n\t\"status\" \"counting_session_status\" DEFAULT \u0027counting\u0027 NOT NULL,\r\n\t\"countedBy\" integer NOT NULL,\r\n\t\"countSubmittedAt\" timestamp,\r\n\t\"verifiedBy\" integer,\r\n\t\"verifiedAt\" timestamp,\r\n\t\"postedBy\" integer,\r\n\t\"postedAt\" timestamp,\r\n\t\"closedAt\" timestamp,\r\n\t\"varianceNote\" text,\r\n\t\"varianceApprovedBy\" integer,\r\n\t\"notes\" text,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE IF NOT EXISTS \"offering_envelopes\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"sessionId\" integer NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"envelopeNo\" varchar(30),\r\n\t\"memberId\" integer,\r\n\t\"donorName\" varchar(180),\r\n\t\"isAnonymous\" boolean DEFAULT false NOT NULL,\r\n\t\"category\" \"offering_category\" DEFAULT \u0027general\u0027 NOT NULL,\r\n\t\"fundId\" integer,\r\n\t\"method\" \"offering_method\" DEFAULT \u0027cash\u0027 NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"reference\" varchar(120),\r\n\t\"notes\" text,\r\n\t\"recordedBy\" integer NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE IF NOT EXISTS \"session_deductions\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"sessionId\" integer NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"purpose\" varchar(200) NOT NULL,\r\n\t\"reason\" text NOT NULL,\r\n\t\"amount\" numeric(15, 2) NOT NULL,\r\n\t\"paidTo\" varchar(180) NOT NULL,\r\n\t\"requestedBy\" integer NOT NULL,\r\n\t\"approvedBy\" integer,\r\n\t\"approvedAt\" timestamp,\r\n\t\"category\" \"expense_category\" DEFAULT \u0027other\u0027 NOT NULL,\r\n\t\"fundId\" integer,\r\n\t\"expenseId\" integer,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL,\r\n\t\"updatedAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "CREATE TABLE IF NOT EXISTS \"session_documents\" (\r\n\t\"id\" serial PRIMARY KEY NOT NULL,\r\n\t\"sessionId\" integer NOT NULL,\r\n\t\"churchId\" varchar(64) DEFAULT \u0027demo-church\u0027 NOT NULL,\r\n\t\"kind\" \"session_document_kind\" DEFAULT \u0027other\u0027 NOT NULL,\r\n\t\"fileName\" varchar(255) NOT NULL,\r\n\t\"mimeType\" varchar(120),\r\n\t\"fileSize\" integer,\r\n\t\"driveFileId\" varchar(180),\r\n\t\"fileUrl\" varchar(600),\r\n\t\"drivePath\" varchar(300),\r\n\t\"deductionId\" integer,\r\n\t\"bankRecordId\" integer,\r\n\t\"uploadedBy\" integer NOT NULL,\r\n\t\"createdAt\" timestamp DEFAULT now() NOT NULL\r\n);",
-    "ALTER TABLE \"members\" ADD COLUMN IF NOT EXISTS \"envelopeNo\" varchar(30);",
-    "ALTER TABLE \"offerings\" ADD COLUMN IF NOT EXISTS \"sessionId\" integer;"
+﻿// Idempotent schema initialization for PostgreSQL
+export const ENUM_STATEMENTS: string[] = [
+  `DO $$ BEGIN CREATE TYPE "public"."event_status" AS ENUM('draft', 'published', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."expense_category" AS ENUM('utilities', 'ministry', 'pastoral', 'admin', 'building', 'worship', 'welfare', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."expense_status" AS ENUM('draft', 'approved', 'paid', 'voided'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."finance_account_type" AS ENUM('general', 'tithe', 'mission', 'building', 'welfare', 'special'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."news_category" AS ENUM('announcement', 'ministry', 'finance', 'pastoral'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."news_status" AS ENUM('draft', 'published', 'archived'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."offering_category" AS ENUM('tithe', 'general', 'mission', 'building', 'welfare', 'special'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."offering_method" AS ENUM('cash', 'transfer', 'check'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."user_role" AS ENUM('user', 'admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."withdrawal_status" AS ENUM('pending', 'approved', 'rejected', 'disbursed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."offering_status" AS ENUM('active', 'voided'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."bank_record_type" AS ENUM('transfer_in', 'cash_deposit'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."cash_kind" AS ENUM('note', 'coin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."counting_session_status" AS ENUM('counting', 'counted', 'verified', 'posted', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."session_document_kind" AS ENUM('count_sheet', 'envelope_photo', 'deposit_slip', 'transfer_slip', 'passbook_page', 'deduction_receipt', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+];
+
+export const TABLE_STATEMENTS: string[] = [
+  `CREATE TABLE IF NOT EXISTS "users" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "openId" varchar(64) NOT NULL UNIQUE,
+    "name" text,
+    "email" varchar(320),
+    "loginMethod" varchar(64),
+    "role" "user_role" DEFAULT 'user' NOT NULL,
+    "churchRole" varchar(20),
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL,
+    "lastSignedIn" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "church_profiles" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL UNIQUE,
+    "name" varchar(180) NOT NULL,
+    "address" text,
+    "phone" varchar(20),
+    "email" varchar(320),
+    "website" varchar(500),
+    "pastorName" varchar(120),
+    "assistantPastorName" varchar(120),
+    "treasurerName" varchar(120),
+    "bankName" varchar(120),
+    "bankAccount" varchar(30),
+    "bankAccountName" varchar(120),
+    "fiscalYearStartMonth" integer DEFAULT 1 NOT NULL,
+    "logoUrl" varchar(500),
+    "setupCompleted" boolean DEFAULT false NOT NULL,
+    "motto" varchar(280),
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "finance_accounts" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "name" varchar(120) NOT NULL,
+    "type" "finance_account_type" DEFAULT 'general' NOT NULL,
+    "balance" numeric(15, 2) DEFAULT '0' NOT NULL,
+    "description" text,
+    "isActive" boolean DEFAULT true NOT NULL,
+    "sortOrder" integer DEFAULT 0 NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "budget_plans" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "year" integer NOT NULL,
+    "month" integer,
+    "fundId" integer,
+    "category" varchar(80),
+    "plannedAmount" numeric(15, 2) NOT NULL,
+    "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "church_events" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "authorId" integer NOT NULL,
+    "title" varchar(180) NOT NULL,
+    "summary" varchar(280) NOT NULL,
+    "description" text NOT NULL,
+    "startsAt" timestamp NOT NULL,
+    "endsAt" timestamp,
+    "location" varchar(180),
+    "registrationUrl" varchar(500),
+    "status" "event_status" DEFAULT 'draft' NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "church_news" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "authorId" integer NOT NULL,
+    "title" varchar(180) NOT NULL,
+    "summary" varchar(280) NOT NULL,
+    "body" text NOT NULL,
+    "category" "news_category" DEFAULT 'announcement' NOT NULL,
+    "status" "news_status" DEFAULT 'draft' NOT NULL,
+    "publishedAt" timestamp,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "expenses" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "category" "expense_category" DEFAULT 'other' NOT NULL,
+    "fundId" integer,
+    "description" varchar(280) NOT NULL,
+    "details" text,
+    "expenseDate" timestamp DEFAULT now() NOT NULL,
+    "payee" varchar(120),
+    "receiptRef" varchar(120),
+    "status" "expense_status" DEFAULT 'approved' NOT NULL,
+    "approvedBy" integer,
+    "recordedBy" integer NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "offerings" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "category" "offering_category" DEFAULT 'general' NOT NULL,
+    "fundId" integer,
+    "donorName" varchar(120),
+    "donorMemberId" integer,
+    "receiptDate" timestamp DEFAULT now() NOT NULL,
+    "method" "offering_method" DEFAULT 'cash' NOT NULL,
+    "reference" varchar(120),
+    "notes" text,
+    "recordedBy" integer NOT NULL,
+    "status" "offering_status" DEFAULT 'active' NOT NULL,
+    "voidedAt" timestamp,
+    "sessionId" integer,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "withdrawal_requests" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "purpose" varchar(280) NOT NULL,
+    "details" text,
+    "fundId" integer,
+    "requestedBy" integer NOT NULL,
+    "requestDate" timestamp DEFAULT now() NOT NULL,
+    "status" "withdrawal_status" DEFAULT 'pending' NOT NULL,
+    "approvedBy" integer,
+    "approvalDate" timestamp,
+    "approvalNote" text,
+    "rejectionReason" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "members" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "name" varchar(180) NOT NULL,
+    "phone" varchar(30),
+    "email" varchar(320),
+    "status" "member_status" DEFAULT 'active' NOT NULL,
+    "avatarUrl" varchar(500),
+    "envelopeNo" varchar(30),
+    "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "notifications" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "userId" integer NOT NULL,
+    "type" varchar(40) NOT NULL,
+    "title" varchar(180) NOT NULL,
+    "description" text,
+    "link" varchar(500),
+    "readAt" timestamp,
+    "createdAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "audit_logs" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "userId" integer NOT NULL,
+    "action" varchar(40) NOT NULL,
+    "entity" varchar(80) NOT NULL,
+    "entityId" integer,
+    "metadata" jsonb,
+    "createdAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "bank_records" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "sessionId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "type" "bank_record_type" NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "transferredBy" integer,
+    "transferredByName" varchar(180),
+    "bankRef" varchar(120),
+    "occurredAt" timestamp DEFAULT now() NOT NULL,
+    "passbookMatched" boolean DEFAULT false NOT NULL,
+    "passbookDate" timestamp,
+    "matchedBy" integer,
+    "recordedBy" integer NOT NULL,
+    "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "cash_counts" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "sessionId" integer NOT NULL,
+    "denomination" numeric(8, 2) NOT NULL,
+    "kind" "cash_kind" NOT NULL,
+    "quantity" integer DEFAULT 0 NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "counting_sessions" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "serviceDate" timestamp NOT NULL,
+    "serviceRound" integer DEFAULT 1 NOT NULL,
+    "serviceName" varchar(120),
+    "status" "counting_session_status" DEFAULT 'counting' NOT NULL,
+    "countedBy" integer NOT NULL,
+    "countSubmittedAt" timestamp,
+    "verifiedBy" integer,
+    "verifiedAt" timestamp,
+    "postedBy" integer,
+    "postedAt" timestamp,
+    "closedAt" timestamp,
+    "varianceNote" text,
+    "varianceApprovedBy" integer,
+    "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "offering_envelopes" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "sessionId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "envelopeNo" varchar(30),
+    "memberId" integer,
+    "donorName" varchar(180),
+    "isAnonymous" boolean DEFAULT false NOT NULL,
+    "category" "offering_category" DEFAULT 'general' NOT NULL,
+    "fundId" integer,
+    "method" "offering_method" DEFAULT 'cash' NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "reference" varchar(120),
+    "notes" text,
+    "recordedBy" integer NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "session_deductions" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "sessionId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "purpose" varchar(200) NOT NULL,
+    "reason" text NOT NULL,
+    "amount" numeric(15, 2) NOT NULL,
+    "paidTo" varchar(180) NOT NULL,
+    "requestedBy" integer NOT NULL,
+    "approvedBy" integer,
+    "approvedAt" timestamp,
+    "category" "expense_category" DEFAULT 'other' NOT NULL,
+    "fundId" integer,
+    "expenseId" integer,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "session_documents" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "sessionId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "kind" "session_document_kind" DEFAULT 'other' NOT NULL,
+    "fileName" varchar(255) NOT NULL,
+    "mimeType" varchar(120),
+    "fileSize" integer,
+    "driveFileId" varchar(180),
+    "fileUrl" varchar(600),
+    "drivePath" varchar(300),
+    "deductionId" integer,
+    "bankRecordId" integer,
+    "uploadedBy" integer NOT NULL,
+    "createdAt" timestamp DEFAULT now() NOT NULL
+  );`,
+];
+
+export const INDEX_STATEMENTS: string[] = [
+  `CREATE INDEX IF NOT EXISTS "members_church_idx" ON "members" USING btree ("churchId");`,
+  `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");`,
+  `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`,
 ];
 
 export async function runSchemaInit(client: any) {
-  for (const stmt of MIGRATION_STATEMENTS) {
+  for (const stmt of ENUM_STATEMENTS) {
     try {
       await client.unsafe(stmt);
     } catch (err: any) {
-      if (
-        err.message?.includes("already exists") ||
-        err.message?.includes("duplicate")
-      ) {
-        continue;
-      }
-      console.warn("[Schema Init Warning]", err.message);
+      console.warn("[Enum Init]", err.message);
+    }
+  }
+  for (const stmt of TABLE_STATEMENTS) {
+    try {
+      await client.unsafe(stmt);
+    } catch (err: any) {
+      console.warn("[Table Init]", err.message);
+    }
+  }
+  for (const stmt of INDEX_STATEMENTS) {
+    try {
+      await client.unsafe(stmt);
+    } catch (err: any) {
+      console.warn("[Index Init]", err.message);
     }
   }
 }
