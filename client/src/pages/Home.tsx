@@ -607,15 +607,15 @@ export default function Home() {
         </aside>
 
         {/* MAIN DASHBOARD CONTAINER (Max-w on Desktop, Full Width on Mobile) */}
-        <main className="w-full max-w-[560px] md:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
-          <div className="mb-4 flex lg:hidden">
+        <main className="w-full max-w-2xl md:max-w-4xl xl:max-w-5xl px-4 py-5 sm:px-6 md:px-8 md:py-8 flex flex-col pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+          <div className="mb-5 flex lg:hidden">
             <AppMenu />
           </div>
           {/* ═══════════════════════════════════════════════════════════════════
               TAB 1: HOME (Dashboard matching reference composition)
           ═══════════════════════════════════════════════════════════════════ */}
           {activeTab === "home" && (
-            <div className="space-y-5 md:space-y-7">
+            <div className="space-y-6 sm:space-y-8 md:space-y-10">
               {/* ─── 1. HERO SECTION ─────────────────────────────────────────── */}
               {/* Side-by-side at every breakpoint (text col + image col) so the
                   illustration never drops into an orphaned centered block below
@@ -623,52 +623,56 @@ export default function Home() {
                   with the extra scripture speech card. */}
               <section
                 aria-label="Grace-giving ส่วนต้อนรับ"
-                className="animate-fade-up relative rounded-[28px] md:rounded-[32px] overflow-hidden bg-gradient-to-b md:bg-gradient-to-br from-[#FFFDF8] via-[#FFF8EC] to-[#FFF3DE] border border-[#E9D9BF] shadow-sm p-3.5 sm:p-5 md:p-7"
+                className="animate-fade-up relative rounded-[32px] sm:rounded-[40px] md:rounded-[48px] overflow-hidden bg-gradient-to-br from-[#FFFDF9] via-[#FFF9EE] to-[#FFF2DB] border border-[#E9D9BF]/80 shadow-xs p-6 sm:p-8 md:p-10 lg:p-12"
               >
-                {/* Decorative depth blob — purely atmospheric, never carries
-                    meaning on its own, so it stays out of the a11y tree. */}
+                {/* Decorative soft depth aura — spacious and gentle */}
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 md:w-56 md:h-56 rounded-full bg-[#A8C978]/15 blur-3xl"
+                  className="pointer-events-none absolute -top-16 -right-16 w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 rounded-full bg-[#A8C978]/10 blur-3xl"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-[#E99A4A]/10 blur-3xl"
                 />
 
-                {/* Notification Bell (Top-Right) */}
-                <div className="absolute top-3 right-3 md:top-4 md:right-4 z-20">
+                {/* Notification Bell (Top-Right with generous breathing room) */}
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-20">
                   <button
                     onClick={() => setNewsOpen(true)}
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full bg-white/95 border border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#70452E] hover:bg-white transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+                    className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full bg-white/90 backdrop-blur-xs border border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#70452E] hover:bg-white hover:scale-105 transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                     aria-label="การแจ้งเตือนและข่าวสารคริสตจักร"
                   >
-                    <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#70452E]" />
-                    <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#E06250] ring-2 ring-white" />
+                    <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-[#70452E]" />
+                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#E06250] ring-2 ring-white" />
                   </button>
                 </div>
 
-                {/* Hero Content Grid */}
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-12 gap-3 sm:gap-5 items-center relative z-10">
-                  {/* Left Column: Stacked Typography, Tagline, Bible Verse */}
-                  <div className="min-w-0 md:col-span-7 space-y-1.5 sm:space-y-3.5">
-                    {/* Stacked "Grace" + "Ledger" Typography — compact on mobile so balance is visible without scrolling */}
+                {/* Hero Content Grid — airy, generous gaps, uncluttered */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-12 gap-6 sm:gap-8 md:gap-12 lg:gap-16 items-center relative z-10">
+                  {/* Left Column: Generous typography & whitespace */}
+                  <div className="min-w-0 md:col-span-7 space-y-3 sm:space-y-5 md:space-y-6">
+                    {/* Brand Title */}
                     <h1 className="flex flex-col">
-                      <span className="flex items-center gap-1 sm:gap-1.5">
-                        <span className="text-2xl sm:text-5xl md:text-6xl font-black text-[#38251B] tracking-tight leading-none font-display">
+                      <span className="flex items-center gap-2 sm:gap-3">
+                        <span className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-[#38251B] tracking-tight leading-none font-display">
                           Grace
                         </span>
-                        <span className="text-[#A8C978] -mt-1.5 sm:-mt-4">
-                          <Sprout className="w-5 h-5 sm:w-10 sm:h-10 stroke-[2.5]" />
+                        <span className="text-[#A8C978] -mt-2 sm:-mt-4">
+                          <Sprout className="w-6 h-6 sm:w-10 sm:h-10 md:w-12 md:h-12 stroke-[2.5]" />
                         </span>
                       </span>
-                      <span className="text-2xl sm:text-5xl md:text-6xl font-black text-[#E99A4A] tracking-tight leading-none font-display">
+                      <span className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-[#E99A4A] tracking-tight leading-none font-display mt-0.5 sm:mt-1">
                         Ledger
                       </span>
                     </h1>
 
-                    <p className="hidden sm:block text-sm md:text-base font-bold text-[#38251B]/90">
+                    {/* Tagline */}
+                    <p className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-[#70452E]/85 leading-relaxed">
                       การเงินเชื่อมใจ เพื่อพันธกิจของพระเจ้า
                     </p>
 
-                    {/* Bible Pill Badge — single line, truncates on mobile to save height */}
-                    <div className="inline-flex flex-nowrap items-center gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full sm:rounded-2xl bg-white/95 border border-[#E9D9BF] text-[11px] sm:text-xs leading-relaxed text-[#70452E] max-w-full">
+                    {/* Bible Pill Badge */}
+                    <div className="inline-flex flex-nowrap items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full sm:rounded-2xl bg-white/90 backdrop-blur-xs border border-[#E9D9BF] text-xs sm:text-sm leading-relaxed text-[#70452E] shadow-2xs max-w-full">
                       <span className="whitespace-nowrap font-extrabold text-[#E99A4A] shrink-0">
                         2 โครินธ์ 9:7
                       </span>
@@ -678,33 +682,16 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Right Column: 3D Soft Clay Jesus & Fluffy Sheep Hero Image — sits
-                      beside the headline at every breakpoint (not stacked below it),
-                      so mobile stays compact without the image reading as an
-                      orphaned icon. */}
-                  <div className="min-w-0 flex items-center justify-center md:col-span-5 md:flex-col md:justify-center md:gap-3 md:pt-10">
-                    {/* Desktop Scripture Speech Card */}
-                    <div className="hidden md:block w-full max-w-56 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-[#E9D9BF] text-xs space-y-1.5">
-                      <p className="text-[#70452E] font-medium leading-relaxed">
-                        ทุกสิ่งที่ท่านให้เพื่อการงานของพระเจ้า ย่อมเกิดผลเสมอ
-                      </p>
-                      <div className="flex items-center justify-between pt-1 border-t border-[#E9D9BF]/50">
-                        <span className="text-[10px] text-[#927D6D] font-bold">
-                          1 โครินธ์ 15:58
-                        </span>
-                        <span className="text-[#A8C978]">🌱</span>
-                      </div>
-                    </div>
-
-                    {/* 3D Clay Jesus & Fluffy Lamb Illustration */}
-                    <div className="relative w-24 h-28 sm:w-40 sm:h-52 md:w-full md:max-w-64 md:h-72 rounded-2xl sm:rounded-[28px] overflow-hidden shadow-xs border-2 border-white shrink-0 bg-[#FFF4DF]">
+                  {/* Right Column: Clean floating illustration with open space */}
+                  <div className="min-w-0 flex items-center justify-center md:col-span-5">
+                    <div className="relative w-28 h-32 sm:w-44 sm:h-52 md:w-56 md:h-64 lg:w-64 lg:h-72 rounded-[28px] sm:rounded-[36px] overflow-hidden shadow-sm border-4 border-white/90 shrink-0 bg-[#FFF4DF]/60 transition-transform duration-500 hover:scale-102">
                       <Illustration
                         src="/illustrations/hero_jesus_shepherd.jpg"
                         alt="พระเยซูคริสต์และลูกแกะ"
-                        className="w-full h-full object-cover object-[center_20%] hover:scale-104 transition-transform duration-500"
+                        className="w-full h-full object-cover object-[center_20%]"
                         priority
-                        width={224}
-                        height={256}
+                        width={256}
+                        height={288}
                       />
                     </div>
                   </div>
