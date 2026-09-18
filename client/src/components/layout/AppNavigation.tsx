@@ -125,9 +125,9 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         {children || (
           <button
             type="button"
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-2xl border border-[#E9D9BF] bg-white px-3 text-sm font-bold text-[#70452E] hover:bg-[#FFF4DF]"
+            className="flex min-h-12 shrink-0 items-center gap-2.5 rounded-2xl border-2 border-[#E9D9BF] bg-white px-4 text-base font-bold text-[#70452E] hover:bg-[#FFF4DF] shadow-2xs"
           >
-            <Menu className="size-5" aria-hidden="true" />
+            <Menu className="size-6" aria-hidden="true" />
             <span>เมนูทั้งหมด</span>
           </button>
         )}
@@ -136,15 +136,17 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         side="left"
         className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-[#FFF9EE]"
       >
-        <SheetHeader className="border-b border-[#E9D9BF] p-5 pr-16">
-          <SheetTitle className="text-lg text-[#70452E]">
+        <SheetHeader className="border-b-2 border-[#E9D9BF] p-6 pr-16">
+          <SheetTitle className="text-xl sm:text-2xl font-black text-[#70452E]">
             เมนูทั้งหมด
           </SheetTitle>
-          <SheetDescription>จัดการการเงินและพันธกิจคริสตจักร</SheetDescription>
+          <SheetDescription className="text-sm font-medium text-[#927D6D] mt-0.5">
+            จัดการการเงินและพันธกิจคริสตจักร
+          </SheetDescription>
         </SheetHeader>
         <nav
           aria-label="เมนูทุกหมวด"
-          className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           {navItems.map(({ path, label, icon: Icon, iconColor }) => {
             const active = isActiveRoute(location, path);
@@ -156,17 +158,17 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                   onFocus={e =>
                     e.currentTarget.scrollIntoView({ block: "nearest" })
                   }
-                  className={`flex min-h-12 items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium ${
+                  className={`flex min-h-13 items-center gap-3.5 rounded-2xl border-2 px-4 py-3 text-base ${
                     active
-                      ? "border-[#E9D9BF] bg-[#FFF4DF] font-bold text-[#70452E]"
-                      : "border-transparent text-[#70452E] hover:bg-[#FFF4DF]"
+                      ? "border-[#E9D9BF] bg-[#FFF4DF] font-black text-[#70452E] shadow-2xs"
+                      : "border-transparent text-[#70452E] hover:bg-[#FFF4DF] font-bold"
                   }`}
                 >
                   <Icon
-                    className={`size-5 shrink-0 ${iconColor}`}
+                    className={`size-6 shrink-0 ${iconColor}`}
                     aria-hidden="true"
                   />
-                  {label}
+                  <span>{label}</span>
                 </GuardedLink>
               </SheetClose>
             );

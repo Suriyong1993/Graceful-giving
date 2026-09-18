@@ -897,6 +897,7 @@ var TABLE_STATEMENTS = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "expenses" ADD COLUMN IF NOT EXISTS "receiptUrl" text;`,
   `CREATE TABLE IF NOT EXISTS "offerings" (
     "id" serial PRIMARY KEY NOT NULL,
     "churchId" varchar(64) NOT NULL,

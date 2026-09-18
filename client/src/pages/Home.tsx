@@ -1598,30 +1598,31 @@ export default function Home() {
       </nav>
 
       {/* ─── MODAL 1: MULTI-STEP OFFERING SUBMISSION WORKFLOW ───────────────── */}
+      {/* ─── MODAL 1: MULTI-STEP OFFERING SUBMISSION WORKFLOW ───────────────── */}
       <Dialog open={offeringOpen} onOpenChange={setOfferingOpen}>
-        <DialogContent className="max-w-md bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-[#38251B]">
+        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl bg-[#FFFDF8] border-2 sm:border-3 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 md:p-10 text-[#38251B] shadow-2xl overflow-y-auto max-h-[92vh]">
           <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-[#EAF5E4] p-1 border border-[#D2EAC7] shrink-0">
+            <div className="flex items-center gap-3.5 sm:gap-5">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl overflow-hidden bg-[#EAF5E4] p-1.5 border-2 border-[#D2EAC7] shrink-0 shadow-xs">
                 <Illustration
                   src="/illustrations/offering_box.jpg"
                   alt="กล่องถวาย"
-                  className="w-full h-full object-cover rounded-xl"
-                  width={48}
-                  height={48}
+                  className="w-full h-full object-cover rounded-xl sm:rounded-2xl"
+                  width={80}
+                  height={80}
                 />
               </div>
-              <div>
-                <DialogTitle className="text-lg font-bold text-[#70452E]">
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E] tracking-tight">
                   บันทึกการถวายทรัพย์
                 </DialogTitle>
-                <DialogDescription className="text-xs text-[#927D6D]">
+                <DialogDescription className="text-sm sm:text-base md:text-lg font-bold text-[#927D6D]">
                   ขั้นตอนที่ {offeringStep} จาก 3:{" "}
                   {offeringStep === 1
                     ? "เลือกประเภทการถวาย"
                     : offeringStep === 2
-                      ? "ระบุจำนวนเงิน"
-                      : "เลือกช่องทางและบันทึก"}
+                      ? "ระบุจำนวนเงินถวาย"
+                      : "เลือกกองทุนและช่องทางบันทึก"}
                 </DialogDescription>
               </div>
             </div>
@@ -1629,23 +1630,28 @@ export default function Home() {
 
           {/* Step 1: Category */}
           {offeringStep === 1 && (
-            <div className="space-y-4 pt-2">
-              <label className="text-xs font-bold text-[#70452E]">
-                ประเภทการถวาย
+            <div className="space-y-6 pt-3 sm:pt-4">
+              <label className="text-base sm:text-xl font-black text-[#70452E] block">
+                เลือกประเภทการถวาย (แตะเพื่อเลือก):
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 {OFFERING_CATEGORIES.map(cat => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setOfferingType(cat.id)}
-                    className={`p-3 rounded-2xl border text-xs font-bold text-left transition-all ${
+                    className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 sm:border-3 text-base sm:text-xl font-black text-left transition-all min-h-[64px] sm:min-h-[80px] flex items-center justify-between gap-3 ${
                       offeringType === cat.id
-                        ? "bg-[#FFF4DF] border-[#E99A4A] text-[#70452E] shadow-2xs"
-                        : "bg-white border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
+                        ? "bg-[#FFF4DF] border-[#E99A4A] text-[#70452E] shadow-md scale-[1.01]"
+                        : "bg-white border-[#E9D9BF] text-[#70452E]/90 hover:bg-[#FFF9EE] hover:border-[#E99A4A]/50"
                     }`}
                   >
-                    {cat.label}
+                    <span>{cat.label}</span>
+                    {offeringType === cat.id && (
+                      <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E99A4A] text-white flex items-center justify-center text-sm sm:text-base font-black shrink-0">
+                        ✓
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -1653,7 +1659,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setOfferingStep(2)}
-                className="w-full mt-4 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow transition-all"
+                className="w-full mt-4 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-lg sm:text-xl md:text-2xl clay-button-shadow transition-all min-h-[58px] sm:min-h-[64px]"
               >
                 ถัดไป: ระบุจำนวนเงิน →
               </button>
@@ -1662,42 +1668,48 @@ export default function Home() {
 
           {/* Step 2: Amount with quick chips */}
           {offeringStep === 2 && (
-            <div className="space-y-4 pt-2">
-              <label className="text-xs font-bold text-[#70452E]">
-                จำนวนเงินถวาย (บาท)
+            <div className="space-y-6 pt-3 sm:pt-4">
+              <label className="text-base sm:text-xl font-black text-[#70452E] block">
+                ระบุจำนวนเงินถวาย (บาท):
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-[#1b5e3a]">
+                <span className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-3xl sm:text-5xl font-black text-[#1b5e3a]">
                   ฿
                 </span>
                 <input
                   type="number"
                   value={offeringAmount}
                   onChange={e => setOfferingAmount(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white border border-[#E9D9BF] text-2xl font-black text-[#1b5e3a] focus:outline-none focus:border-[#E99A4A]"
+                  className="w-full pl-16 sm:pl-22 pr-6 py-5 sm:py-6 rounded-2xl sm:rounded-3xl bg-white border-2 sm:border-3 border-[#E9D9BF] focus:border-[#E99A4A] text-3xl sm:text-5xl md:text-6xl font-black text-[#1b5e3a] focus:outline-none"
                   placeholder="0.00"
+                  autoFocus
                 />
               </div>
 
               {/* Quick Amount Chips */}
-              <div className="flex flex-wrap gap-2 pt-1">
-                {[100, 300, 500, 1000, 2000, 5000].map(amt => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setOfferingAmount(String(amt))}
-                    className="px-3 py-1.5 rounded-full bg-[#FFF4DF] border border-[#E9D9BF] text-xs font-bold text-[#70452E] hover:bg-[#FBE9CD]"
-                  >
-                    +฿{amt.toLocaleString()}
-                  </button>
-                ))}
+              <div className="space-y-2.5">
+                <span className="text-sm sm:text-base font-bold text-[#927D6D]">
+                  เลือกยอดเงินด่วน:
+                </span>
+                <div className="flex flex-wrap gap-2.5 sm:gap-3.5">
+                  {[100, 300, 500, 1000, 2000, 5000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setOfferingAmount(String(amt))}
+                      className="px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-[#FFF4DF] hover:bg-[#FBE9CD] border-2 border-[#E9D9BF] text-base sm:text-xl font-black text-[#70452E] transition-all"
+                    >
+                      +฿{amt.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-3 sm:gap-4 pt-4">
                 <button
                   type="button"
                   onClick={() => setOfferingStep(1)}
-                  className="flex-1 py-3 rounded-2xl bg-[#FFF4DF] text-[#70452E] font-bold text-sm border border-[#E9D9BF]"
+                  className="flex-1 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] text-[#70452E] font-black text-base sm:text-xl border-2 border-[#E9D9BF] min-h-[58px]"
                 >
                   ← ย้อนกลับ
                 </button>
@@ -1705,7 +1717,7 @@ export default function Home() {
                   type="button"
                   onClick={() => setOfferingStep(3)}
                   disabled={!offeringAmount || Number(offeringAmount) <= 0}
-                  className="flex-2 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
+                  className="flex-2 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px]"
                 >
                   ถัดไป: ช่องทางถวาย →
                 </button>
@@ -1717,20 +1729,20 @@ export default function Home() {
           {offeringStep === 3 && (
             <form
               onSubmit={handleQuickOfferingSubmit}
-              className="space-y-4 pt-2"
+              className="space-y-5 sm:space-y-6 pt-3"
             >
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1.5 block">
-                  เข้ากองทุน
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                  เข้ากองทุน / บัญชีคริสตจักร:
                 </label>
                 <select
                   required
                   value={offeringFund}
                   onChange={e => setOfferingFund(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs font-medium text-[#38251B]"
+                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold text-[#38251B] focus:border-[#E99A4A] min-h-[56px]"
                 >
                   <option value="" disabled>
-                    -- เลือกกองทุน --
+                    -- แตะเพื่อเลือกกองทุน --
                   </option>
                   {fundAccounts.map((fa: any) => (
                     <option key={fa.id} value={fa.id}>
@@ -1739,26 +1751,26 @@ export default function Home() {
                   ))}
                 </select>
                 {fundAccounts.length === 0 && (
-                  <p className="text-[11px] text-[#D45945] mt-1">
+                  <p className="text-sm text-[#D45945] font-bold mt-1.5">
                     ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกการถวาย
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1.5 block">
-                  วิธีการชำระเงิน
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                  วิธีการชำระเงิน:
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {["เงินสด", "โอนธนาคาร", "พร้อมเพย์ / QR", "เช็ค"].map(m => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setOfferingMethod(m)}
-                      className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all ${
+                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-sm sm:text-base font-black text-center transition-all min-h-[54px] sm:min-h-[60px] ${
                         offeringMethod === m
-                          ? "bg-[#EAF5E4] border-[#A8C978] text-[#4F8B33]"
-                          : "bg-white border-[#E9D9BF] text-[#70452E]/80"
+                          ? "bg-[#EAF5E4] border-[#A8C978] text-[#4F8B33] shadow-xs"
+                          : "bg-white border-[#E9D9BF] text-[#70452E]/90 hover:bg-[#FFF9EE]"
                       }`}
                     >
                       {m}
@@ -1768,47 +1780,47 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                  บันทึกเพิ่มเติม (ถ้ามี)
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                  บันทึกเพิ่มเติม (ถ้ามี):
                 </label>
                 <input
                   type="text"
                   value={offeringNotes}
                   onChange={e => setOfferingNotes(e.target.value)}
                   placeholder="เช่น ขอบพระคุณสำหรับสุขภาพ, วันเกิด"
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+                  className="w-full p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg focus:border-[#E99A4A]"
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-3 pt-1">
                 <input
                   type="checkbox"
                   id="anon"
                   checked={offeringAnon}
                   onChange={e => setOfferingAnon(e.target.checked)}
-                  className="rounded text-[#E99A4A] focus:ring-[#E99A4A]"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg text-[#E99A4A] focus:ring-[#E99A4A] border-2 border-[#E9D9BF]"
                 />
-                <label htmlFor="anon" className="text-xs text-[#70452E]">
+                <label htmlFor="anon" className="text-sm sm:text-base font-bold text-[#70452E] cursor-pointer">
                   ไม่ระบุชื่อผู้ถวาย (ถวายโดยไม่เปิดเผยนาม)
                 </label>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-3 sm:gap-4 pt-3">
                 <button
                   type="button"
                   onClick={() => setOfferingStep(2)}
-                  className="flex-1 py-3 rounded-2xl bg-[#FFF4DF] text-[#70452E] font-bold text-sm border border-[#E9D9BF]"
+                  className="flex-1 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] text-[#70452E] font-black text-base sm:text-xl border-2 border-[#E9D9BF] min-h-[58px]"
                 >
                   ← ย้อนกลับ
                 </button>
                 <button
                   type="submit"
                   disabled={createOfferingMutation.isPending || !offeringFund}
-                  className="flex-2 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
+                  className="flex-2 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px]"
                 >
                   {createOfferingMutation.isPending
                     ? "กำลังบันทึก..."
-                    : "ยืนยันการบันทึกถวาย"}
+                    : "ยืนยันการบันทึกถวาย ✓"}
                 </button>
               </div>
             </form>
@@ -1818,63 +1830,63 @@ export default function Home() {
 
       {/* ─── MODAL 2: OFFERING SUCCESS CELEBRATION ──────────────────────────── */}
       <Dialog open={offeringSuccess} onOpenChange={setOfferingSuccess}>
-        <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-center text-[#38251B] space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden border border-[#E9D9BF] shadow-xs p-1 bg-[#EAF5E4]">
+        <DialogContent className="w-[95vw] max-w-lg sm:max-w-xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-center text-[#38251B] space-y-6">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto rounded-3xl overflow-hidden border-2 border-[#E9D9BF] shadow-sm p-1.5 bg-[#EAF5E4]">
             <Illustration
               src="/illustrations/income_hand_heart.jpg"
               alt="ถวายสำเร็จ"
               className="w-full h-full object-cover rounded-2xl"
-              width={80}
-              height={80}
+              width={128}
+              height={128}
             />
           </div>
           <div>
-            <h3 className="text-xl font-extrabold text-[#70452E]">
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E] tracking-tight">
               บันทึกการถวายเรียบร้อยแล้ว
             </h3>
-            <p className="text-xs text-[#927D6D] mt-1">
+            <p className="text-sm sm:text-base md:text-lg text-[#927D6D] mt-2 leading-relaxed font-medium">
               "ขอพระเจ้าทรงอวยพระพรและตอบแทนทุกน้ำใจที่ท่านได้มอบให้เพื่อพันธกิจของพระองค์"
             </p>
           </div>
           {submittedOffering && (
-            <div className="p-3.5 rounded-2xl bg-[#FFF4DF] border border-[#E9D9BF] text-xs text-left space-y-1">
-              <p>
-                <span className="text-[#927D6D]">รายการ:</span>{" "}
-                <span className="font-bold text-[#70452E]">
+            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] border-2 border-[#E9D9BF] text-base sm:text-lg text-left space-y-2.5">
+              <div className="flex justify-between items-center border-b border-[#E9D9BF]/60 pb-2">
+                <span className="text-[#927D6D] font-bold">รายการถวาย:</span>
+                <span className="font-black text-[#70452E] text-lg sm:text-xl">
                   {offeringCategoryLabel(submittedOffering.type)}
                 </span>
-              </p>
-              <p>
-                <span className="text-[#927D6D]">จำนวน:</span>{" "}
-                <span className="font-black text-[#1b5e3a]">
+              </div>
+              <div className="flex justify-between items-center border-b border-[#E9D9BF]/60 pb-2">
+                <span className="text-[#927D6D] font-bold">จำนวนเงิน:</span>
+                <span className="font-black text-[#1b5e3a] text-2xl sm:text-3xl">
                   {fmtBaht(submittedOffering.amount)}
                 </span>
-              </p>
-              <p>
-                <span className="text-[#927D6D]">กองทุน:</span>{" "}
-                <span className="font-medium text-[#70452E]">
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#927D6D] font-bold">เข้ากองทุน:</span>
+                <span className="font-black text-[#70452E] text-base sm:text-lg">
                   {submittedOffering.fund}
                 </span>
-              </p>
+              </div>
             </div>
           )}
           <button
             onClick={() => setOfferingSuccess(false)}
-            className="w-full py-3 rounded-2xl bg-[#A8C978] hover:bg-[#96C764] text-white font-bold text-sm clay-button-shadow"
+            className="w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#A8C978] hover:bg-[#96C764] text-white font-black text-base sm:text-xl min-h-[58px] clay-button-shadow transition-transform active:scale-95"
           >
-            เรียบร้อย (สรรเสริญพระเจ้า)
+            เรียบร้อย (สรรเสริญพระเจ้า) ✓
           </button>
         </DialogContent>
       </Dialog>
 
       {/* ─── MODAL 3: EXPENSE ENTRY DIALOG ──────────────────────────────────── */}
       <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
-        <DialogContent className="max-w-md bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-[#38251B]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#70452E]">
+        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-[#38251B] max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E]">
               บันทึกรายจ่ายคริสตจักร
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#927D6D]">
+            <DialogDescription className="text-sm sm:text-base text-[#927D6D] mt-1 font-medium">
               บันทึกค่าใช้จ่ายพร้อมหักยอดจากกองทุนที่เกี่ยวข้อง
             </DialogDescription>
           </DialogHeader>
@@ -1889,11 +1901,11 @@ export default function Home() {
                 details: expenseForm.notes || undefined,
               });
             }}
-            className="space-y-3.5 pt-2"
+            className="space-y-4 sm:space-y-6 pt-2"
           >
             <div>
-              <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                ชื่อรายการรายจ่าย
+              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                ชื่อรายการรายจ่าย <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -1903,13 +1915,13 @@ export default function Home() {
                   setExpenseForm({ ...expenseForm, title: e.target.value })
                 }
                 placeholder="เช่น ค่าอุปกรณ์นมัสการ, ค่าไฟฟ้า"
-                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs md:text-sm"
+                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-medium focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                  จำนวนเงิน (บาท)
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                  จำนวนเงิน (บาท) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -1919,11 +1931,11 @@ export default function Home() {
                     setExpenseForm({ ...expenseForm, amount: e.target.value })
                   }
                   placeholder="0.00"
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs md:text-sm font-bold text-[#c7382d]"
+                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-xl sm:text-2xl font-black text-[#c7382d] focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1 block">
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
                   หมวดหมู่
                 </label>
                 <select
@@ -1934,7 +1946,7 @@ export default function Home() {
                       category: e.target.value as ExpenseCategory,
                     })
                   }
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
                 >
                   {EXPENSE_CATEGORIES.map(c => (
                     <option key={c.id} value={c.id}>
@@ -1945,8 +1957,8 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                หักจากกองทุน
+              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                หักจากกองทุน <span className="text-red-500">*</span>
               </label>
               <select
                 required
@@ -1954,7 +1966,7 @@ export default function Home() {
                 onChange={e =>
                   setExpenseForm({ ...expenseForm, fundId: e.target.value })
                 }
-                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
               >
                 <option value="" disabled>
                   -- เลือกกองทุน --
@@ -1966,7 +1978,7 @@ export default function Home() {
                 ))}
               </select>
               {fundAccounts.length === 0 && (
-                <p className="text-[11px] text-[#D45945] mt-1">
+                <p className="text-sm font-bold text-[#D45945] mt-2">
                   ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกรายจ่าย
                 </p>
               )}
@@ -1974,11 +1986,11 @@ export default function Home() {
             <button
               type="submit"
               disabled={createExpenseMutation.isPending || !expenseForm.fundId}
-              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
+              className="w-full py-4 sm:py-5 mt-2 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px] transition-transform active:scale-95"
             >
               {createExpenseMutation.isPending
                 ? "กำลังบันทึก..."
-                : "บันทึกรายจ่าย"}
+                : "บันทึกรายจ่าย ✓"}
             </button>
           </form>
         </DialogContent>
@@ -1986,12 +1998,12 @@ export default function Home() {
 
       {/* ─── MODAL 4: WITHDRAWAL REQUEST DIALOG ─────────────────────────────── */}
       <Dialog open={withdrawalOpen} onOpenChange={setWithdrawalOpen}>
-        <DialogContent className="max-w-md bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-[#38251B]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-[#70452E]">
+        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-[#38251B] max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E]">
               ยื่นคำขอเบิกเงิน (Withdrawal Request)
             </DialogTitle>
-            <DialogDescription className="text-xs text-[#927D6D]">
+            <DialogDescription className="text-sm sm:text-base text-[#927D6D] mt-1 font-medium">
               ส่งคำขอเบิกเงินเพื่อให้ศิษยาภิบาลหรือเหรัญญิกพิจารณาอนุมัติ
             </DialogDescription>
           </DialogHeader>
@@ -2005,11 +2017,11 @@ export default function Home() {
                 details: withdrawalForm.notes || undefined,
               });
             }}
-            className="space-y-3.5 pt-2"
+            className="space-y-4 sm:space-y-6 pt-2"
           >
             <div>
-              <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                วัตถุประสงค์การเบิก
+              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                วัตถุประสงค์การเบิก <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -2022,13 +2034,13 @@ export default function Home() {
                   })
                 }
                 placeholder="เช่น ค่าจัดค่ายอนุชน, ค่าซ่อมแซมห้องน้ำ"
-                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs md:text-sm"
+                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-medium focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                  จำนวนเงิน (บาท)
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                  จำนวนเงิน (บาท) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -2041,11 +2053,11 @@ export default function Home() {
                     })
                   }
                   placeholder="0.00"
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs font-bold"
+                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-xl sm:text-2xl font-black text-[#70452E] focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-[#70452E] mb-1 block">
+                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
                   ความเร่งด่วน
                 </label>
                 <select
@@ -2056,7 +2068,7 @@ export default function Home() {
                       urgency: e.target.value,
                     })
                   }
-                  className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
                 >
                   <option value="normal">ปกติ (ตามรอบ)</option>
                   <option value="urgent">เร่งด่วน</option>
@@ -2064,8 +2076,8 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-bold text-[#70452E] mb-1 block">
-                เบิกจากกองทุน
+              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
+                เบิกจากกองทุน <span className="text-red-500">*</span>
               </label>
               <select
                 required
@@ -2076,7 +2088,7 @@ export default function Home() {
                     fundId: e.target.value,
                   })
                 }
-                className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
+                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
               >
                 <option value="" disabled>
                   -- เลือกกองทุน --
@@ -2088,7 +2100,7 @@ export default function Home() {
                 ))}
               </select>
               {fundAccounts.length === 0 && (
-                <p className="text-[11px] text-[#D45945] mt-1">
+                <p className="text-sm font-bold text-[#D45945] mt-2">
                   ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนยื่นคำขอเบิกเงิน
                 </p>
               )}
@@ -2098,11 +2110,11 @@ export default function Home() {
               disabled={
                 createWithdrawalMutation.isPending || !withdrawalForm.fundId
               }
-              className="w-full py-3 mt-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow disabled:opacity-50"
+              className="w-full py-4 sm:py-5 mt-2 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px] transition-transform active:scale-95"
             >
               {createWithdrawalMutation.isPending
                 ? "กำลังส่งคำขอ..."
-                : "ยื่นคำขอเบิกเงิน"}
+                : "ยื่นคำขอเบิกเงิน ✓"}
             </button>
           </form>
         </DialogContent>
@@ -2110,39 +2122,39 @@ export default function Home() {
 
       {/* ─── SHEET: CHURCH NEWS & ANNOUNCEMENTS ─────────────────────────────── */}
       <Sheet open={newsOpen} onOpenChange={setNewsOpen}>
-        <SheetContent className="bg-[#FFFDF8] border-l border-[#E9D9BF] w-full sm:max-w-md p-6 overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-lg font-bold text-[#70452E] flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#E99A4A]" />
+        <SheetContent className="bg-[#FFFDF8] border-l border-[#E9D9BF] w-full sm:max-w-lg p-6 sm:p-8 overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-xl sm:text-2xl font-black text-[#70452E] flex items-center gap-3">
+              <BookOpen className="w-6 h-6 text-[#E99A4A]" />
               <span>ข่าวสารและประกาศคริสตจักร</span>
             </SheetTitle>
-            <SheetDescription className="text-xs text-[#927D6D]">
+            <SheetDescription className="text-sm sm:text-base text-[#927D6D] font-medium mt-1">
               ติดตามกิจกรรม พันธกิจ และคำพยานพระพร
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-4">
-            <div className="p-4 rounded-2xl bg-[#FFF4DF] border border-[#E9D9BF] space-y-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E99A4A] text-white">
+          <div className="space-y-5">
+            <div className="p-5 sm:p-6 rounded-3xl bg-[#FFF4DF] border-2 border-[#E9D9BF] space-y-3 shadow-xs">
+              <span className="text-xs font-black px-3 py-1 rounded-full bg-[#E99A4A] text-white inline-block">
                 ประกาศสำคัญ
               </span>
-              <h4 className="text-sm font-bold text-[#70452E]">
+              <h4 className="text-lg sm:text-xl font-black text-[#70452E]">
                 ค่ายสามัคคีธรรมประจำปี 2026
               </h4>
-              <p className="text-xs text-[#38251B] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#38251B] leading-relaxed font-medium">
                 ขอเชิญชวนพี่น้องสมาชิกทุกท่านร่วมค่ายสามัคคีธรรม วันที่ 18-20
                 ต.ค. นี้ ณ ศูนย์ฝึกอบรมคริสเตียน
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#EAF5E4] border border-[#D2EAC7] space-y-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#A8C978] text-white">
+            <div className="p-5 sm:p-6 rounded-3xl bg-[#EAF5E4] border-2 border-[#D2EAC7] space-y-3 shadow-xs">
+              <span className="text-xs font-black px-3 py-1 rounded-full bg-[#A8C978] text-white inline-block">
                 รายงานพันธกิจ
               </span>
-              <h4 className="text-sm font-bold text-[#4F8B33]">
+              <h4 className="text-lg sm:text-xl font-black text-[#4F8B33]">
                 โครงการแจกถุงยังชีพสู่ชุมชนรอบโบสถ์
               </h4>
-              <p className="text-xs text-[#38251B] leading-relaxed">
+              <p className="text-sm sm:text-base text-[#38251B] leading-relaxed font-medium">
                 คริสตจักรได้ส่งมอบถุงยังชีพจำนวน 120 ชุดแก่ครอบครัวยากไร้
                 ขอบคุณพระเจ้าสำหรับทุกการถวาย
               </p>
