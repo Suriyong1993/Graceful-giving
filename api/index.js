@@ -2135,6 +2135,62 @@ async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
     return { offeringCount, deductionCount };
   });
 }
+async function deleteCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.transaction(async (tx) => {
+    const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    ).limit(1);
+    if (!session[0]) {
+      return { success: false, reason: "NOT_FOUND" };
+    }
+    if (session[0].status === "posted" || session[0].status === "closed") {
+      return { success: false, reason: "ALREADY_POSTED" };
+    }
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+    const deleted = await tx.delete(countingSessions).where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    ).returning({ id: countingSessions.id });
+    return { success: deleted.length > 0, reason: null };
+  });
+}
+async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.transaction(async (tx) => {
+    const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    ).limit(1);
+    if (!session[0]) {
+      return { success: false, reason: "NOT_FOUND" };
+    }
+    if (session[0].status === "posted" || session[0].status === "closed") {
+      return { success: false, reason: "ALREADY_POSTED" };
+    }
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+    await tx.update(countingSessions).set({
+      status: "counting",
+      countSubmittedAt: null,
+      verifiedBy: null,
+      verifiedAt: null,
+      varianceNote: null,
+      varianceApprovedBy: null,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    );
+    return { success: true, reason: null };
+  });
+}
 async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate, toDate) {
   const empty = {
     from: fromDate.toISOString().slice(0, 10),
@@ -3512,6 +3568,66 @@ var appRouter = router({
         entity: "counting_session",
         entityId: input.id,
         metadata: {}
+      });
+      return { success: true };
+    }),
+    /** Deletes an abandoned or mistaken counting session that has not yet been posted or closed. */
+    deleteSession: protectedProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      assertCanCount(ctx.user);
+      const session = await requireCountingSession(input.id);
+      if (session.status === "posted" || session.status === "closed") {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E25\u0E1A\u0E23\u0E2D\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E2B\u0E23\u0E37\u0E2D\u0E1B\u0E34\u0E14\u0E23\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35"
+        });
+      }
+      const res = await deleteCountingSession(input.id);
+      if (!res.success) {
+        throw new TRPCError3({
+          code: res.reason === "NOT_FOUND" ? "NOT_FOUND" : "BAD_REQUEST",
+          message: res.reason === "NOT_FOUND" ? "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E2D\u0E1A\u0E19\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E16\u0E27\u0E32\u0E22" : "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E25\u0E1A\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49"
+        });
+      }
+      await createAuditLog({
+        churchId: DEFAULT_CHURCH_ID,
+        userId: ctx.user.id,
+        action: "DELETE",
+        entity: "counting_session",
+        entityId: input.id,
+        metadata: {
+          serviceDate: session.serviceDate,
+          status: session.status
+        }
+      });
+      return { success: true };
+    }),
+    /** Resets an unposted session back to fresh 'counting' state, clearing all child rows. */
+    resetSession: protectedProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      assertCanCount(ctx.user);
+      const session = await requireCountingSession(input.id);
+      if (session.status === "posted" || session.status === "closed") {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E23\u0E35\u0E40\u0E0B\u0E47\u0E15\u0E23\u0E2D\u0E1A\u0E17\u0E35\u0E48\u0E25\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E2B\u0E23\u0E37\u0E2D\u0E1B\u0E34\u0E14\u0E23\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27\u0E44\u0E14\u0E49 \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07\u0E02\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35"
+        });
+      }
+      const res = await resetCountingSession(input.id);
+      if (!res.success) {
+        throw new TRPCError3({
+          code: res.reason === "NOT_FOUND" ? "NOT_FOUND" : "BAD_REQUEST",
+          message: res.reason === "NOT_FOUND" ? "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E23\u0E2D\u0E1A\u0E19\u0E31\u0E1A\u0E40\u0E07\u0E34\u0E19\u0E16\u0E27\u0E32\u0E22" : "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E23\u0E35\u0E40\u0E0B\u0E47\u0E15\u0E23\u0E2D\u0E1A\u0E19\u0E35\u0E49\u0E44\u0E14\u0E49"
+        });
+      }
+      await createAuditLog({
+        churchId: DEFAULT_CHURCH_ID,
+        userId: ctx.user.id,
+        action: "RESET",
+        entity: "counting_session",
+        entityId: input.id,
+        metadata: {
+          serviceDate: session.serviceDate,
+          previousStatus: session.status
+        }
       });
       return { success: true };
     })

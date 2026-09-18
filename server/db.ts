@@ -1815,6 +1815,99 @@ export async function postCountingSession(
   });
 }
 
+export async function deleteCountingSession(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  return db.transaction(async tx => {
+    const session = await tx
+      .select({ id: countingSessions.id, status: countingSessions.status })
+      .from(countingSessions)
+      .where(
+        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      )
+      .limit(1);
+
+    if (!session[0]) {
+      return { success: false, reason: "NOT_FOUND" as const };
+    }
+
+    if (session[0].status === "posted" || session[0].status === "closed") {
+      return { success: false, reason: "ALREADY_POSTED" as const };
+    }
+
+    // Cascade delete related records in reverse dependency order:
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+
+    const deleted = await tx
+      .delete(countingSessions)
+      .where(
+        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      )
+      .returning({ id: countingSessions.id });
+
+    return { success: deleted.length > 0, reason: null };
+  });
+}
+
+export async function resetCountingSession(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  return db.transaction(async tx => {
+    const session = await tx
+      .select({ id: countingSessions.id, status: countingSessions.status })
+      .from(countingSessions)
+      .where(
+        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      )
+      .limit(1);
+
+    if (!session[0]) {
+      return { success: false, reason: "NOT_FOUND" as const };
+    }
+
+    if (session[0].status === "posted" || session[0].status === "closed") {
+      return { success: false, reason: "ALREADY_POSTED" as const };
+    }
+
+    // Clear child data for fresh recount
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+
+    // Reset session back to "counting" status and clear workflow timestamps
+    await tx
+      .update(countingSessions)
+      .set({
+        status: "counting",
+        countSubmittedAt: null,
+        verifiedBy: null,
+        verifiedAt: null,
+        varianceNote: null,
+        varianceApprovedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      );
+
+    return { success: true, reason: null };
+  });
+}
+
 // ─── Financial report aggregation ─────────────────────────────────────────────
 
 export type ReportSummary = {

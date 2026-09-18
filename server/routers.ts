@@ -73,6 +73,8 @@ import {
   matchBankRecordToPassbook,
   addSessionDocument,
   postCountingSession,
+  deleteCountingSession,
+  resetCountingSession,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
@@ -1574,6 +1576,80 @@ export const appRouter = router({
           entity: "counting_session",
           entityId: input.id,
           metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    /** Deletes an abandoned or mistaken counting session that has not yet been posted or closed. */
+    deleteSession: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.id);
+        if (session.status === "posted" || session.status === "closed") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "ไม่สามารถลบรอบที่ลงบัญชีหรือปิดรอบแล้วได้ เพื่อความถูกต้องของระบบบัญชี",
+          });
+        }
+        const res = await deleteCountingSession(input.id);
+        if (!res.success) {
+          throw new TRPCError({
+            code: res.reason === "NOT_FOUND" ? "NOT_FOUND" : "BAD_REQUEST",
+            message:
+              res.reason === "NOT_FOUND"
+                ? "ไม่พบรอบนับเงินถวาย"
+                : "ไม่สามารถลบรอบนี้ได้",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "DELETE",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {
+            serviceDate: session.serviceDate,
+            status: session.status,
+          },
+        });
+        return { success: true } as const;
+      }),
+
+    /** Resets an unposted session back to fresh 'counting' state, clearing all child rows. */
+    resetSession: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.id);
+        if (session.status === "posted" || session.status === "closed") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "ไม่สามารถรีเซ็ตรอบที่ลงบัญชีหรือปิดรอบแล้วได้ เพื่อความถูกต้องของระบบบัญชี",
+          });
+        }
+        const res = await resetCountingSession(input.id);
+        if (!res.success) {
+          throw new TRPCError({
+            code: res.reason === "NOT_FOUND" ? "NOT_FOUND" : "BAD_REQUEST",
+            message:
+              res.reason === "NOT_FOUND"
+                ? "ไม่พบรอบนับเงินถวาย"
+                : "ไม่สามารถรีเซ็ตรอบนี้ได้",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "RESET",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {
+            serviceDate: session.serviceDate,
+            previousStatus: session.status,
+          },
         });
         return { success: true } as const;
       }),

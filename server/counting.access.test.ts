@@ -254,3 +254,33 @@ describe("counting: role assignment", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("counting: delete and reset session permissions", () => {
+  it("rejects unauthenticated user from deleting a session", async () => {
+    const caller = appRouter.createCaller(createContext(null));
+    await expect(caller.counting.deleteSession({ id: 1 })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("rejects regular member from deleting a session", async () => {
+    const caller = appRouter.createCaller(createContext(member));
+    await expect(caller.counting.deleteSession({ id: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("rejects unauthenticated user from resetting a session", async () => {
+    const caller = appRouter.createCaller(createContext(null));
+    await expect(caller.counting.resetSession({ id: 1 })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
+  it("rejects regular member from resetting a session", async () => {
+    const caller = appRouter.createCaller(createContext(member));
+    await expect(caller.counting.resetSession({ id: 1 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+});

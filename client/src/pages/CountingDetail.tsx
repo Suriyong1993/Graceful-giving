@@ -22,9 +22,11 @@ import {
   Calculator,
   Check,
   Landmark,
+  RotateCcw,
   Scissors,
   Trash2,
 } from "lucide-react";
+import { Swal } from "@/lib/sweetalert";
 import { toast } from "sonner";
 
 type TabId = "envelopes" | "cash" | "bank" | "deductions" | "summary";
@@ -165,6 +167,22 @@ export default function CountingDetail() {
     },
     onError: onError("ปิดรอบ"),
   });
+  const deleteSession = trpc.counting.deleteSession.useMutation({
+    onSuccess: async () => {
+      await utils.counting.list.invalidate();
+      toast.success("ลบรอบนับเงินถวายเรียบร้อยแล้ว");
+      setLocation("/counting");
+    },
+    onError: onError("ลบรอบ"),
+  });
+  const resetSession = trpc.counting.resetSession.useMutation({
+    onSuccess: async () => {
+      await refreshAll();
+      setDraftCounts({});
+      toast.success("รีเซ็ตรอบเพื่อนับใหม่เรียบร้อยแล้ว");
+    },
+    onError: onError("รีเซ็ตรอบ"),
+  });
 
   // ── Envelope entry form ──────────────────────────────────────────────────
   const [envelopeNo, setEnvelopeNo] = useState("");
@@ -283,6 +301,43 @@ export default function CountingDetail() {
     year: "numeric",
   }).format(new Date(detail.session.serviceDate));
 
+  const isUnposted =
+    detail.session.status === "counting" ||
+    detail.session.status === "counted" ||
+    detail.session.status === "verified";
+
+  const handleDeleteThisSession = async () => {
+    const confirmed = await Swal.confirm(
+      "ยืนยันการลบรอบนับเงินนี้?",
+      `คุณต้องการลบรอบนับเงินถวายประจำ "${serviceDate}" หรือไม่?\n\nข้อมูลซองถวายและผลนับในรอบนี้จะถูกลบออกจากระบบอย่างถาวร (ไม่มีผลกระทบต่อยอดเงินในบัญชี)`,
+      {
+        icon: "warning",
+        confirmButtonText: "ลบรอบนี้",
+        confirmButtonColor: "#D45945",
+        cancelButtonText: "ยกเลิก",
+      }
+    );
+    if (confirmed) {
+      deleteSession.mutate({ id: sessionId });
+    }
+  };
+
+  const handleResetThisSession = async () => {
+    const confirmed = await Swal.confirm(
+      "ล้างข้อมูลเพื่อนับใหม่?",
+      `ต้องการล้างรายการซองถวายและผลนับทั้งหมดของรอบ "${serviceDate}" เพื่อเริ่มนับใหม่ใช่หรือไม่?\n\nระบบจะปรับสถานะกลับมาเป็น "กำลังนับ" และล้างรายการซองและผลนับที่เคยบันทึกไว้ในรอบนี้`,
+      {
+        icon: "question",
+        confirmButtonText: "ล้างเพื่อนับใหม่",
+        confirmButtonColor: "#E99A4A",
+        cancelButtonText: "ยกเลิก",
+      }
+    );
+    if (confirmed) {
+      resetSession.mutate({ id: sessionId });
+    }
+  };
+
   const submitEnvelope = (event: React.FormEvent) => {
     event.preventDefault();
     const value = Number(amount);
@@ -328,12 +383,36 @@ export default function CountingDetail() {
       title="รอบนับเงินถวาย"
       subtitle={serviceDate}
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={detail.session.status} />
+          {isUnposted && (
+            <>
+              <button
+                type="button"
+                title="ล้างข้อมูลเพื่อนับใหม่"
+                onClick={handleResetThisSession}
+                disabled={resetSession.isPending}
+                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-3.5 py-2 text-xs font-bold text-[#8A5A1E] hover:bg-[#FFE8C2] transition-colors disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
+                <span className="hidden sm:inline">นับใหม่</span>
+              </button>
+              <button
+                type="button"
+                title="ลบรอบนับเงินนี้"
+                onClick={handleDeleteThisSession}
+                disabled={deleteSession.isPending}
+                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-[#D45945] hover:bg-rose-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">ลบรอบนี้</span>
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => setLocation("/counting")}
-            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-3.5 py-2 text-xs font-bold text-[#674F42]"
+            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-white px-3.5 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE]"
           >
             <ArrowLeft className="h-4 w-4" />
             ทุกรอบ
@@ -1265,6 +1344,40 @@ export default function CountingDetail() {
                 )}
               </div>
             </div>
+
+            {isUnposted && (
+              <div className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
+                  <h4 className="font-bold text-[#38251B]">
+                    การจัดการรอบนับเงิน (งานค้าง / เริ่มนับใหม่)
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-[#674F42] leading-relaxed mb-4">
+                  หากพบว่ากรอกข้อมูลผิดพลาด หรือเป็นรอบที่เปิดทิ้งไว้ไม่ได้ใช้งาน สามารถเลือกล้างเพื่อนับใหม่ หรือลบรอบนี้ออกจากระบบได้
+                </p>
+                <div className="flex flex-wrap gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleResetThisSession}
+                    disabled={resetSession.isPending}
+                    className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-4 py-2 text-xs font-bold text-[#8A5A1E] shadow-2xs hover:bg-[#FFE8C2] transition-colors disabled:opacity-50"
+                  >
+                    <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
+                    <span>ล้างข้อมูลเพื่อนับใหม่ (Recount)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteThisSession}
+                    disabled={deleteSession.isPending}
+                    className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-[#D45945] shadow-2xs hover:bg-rose-100 transition-colors disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>ลบรอบนี้ (Delete Session)</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </div>
