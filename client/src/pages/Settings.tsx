@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -445,14 +446,23 @@ export default function Settings() {
                   </span>
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => void logout()}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 transition-colors hover:bg-rose-100"
-              >
-                <LogOut className="h-4 w-4" />
-                ออกจากระบบ
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/profile"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-5 py-2.5 text-sm font-bold text-[#70452E] transition-colors hover:bg-[#FBE9CD]"
+                >
+                  <UserCheck className="h-4 w-4 text-[#E99A4A]" />
+                  ดูโปรไฟล์เต็ม
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 transition-colors hover:bg-rose-100"
+                >
+                  <LogOut className="h-4 w-4" />
+                  ออกจากระบบ
+                </button>
+              </div>
             </div>
           </section>
         )}

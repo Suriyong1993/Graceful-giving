@@ -163,6 +163,7 @@ export async function getAllUsers() {
       loginMethod: users.loginMethod,
       role: users.role,
       churchRole: users.churchRole,
+      churchRoles: users.churchRoles,
       createdAt: users.createdAt,
       lastSignedIn: users.lastSignedIn,
     })
@@ -172,14 +173,39 @@ export async function getAllUsers() {
 
 export async function updateUserChurchRole(
   userId: number,
-  churchRole: string | null
+  churchRole: string | null,
+  churchRoles?: string[] | null
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const role = churchRole === "SUPER_ADMIN" ? "admin" : "user";
+  const rolesString = churchRoles ? churchRoles.join(",") : churchRole;
+  const isSuperAdmin =
+    churchRole === "SUPER_ADMIN" ||
+    Boolean(churchRoles && churchRoles.includes("SUPER_ADMIN"));
+  const role = isSuperAdmin ? "admin" : "user";
   await db
     .update(users)
-    .set({ churchRole, role } as any)
+    .set({
+      churchRole,
+      churchRoles: rolesString,
+      role,
+      updatedAt: new Date(),
+    } as any)
+    .where(eq(users.id, userId));
+}
+
+export async function updateUserProfile(
+  userId: number,
+  input: { name?: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db
+    .update(users)
+    .set({
+      ...(input.name ? { name: input.name } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(users.id, userId));
 }
 

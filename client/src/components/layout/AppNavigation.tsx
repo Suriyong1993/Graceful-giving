@@ -4,6 +4,7 @@ import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
   CheckCircle2,
+  CircleUserRound,
   Coins,
   CreditCard,
   FileBarChart,
@@ -94,6 +95,12 @@ export const navItems = [
     path: "/updates",
     icon: CalendarDays,
     iconColor: "text-[#D45945]",
+  },
+  {
+    label: "โปรไฟล์",
+    path: "/profile",
+    icon: CircleUserRound,
+    iconColor: "text-[#E99A4A]",
   },
   {
     label: "ตั้งค่า",

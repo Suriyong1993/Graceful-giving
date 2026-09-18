@@ -1,4 +1,4 @@
-﻿// Idempotent schema initialization for PostgreSQL
+// Idempotent schema initialization for PostgreSQL
 export const ENUM_STATEMENTS: string[] = [
   `DO $$ BEGIN CREATE TYPE "public"."event_status" AS ENUM('draft', 'published', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."expense_category" AS ENUM('utilities', 'ministry', 'pastoral', 'admin', 'building', 'worship', 'welfare', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
@@ -27,10 +27,12 @@ export const TABLE_STATEMENTS: string[] = [
     "loginMethod" varchar(64),
     "role" "user_role" DEFAULT 'user' NOT NULL,
     "churchRole" varchar(20),
+    "churchRoles" text,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL,
     "lastSignedIn" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "churchRoles" text;`,
 
   `CREATE TABLE IF NOT EXISTS "church_profiles" (
     "id" serial PRIMARY KEY NOT NULL,

@@ -35,6 +35,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Approvals = lazy(() => import("./pages/Approvals"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Profile = lazy(() => import("./pages/Profile"));
 const Updates = lazy(() => import("./pages/Updates"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 
@@ -184,6 +185,9 @@ function Router() {
 
       {/* Church & System Settings */}
       <Route path="/settings" component={Settings} />
+
+      {/* User Profile */}
+      <Route path="/profile" component={Profile} />
 
       {/* News & Updates */}
       <Route path="/updates" component={Updates} />

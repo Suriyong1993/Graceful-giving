@@ -46,6 +46,7 @@ import {
   updateMember,
   deactivateMember,
   getAllUsers,
+  updateUserProfile,
   markNotificationRead,
   markAllNotificationsRead,
   updateChurchEvent,
@@ -82,41 +83,47 @@ import {
 
 // ─── Permission helpers ────────────────────────────────────────────────────────
 
+function getUserRoles(user: User): string[] {
+  const list: string[] = [];
+  if (user.churchRoles) {
+    list.push(
+      ...user.churchRoles
+        .split(",")
+        .map(r => r.trim())
+        .filter(Boolean)
+    );
+  }
+  if (user.churchRole && !list.includes(user.churchRole)) {
+    list.push(user.churchRole);
+  }
+  return list.length > 0 ? list : ["MEMBER"];
+}
+
+function hasAnyRole(user: User, ...roles: string[]): boolean {
+  if (user.role === "admin") return true;
+  const userRoles = getUserRoles(user);
+  return roles.some(r => userRoles.includes(r));
+}
+
 function canManageFinance(user: User): boolean {
-  return (
-    user.role === "admin" ||
-    user.churchRole === "TREASURER" ||
-    user.churchRole === "SUPER_ADMIN"
-  );
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 
 function canViewDonorNames(user: User): boolean {
-  return (
-    user.role === "admin" ||
-    user.churchRole === "TREASURER" ||
-    user.churchRole === "SUPER_ADMIN"
-  );
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 
 function canApproveWithdrawals(user: User): boolean {
-  return (
-    user.role === "admin" ||
-    user.churchRole === "TREASURER" ||
-    user.churchRole === "SUPER_ADMIN"
-  );
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 
 function canManageChurchSettings(user: User): boolean {
-  return (
-    user.role === "admin" ||
-    user.churchRole === "SUPER_ADMIN" ||
-    user.churchRole === "PASTOR"
-  );
+  return hasAnyRole(user, "SUPER_ADMIN", "PASTOR");
 }
 
 /** COUNTER records the count; finance roles may also record it. */
 function canCountOfferings(user: User): boolean {
-  return user.churchRole === "COUNTER" || canManageFinance(user);
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "COUNTER");
 }
 
 /** Verifying, banking and posting stay with the treasurer. */
@@ -126,12 +133,7 @@ function canVerifyCount(user: User): boolean {
 
 /** A deduction from the offering bag needs a leader's approval. */
 function canApproveDeduction(user: User): boolean {
-  return (
-    user.role === "admin" ||
-    user.churchRole === "SUPER_ADMIN" ||
-    user.churchRole === "PASTOR" ||
-    user.churchRole === "TREASURER"
-  );
+  return hasAnyRole(user, "SUPER_ADMIN", "PASTOR", "TREASURER");
 }
 
 // ─── Shared Procedures ────────────────────────────────────────────────────────
@@ -251,10 +253,28 @@ export const appRouter = router({
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      const roles = getUserRoles(user);
+      return {
+        ...user,
+        roles,
+      };
+    }),
     listUsers: churchLeaderProcedure.query(async () => {
       return await getAllUsers();
     }),
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().trim().min(1).max(180),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await updateUserProfile(ctx.user.id, input);
+        return { success: true } as const;
+      }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -266,10 +286,14 @@ export const appRouter = router({
         z.object({
           userId: z.number().int().positive(),
           churchRole: churchRoleEnum.nullable(),
+          churchRoles: z.array(churchRoleEnum).optional(),
         })
       )
       .mutation(async ({ input }) => {
-        await updateUserChurchRole(input.userId, input.churchRole);
+        const roles =
+          input.churchRoles ||
+          (input.churchRole ? [input.churchRole] : null);
+        await updateUserChurchRole(input.userId, input.churchRole, roles);
         return { success: true } as const;
       }),
   }),

@@ -372,6 +372,8 @@ var users = pgTable("users", {
   role: userRoleEnum("role").default("user").notNull(),
   /** Church-specific role for financial access control */
   churchRole: varchar("churchRole", { length: 20 }).$type(),
+  /** Comma-separated or serialized list of multiple church roles */
+  churchRoles: text("churchRoles"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date()),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
@@ -758,10 +760,12 @@ var TABLE_STATEMENTS = [
     "loginMethod" varchar(64),
     "role" "user_role" DEFAULT 'user' NOT NULL,
     "churchRole" varchar(20),
+    "churchRoles" text,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL,
     "lastSignedIn" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "churchRoles" text;`,
   `CREATE TABLE IF NOT EXISTS "church_profiles" (
     "id" serial PRIMARY KEY NOT NULL,
     "churchId" varchar(64) NOT NULL UNIQUE,
@@ -1132,15 +1136,31 @@ async function getAllUsers() {
     loginMethod: users.loginMethod,
     role: users.role,
     churchRole: users.churchRole,
+    churchRoles: users.churchRoles,
     createdAt: users.createdAt,
     lastSignedIn: users.lastSignedIn
   }).from(users).orderBy(desc(users.lastSignedIn));
 }
-async function updateUserChurchRole(userId, churchRole) {
+async function updateUserChurchRole(userId, churchRole, churchRoles) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const role = churchRole === "SUPER_ADMIN" ? "admin" : "user";
-  await db.update(users).set({ churchRole, role }).where(eq(users.id, userId));
+  const rolesString = churchRoles ? churchRoles.join(",") : churchRole;
+  const isSuperAdmin = churchRole === "SUPER_ADMIN" || Boolean(churchRoles && churchRoles.includes("SUPER_ADMIN"));
+  const role = isSuperAdmin ? "admin" : "user";
+  await db.update(users).set({
+    churchRole,
+    churchRoles: rolesString,
+    role,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(users.id, userId));
+}
+async function updateUserProfile(userId, input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(users).set({
+    ...input.name ? { name: input.name } : {},
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(users.id, userId));
 }
 async function getChurchProfile(churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
@@ -2131,26 +2151,43 @@ var OFFERING_CATEGORY_IDS = [
 ];
 
 // server/routers.ts
+function getUserRoles(user) {
+  const list = [];
+  if (user.churchRoles) {
+    list.push(
+      ...user.churchRoles.split(",").map((r) => r.trim()).filter(Boolean)
+    );
+  }
+  if (user.churchRole && !list.includes(user.churchRole)) {
+    list.push(user.churchRole);
+  }
+  return list.length > 0 ? list : ["MEMBER"];
+}
+function hasAnyRole(user, ...roles) {
+  if (user.role === "admin") return true;
+  const userRoles = getUserRoles(user);
+  return roles.some((r) => userRoles.includes(r));
+}
 function canManageFinance(user) {
-  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 function canViewDonorNames(user) {
-  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 function canApproveWithdrawals(user) {
-  return user.role === "admin" || user.churchRole === "TREASURER" || user.churchRole === "SUPER_ADMIN";
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER");
 }
 function canManageChurchSettings(user) {
-  return user.role === "admin" || user.churchRole === "SUPER_ADMIN" || user.churchRole === "PASTOR";
+  return hasAnyRole(user, "SUPER_ADMIN", "PASTOR");
 }
 function canCountOfferings(user) {
-  return user.churchRole === "COUNTER" || canManageFinance(user);
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "COUNTER");
 }
 function canVerifyCount(user) {
   return canManageFinance(user);
 }
 function canApproveDeduction(user) {
-  return user.role === "admin" || user.churchRole === "SUPER_ADMIN" || user.churchRole === "PASTOR" || user.churchRole === "TREASURER";
+  return hasAnyRole(user, "SUPER_ADMIN", "PASTOR", "TREASURER");
 }
 var adminProcedure2 = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "admin" && ctx.user.churchRole !== "SUPER_ADMIN") {
@@ -2246,9 +2283,25 @@ var appRouter = router({
   system: systemRouter,
   // ── Auth ────────────────────────────────────────────────────────────────────
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query((opts) => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      const roles = getUserRoles(user);
+      return {
+        ...user,
+        roles
+      };
+    }),
     listUsers: churchLeaderProcedure.query(async () => {
       return await getAllUsers();
+    }),
+    updateProfile: protectedProcedure.input(
+      z2.object({
+        name: z2.string().trim().min(1).max(180)
+      })
+    ).mutation(async ({ ctx, input }) => {
+      await updateUserProfile(ctx.user.id, input);
+      return { success: true };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -2259,10 +2312,12 @@ var appRouter = router({
     setChurchRole: adminProcedure2.input(
       z2.object({
         userId: z2.number().int().positive(),
-        churchRole: churchRoleEnum.nullable()
+        churchRole: churchRoleEnum.nullable(),
+        churchRoles: z2.array(churchRoleEnum).optional()
       })
     ).mutation(async ({ input }) => {
-      await updateUserChurchRole(input.userId, input.churchRole);
+      const roles = input.churchRoles || (input.churchRole ? [input.churchRole] : null);
+      await updateUserChurchRole(input.userId, input.churchRole, roles);
       return { success: true };
     })
   }),
@@ -3407,6 +3462,7 @@ var sdk = {
           loginMethod: "clerk",
           role: "admin",
           churchRole: "SUPER_ADMIN",
+          churchRoles: "SUPER_ADMIN",
           createdAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date(),
           lastSignedIn: /* @__PURE__ */ new Date()
@@ -3417,19 +3473,20 @@ var sdk = {
       const isSuperAdminEmail = user.email === "vtr30025389@gmail.com" || user.id === 1;
       if (isSuperAdminEmail && user.churchRole !== "SUPER_ADMIN") {
         try {
-          await updateUserChurchRole(user.id, "SUPER_ADMIN");
+          await updateUserChurchRole(user.id, "SUPER_ADMIN", ["SUPER_ADMIN"]);
           user.churchRole = "SUPER_ADMIN";
+          user.churchRoles = "SUPER_ADMIN";
           user.role = "admin";
         } catch (err) {
           console.warn("[Database] Failed to promote to SUPER_ADMIN:", err);
         }
       }
+      try {
+        await upsertUser({ openId: user.openId, lastSignedIn: /* @__PURE__ */ new Date() });
+      } catch {
+      }
     }
-    try {
-      await upsertUser({ openId: user.openId, lastSignedIn: /* @__PURE__ */ new Date() });
-    } catch {
-    }
-    return user;
+    return user ?? null;
   }
 };
 

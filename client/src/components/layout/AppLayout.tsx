@@ -114,7 +114,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* User Profile Card at Sidebar Bottom */}
           <div className="pt-4 mt-auto border-t border-[#E9D9BF]/80">
             <GuardedLink
-              href="/settings"
+              href="/profile"
               className="flex items-center gap-3 p-3 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF] cursor-pointer hover:bg-white transition-all"
             >
               <div className="w-10 h-10 rounded-full bg-[#E99A4A]/20 flex items-center justify-center text-[#70452E] font-bold text-sm shrink-0">
@@ -276,17 +276,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <span className="text-[11px] mt-0.5 font-bold">รายงาน</span>
           </button>
 
-          {/* 5. ฉัน */}
+          {/* 5. ฉัน (Profile) */}
           <button
-            onClick={() => navigate("/settings")}
+            onClick={() => navigate("/profile")}
             className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+              currentPath.startsWith("/profile") ||
               currentPath.startsWith("/settings")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
                 : "text-[#927D6D] hover:text-[#70452E]"
             }`}
-            aria-label="ไปที่หน้าฉัน (ตั้งค่า)"
+            aria-label="ไปที่หน้าโปรไฟล์"
             aria-current={
-              isActiveRoute(currentPath, "/settings") ? "page" : undefined
+              currentPath.startsWith("/profile") ? "page" : undefined
             }
           >
             <CircleUserRound className="w-5 h-5 stroke-[2.2]" />

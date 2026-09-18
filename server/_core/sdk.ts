@@ -83,6 +83,7 @@ export const sdk = {
           loginMethod: "clerk",
           role: "admin",
           churchRole: "SUPER_ADMIN",
+          churchRoles: "SUPER_ADMIN",
           createdAt: new Date(),
           updatedAt: new Date(),
           lastSignedIn: new Date(),
@@ -95,19 +96,19 @@ export const sdk = {
         user.email === "vtr30025389@gmail.com" || user.id === 1;
       if (isSuperAdminEmail && user.churchRole !== "SUPER_ADMIN") {
         try {
-          await db.updateUserChurchRole(user.id, "SUPER_ADMIN");
+          await db.updateUserChurchRole(user.id, "SUPER_ADMIN", ["SUPER_ADMIN"]);
           user.churchRole = "SUPER_ADMIN";
+          user.churchRoles = "SUPER_ADMIN";
           user.role = "admin";
         } catch (err) {
           console.warn("[Database] Failed to promote to SUPER_ADMIN:", err);
         }
       }
+      try {
+        await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      } catch {}
     }
 
-    try {
-      await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
-    } catch {}
-
-    return user;
+    return user ?? null;
   },
 };

@@ -119,6 +119,8 @@ export const users = pgTable("users", {
   churchRole: varchar("churchRole", { length: 20 }).$type<
     "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "DEACON" | "COUNTER" | "MEMBER"
   >(),
+  /** Comma-separated or serialized list of multiple church roles */
+  churchRoles: text("churchRoles"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
