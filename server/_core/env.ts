@@ -1,9 +1,11 @@
-export const ENV = {
+﻿export const ENV = {
   // Clerk Auth
   clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
   clerkPublishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "",
 
-  // Database
+  // App settings
+  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   isProduction: process.env.NODE_ENV === "production",
