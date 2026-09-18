@@ -9,14 +9,16 @@ import {
   MoneyDisplay,
 } from "@/components/common/CommonUI";
 import { Illustration } from "@/components/Illustration";
-import { Download, HandCoins, Heart, Plus, Sparkles } from "lucide-react";
+import { Download, HandCoins, Heart, Plus, Sparkles, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { offeringCategoryLabel } from "@shared/categories";
+import { VoucherModal, type VoucherData } from "@/components/finance/VoucherModal";
 
 export default function Offerings() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
 
   const {
     data: offeringsData,
@@ -34,14 +36,16 @@ export default function Offerings() {
       date: o.receiptDate,
       method: o.method || "เงินสด",
       fund: "บัญชีทั่วไป",
+      donorName: o.donorName || "ผู้ถวายนิรนาม",
+      notes: o.notes,
     }));
   }, [offeringsData]);
 
   const filtered = useMemo(() => {
     return offerings.filter(o => {
-      const matchSearch = o.title
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      const matchSearch =
+        o.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.donorName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCat =
         categoryFilter === "all" || o.category === categoryFilter;
       return matchSearch && matchCat;
@@ -53,19 +57,52 @@ export default function Offerings() {
     [filtered]
   );
 
+  const exportCSV = () => {
+    const headers = "ID,วันที่,ประเภทการถวาย,ผู้ถวาย,จำนวนเงิน,ช่องทาง,กองทุน\n";
+    const rows = filtered
+      .map(
+        o =>
+          `"${o.id}","${new Date(o.date).toLocaleDateString("th-TH")}","${o.title}","${o.donorName}",${o.amount},"${o.method}","${o.fund}"`
+      )
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + headers + rows], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `grace-giving-offerings-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("ส่งออกข้อมูลการถวายสำเร็จ");
+  };
+
   return (
     <AppLayout
       activeRoute="/offerings"
       title="ถวายทรัพย์"
       subtitle="บันทึกและตรวจสอบรายการเงินถวายทุกประเภทของคริสตจักร"
       action={
-        <button
-          onClick={() => setLocation("/offerings/new")}
-          className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>บันทึกถวายใหม่</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCSV}
+            className="px-3.5 py-2 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>ส่งออก CSV</span>
+          </button>
+          <button
+            onClick={() => setLocation("/offerings/new")}
+            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>บันทึกถวายใหม่</span>
+          </button>
+        </div>
       }
     >
       {/* 1. Header Banner with 3D Offering Box Illustration */}
@@ -174,16 +211,49 @@ export default function Offerings() {
                 </div>
               </div>
 
-              <div className="text-right shrink-0">
-                <MoneyDisplay amount={o.amount} type="income" size="md" />
-                <span className="block text-[10px] text-[#A8C978] font-bold">
-                  บันทึกเรียบร้อย
-                </span>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <MoneyDisplay amount={o.amount} type="income" size="md" />
+                  <span className="block text-[10px] text-[#A8C978] font-bold">
+                    บันทึกเรียบร้อย
+                  </span>
+                </div>
+
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedVoucher({
+                      id: o.id,
+                      docNumber: `OR-${o.id}`,
+                      date: o.date,
+                      amount: o.amount,
+                      category: o.category,
+                      categoryLabel: o.title,
+                      titleOrDescription: `เงินถวาย${o.title}`,
+                      payeeOrDonor: o.donorName,
+                      fundName: o.fund,
+                      paymentMethod: o.method,
+                      notes: o.notes || undefined,
+                    });
+                  }}
+                  className="p-2.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-[#E99A4A] text-[#70452E] border border-stone-200 transition-colors shadow-2xs"
+                  title="พิมพ์ใบเสร็จเงินถวาย"
+                >
+                  <Printer className="w-4 h-4 text-[#E99A4A]" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* Voucher / Receipt Modal */}
+      <VoucherModal
+        isOpen={Boolean(selectedVoucher)}
+        onClose={() => setSelectedVoucher(null)}
+        type="offering"
+        data={selectedVoucher}
+      />
     </AppLayout>
   );
 }

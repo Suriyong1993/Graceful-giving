@@ -640,6 +640,7 @@ export type ExpenseRow = {
   payee: string | null;
   status: string;
   fundId: number | null;
+  receiptRef: string | null;
   receiptUrl: string | null;
 };
 
@@ -674,6 +675,7 @@ export async function listExpenses(
     payee: r.payee,
     status: r.status,
     fundId: r.fundId,
+    receiptRef: r.receiptRef ?? null,
     receiptUrl: (r as any).receiptUrl ?? null,
   }));
 }
@@ -706,6 +708,7 @@ export async function getExpenseById(
     payee: row.payee,
     status: row.status,
     fundId: row.fundId,
+    receiptRef: row.receiptRef ?? null,
     receiptUrl: (row as any).receiptUrl ?? null,
   };
 }

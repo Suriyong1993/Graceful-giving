@@ -241,6 +241,46 @@ var systemRouter = router({
   })
 });
 
+// server/storage.ts
+var SUPABASE_URL = process.env.SUPABASE_URL ?? "";
+var SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+var SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "receipts";
+function getSupabaseConfig() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Storage config missing: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+    );
+  }
+  return { url: SUPABASE_URL.replace(/\/+$/, ""), key: SUPABASE_SERVICE_ROLE_KEY };
+}
+function appendHashSuffix(relKey) {
+  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const lastDot = relKey.lastIndexOf(".");
+  if (lastDot === -1) return `${relKey}_${hash}`;
+  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+}
+async function storagePut(relKey, data, contentType = "application/octet-stream") {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = appendHashSuffix(relKey.replace(/^\/+/, ""));
+  const body = typeof data === "string" ? Buffer.from(data, "base64") : data;
+  const uploadUrl = `${url}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  const resp = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true"
+    },
+    body
+  });
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Supabase Storage upload failed (${resp.status}): ${msg}`);
+  }
+  const publicUrl = `${url}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  return { key, url: publicUrl };
+}
+
 // server/db.ts
 import {
   and,
@@ -483,6 +523,7 @@ var expenses = pgTable("expenses", {
   expenseDate: timestamp("expenseDate").defaultNow().notNull(),
   payee: varchar("payee", { length: 120 }),
   receiptRef: varchar("receiptRef", { length: 120 }),
+  receiptUrl: text("receiptUrl"),
   status: expenseStatusEnum("status").default("approved").notNull(),
   approvedBy: integer("approvedBy"),
   recordedBy: integer("recordedBy").notNull(),
@@ -1444,7 +1485,9 @@ async function listExpenses(churchId = DEFAULT_CHURCH_ID, opts = {}) {
     expenseDate: r.expenseDate,
     payee: r.payee,
     status: r.status,
-    fundId: r.fundId
+    fundId: r.fundId,
+    receiptRef: r.receiptRef ?? null,
+    receiptUrl: r.receiptUrl ?? null
   }));
 }
 async function getExpenseById(id, churchId = DEFAULT_CHURCH_ID) {
@@ -1467,7 +1510,9 @@ async function getExpenseById(id, churchId = DEFAULT_CHURCH_ID) {
     expenseDate: row.expenseDate,
     payee: row.payee,
     status: row.status,
-    fundId: row.fundId
+    fundId: row.fundId,
+    receiptRef: row.receiptRef ?? null,
+    receiptUrl: row.receiptUrl ?? null
   };
 }
 async function createExpense(input, churchId = DEFAULT_CHURCH_ID) {
@@ -2526,7 +2571,8 @@ var appRouter = router({
         details: z2.string().trim().max(1e3).optional(),
         expenseDate: z2.coerce.date().optional(),
         payee: z2.string().trim().max(120).optional(),
-        receiptRef: z2.string().trim().max(120).optional()
+        receiptRef: z2.string().trim().max(120).optional(),
+        receiptUrl: z2.string().url().optional()
       })
     ).mutation(async ({ ctx, input }) => {
       const id = await createExpense({
@@ -2538,6 +2584,7 @@ var appRouter = router({
         expenseDate: input.expenseDate ?? /* @__PURE__ */ new Date(),
         payee: input.payee ?? null,
         receiptRef: input.receiptRef ?? null,
+        receiptUrl: input.receiptUrl ?? null,
         status: "approved",
         recordedBy: ctx.user.id
       });
@@ -2558,6 +2605,18 @@ var appRouter = router({
       });
       return { id };
     }),
+    uploadReceipt: financeProcedure.input(
+      z2.object({
+        fileName: z2.string().min(1).max(255),
+        contentType: z2.string().min(1).max(100),
+        base64Data: z2.string().min(1)
+      })
+    ).mutation(async ({ input }) => {
+      const ext = input.fileName.split(".").pop() ?? "bin";
+      const key = `expenses/receipt.${ext}`;
+      const { url } = await storagePut(key, input.base64Data, input.contentType);
+      return { url };
+    }),
     update: financeProcedure.input(
       z2.object({
         id: z2.number().int().positive(),
@@ -2569,6 +2628,7 @@ var appRouter = router({
         expenseDate: z2.coerce.date().optional(),
         payee: z2.string().trim().max(120).nullable().optional(),
         receiptRef: z2.string().trim().max(120).nullable().optional(),
+        receiptUrl: z2.string().url().nullable().optional(),
         status: expenseStatus.optional()
       })
     ).mutation(async ({ ctx, input }) => {

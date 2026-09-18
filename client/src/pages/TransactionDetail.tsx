@@ -16,12 +16,18 @@ import {
   Pencil,
   Ban,
   User,
+  Printer,
+  Paperclip,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   confirmDiscardChanges,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
+import { VoucherModal } from "@/components/finance/VoucherModal";
+import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
 
 export default function TransactionDetail() {
   const [, setLocation] = useLocation();
@@ -36,6 +42,8 @@ export default function TransactionDetail() {
   const [editText, setEditText] = useState("");
   const [baselineAmount, setBaselineAmount] = useState("");
   const [baselineText, setBaselineText] = useState("");
+  const [showVoucher, setShowVoucher] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const utils = trpc.useUtils();
   const deleteOffering = trpc.offerings.delete.useMutation({
     onSuccess: async () => {
@@ -120,6 +128,8 @@ export default function TransactionDetail() {
         donorOrPayee: item.donorName || "ผู้ถวายนิรนาม",
         status: "approved",
         notes: item.notes,
+        receiptRef: "-",
+        receiptUrl: null,
       };
     }
     if (isExpense) {
@@ -138,10 +148,12 @@ export default function TransactionDetail() {
         donorOrPayee: item.payee || "ไม่ระบุผู้รับเงิน",
         status: item.status,
         notes: null,
+        receiptRef: item.receiptRef || "-",
+        receiptUrl: (item as any).receiptUrl || null,
       };
     }
     return null;
-  }, [expenseQuery.data, isExpense, isOffering, offeringQuery.data]);
+  }, [expenseQuery.data, isExpense, isOffering, offeringQuery.data, txId]);
 
   const loading = offeringQuery.isLoading || expenseQuery.isLoading;
   useEffect(() => {
@@ -191,6 +203,15 @@ export default function TransactionDetail() {
       }
       action={
         <div className="flex items-center gap-2">
+          {transaction && (
+            <button
+              onClick={() => setShowVoucher(true)}
+              className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] hover:bg-[#E99A4A] hover:text-white text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Printer className="w-4 h-4" />
+              <span>{isExpense ? "พิมพ์ใบสำคัญจ่าย" : "พิมพ์ใบเสร็จ"}</span>
+            </button>
+          )}
           {transaction && (
             <button
               onClick={() => {
@@ -338,7 +359,84 @@ export default function TransactionDetail() {
               <p className="text-sm text-[#38251B] mt-1">{transaction.notes}</p>
             </div>
           )}
+
+          {/* Receipt Attachment from Supabase Storage */}
+          {transaction.receiptUrl && (
+            <div className="rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF]/70 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#70452E] flex items-center gap-1.5">
+                  <Paperclip className="w-4 h-4 text-[#E99A4A]" />
+                  หลักฐานสลิป / ใบเสร็จแนบ (Supabase Storage)
+                </span>
+                <button
+                  onClick={() => setShowReceiptModal(true)}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>เปิดดูหลักฐานเต็มจอ</span>
+                </button>
+              </div>
+
+              <div
+                onClick={() => setShowReceiptModal(true)}
+                className="w-full max-w-xs h-44 rounded-xl overflow-hidden border border-stone-200 bg-stone-100 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity shadow-xs group relative"
+              >
+                {transaction.receiptUrl.toLowerCase().includes(".pdf") ? (
+                  <div className="text-center p-4">
+                    <FileText className="w-12 h-12 text-[#E99A4A] mx-auto mb-2" />
+                    <span className="text-xs font-bold text-stone-700">เอกสารแนบ PDF</span>
+                    <p className="text-[10px] text-stone-400 mt-1">คลิกเพื่อเปิดดูไฟล์</p>
+                  </div>
+                ) : (
+                  <>
+                    <img
+                      src={transaction.receiptUrl}
+                      alt="Receipt thumbnail"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold">
+                      คลิกเพื่อขยาย
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Voucher Modal */}
+      {transaction && (
+        <VoucherModal
+          isOpen={showVoucher}
+          onClose={() => setShowVoucher(false)}
+          type={transaction.type === "income" ? "offering" : "expense"}
+          data={{
+            id: recordId,
+            docNumber: transaction.refCode,
+            date: transaction.date,
+            amount: transaction.amount,
+            category: transaction.category,
+            titleOrDescription: transaction.title,
+            payeeOrDonor: transaction.donorOrPayee,
+            fundName: transaction.fund,
+            paymentMethod: transaction.paymentMethod,
+            receiptRef: transaction.receiptRef,
+            notes: transaction.notes || undefined,
+            receiptUrl: transaction.receiptUrl,
+          }}
+        />
+      )}
+
+      {/* Receipt Modal */}
+      {transaction?.receiptUrl && (
+        <ReceiptPreviewModal
+          isOpen={showReceiptModal}
+          onClose={() => setShowReceiptModal(false)}
+          receiptUrl={transaction.receiptUrl}
+          refCode={transaction.refCode}
+          title={transaction.title}
+        />
       )}
     </AppLayout>
   );

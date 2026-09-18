@@ -21,14 +21,25 @@ import {
   Cross,
   GraduationCap,
   HeartHandshake,
+  Paperclip,
+  Printer,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@shared/categories";
+import { VoucherModal, type VoucherData } from "@/components/finance/VoucherModal";
+import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
 
 export default function Expenses() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
+  const [previewReceipt, setPreviewReceipt] = useState<{
+    url: string;
+    ref: string;
+    title: string;
+  } | null>(null);
 
   const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
     retry: false,
@@ -56,6 +67,7 @@ export default function Expenses() {
         receiptRef: e.receiptRef || "-",
         fundId: e.fundId as number | null,
         status: e.status || "approved",
+        receiptUrl: e.receiptUrl || null,
       }));
     }
 
@@ -272,8 +284,10 @@ export default function Expenses() {
                     <th className="py-4 px-6">ผู้รับเงิน (Payee)</th>
                     <th className="py-4 px-6">กองทุน</th>
                     <th className="py-4 px-6">เลขที่ใบเสร็จ</th>
+                    <th className="py-4 px-6 text-center">หลักฐาน</th>
                     <th className="py-4 px-6 text-right">จำนวนเงิน</th>
                     <th className="py-4 px-6 text-center">สถานะ</th>
+                    <th className="py-4 px-6 text-center">ใบสำคัญจ่าย</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9D9BF]/40">
@@ -315,6 +329,26 @@ export default function Expenses() {
                         <td className="py-4 px-6 text-xs text-[#70452E]/60 font-mono whitespace-nowrap">
                           {e.receiptRef}
                         </td>
+                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={ev => ev.stopPropagation()}>
+                          {e.receiptUrl ? (
+                            <button
+                              onClick={() =>
+                                setPreviewReceipt({
+                                  url: e.receiptUrl!,
+                                  ref: e.receiptRef || `EXP-${e.id}`,
+                                  title: e.description,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-medium transition-colors"
+                              title="คลิกเพื่อดูรูปสลิป/ใบเสร็จ"
+                            >
+                              <Paperclip className="w-3.5 h-3.5" />
+                              <span>ดูสลิป</span>
+                            </button>
+                          ) : (
+                            <span className="text-stone-300 text-xs">-</span>
+                          )}
+                        </td>
                         <td className="py-4 px-6 text-right whitespace-nowrap font-medium">
                           <MoneyDisplay
                             amount={e.amount}
@@ -324,6 +358,29 @@ export default function Expenses() {
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap">
                           <StatusBadge status={e.status} />
+                        </td>
+                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={ev => ev.stopPropagation()}>
+                          <button
+                            onClick={() =>
+                              setSelectedVoucher({
+                                id: e.id,
+                                date: e.date,
+                                amount: e.amount,
+                                category: e.category,
+                                categoryLabel: expenseCategoryLabel(e.category),
+                                titleOrDescription: e.description,
+                                payeeOrDonor: e.payee,
+                                fundName: fundName(e.fundId),
+                                receiptRef: e.receiptRef,
+                                receiptUrl: e.receiptUrl,
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-[#E99A4A] text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
+                            title="พิมพ์ใบสำคัญจ่าย"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#E99A4A]" />
+                            <span>พิมพ์ใบสำคัญ</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -341,37 +398,78 @@ export default function Expenses() {
                   <div
                     key={e.id}
                     onClick={() => setLocation(`/transactions/expense-${e.id}`)}
-                    className="p-4 flex items-center justify-between gap-3 active:bg-[#FFF4DF]/40"
+                    className="p-4 space-y-2.5 active:bg-[#FFF4DF]/40"
                   >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${cat.color}`}
-                        >
-                          <CatIcon className="w-3 h-3" />
-                          {expenseCategoryLabel(e.category)}
-                        </span>
-                        <span className="text-xs text-[#70452E]/60 font-mono">
-                          {e.receiptRef}
-                        </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${cat.color}`}
+                          >
+                            <CatIcon className="w-3 h-3" />
+                            {expenseCategoryLabel(e.category)}
+                          </span>
+                          <span className="text-xs text-[#70452E]/60 font-mono">
+                            {e.receiptRef}
+                          </span>
+                        </div>
+                        <p className="font-medium text-[#38251B] text-sm truncate">
+                          {e.description}
+                        </p>
+                        <p className="text-xs text-[#70452E]/70">
+                          {e.payee} •{" "}
+                          {new Date(e.date).toLocaleDateString("th-TH")}
+                        </p>
                       </div>
-                      <p className="font-medium text-[#38251B] text-sm truncate">
-                        {e.description}
-                      </p>
-                      <p className="text-xs text-[#70452E]/70">
-                        {e.payee} •{" "}
-                        {new Date(e.date).toLocaleDateString("th-TH")}
-                      </p>
+                      <div className="text-right flex-shrink-0">
+                        <MoneyDisplay
+                          amount={e.amount}
+                          type="expense"
+                          size="sm"
+                        />
+                        <div className="mt-1">
+                          <StatusBadge status={e.status} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <MoneyDisplay
-                        amount={e.amount}
-                        type="expense"
-                        size="sm"
-                      />
-                      <div className="mt-1">
-                        <StatusBadge status={e.status} />
-                      </div>
+
+                    {/* Mobile Action Bar */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#E9D9BF]/30" onClick={ev => ev.stopPropagation()}>
+                      {e.receiptUrl && (
+                        <button
+                          onClick={() =>
+                            setPreviewReceipt({
+                              url: e.receiptUrl!,
+                              ref: e.receiptRef || `EXP-${e.id}`,
+                              title: e.description,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium"
+                        >
+                          <Paperclip className="w-3 h-3" />
+                          <span>ดูสลิป</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() =>
+                          setSelectedVoucher({
+                            id: e.id,
+                            date: e.date,
+                            amount: e.amount,
+                            category: e.category,
+                            categoryLabel: expenseCategoryLabel(e.category),
+                            titleOrDescription: e.description,
+                            payeeOrDonor: e.payee,
+                            fundName: fundName(e.fundId),
+                            receiptRef: e.receiptRef,
+                            receiptUrl: e.receiptUrl,
+                          })
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
+                      >
+                        <Printer className="w-3 h-3 text-[#E99A4A]" />
+                        <span>พิมพ์ใบสำคัญ</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -379,6 +477,23 @@ export default function Expenses() {
             </div>
           </div>
         )}
+
+        {/* Voucher Modal */}
+        <VoucherModal
+          isOpen={Boolean(selectedVoucher)}
+          onClose={() => setSelectedVoucher(null)}
+          type="expense"
+          data={selectedVoucher}
+        />
+
+        {/* Receipt Preview Modal */}
+        <ReceiptPreviewModal
+          isOpen={Boolean(previewReceipt)}
+          onClose={() => setPreviewReceipt(null)}
+          receiptUrl={previewReceipt?.url ?? null}
+          refCode={previewReceipt?.ref}
+          title={previewReceipt?.title}
+        />
       </div>
     </AppLayout>
   );
