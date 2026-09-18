@@ -20,6 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
+import { offeringCategoryLabel } from "@shared/categories";
 
 export default function Transactions() {
   const [, setLocation] = useLocation();
@@ -49,12 +50,7 @@ export default function Transactions() {
         list.push({
           id: `offering-${o.id}`,
           rawId: o.id,
-          title:
-            o.category === "tithe"
-              ? "ถวายสิบลด"
-              : o.category === "mission"
-                ? "ถวายพันธกิจ"
-                : "ถวายประจำสัปดาห์",
+          title: offeringCategoryLabel(o.category),
           date: o.receiptDate || o.createdAt,
           type: "income",
           category: o.category,

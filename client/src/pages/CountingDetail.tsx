@@ -11,6 +11,11 @@ import {
 } from "@/components/common/CommonUI";
 import { THB_DENOMINATIONS, reconcile } from "@shared/counting";
 import {
+  EXPENSE_CATEGORIES,
+  OFFERING_CATEGORIES,
+  offeringCategoryLabel,
+} from "@shared/categories";
+import {
   ArrowLeft,
   Banknote,
   BookCheck,
@@ -31,26 +36,6 @@ const TABS: Array<{ id: TabId; label: string; icon: typeof Banknote }> = [
   { id: "deductions", label: "หักเบิก", icon: Scissors },
   { id: "summary", label: "สรุป & ปิดรอบ", icon: BookCheck },
 ];
-
-const CATEGORIES = [
-  { id: "general", label: "ถวายทั่วไป" },
-  { id: "tithe", label: "สิบลด" },
-  { id: "mission", label: "พันธกิจ" },
-  { id: "building", label: "สร้างอาคาร" },
-  { id: "welfare", label: "สงเคราะห์" },
-  { id: "special", label: "ถวายพิเศษ" },
-] as const;
-
-const EXPENSE_CATEGORIES = [
-  { id: "utilities", label: "สาธารณูปโภค" },
-  { id: "ministry", label: "พันธกิจ" },
-  { id: "worship", label: "นมัสการและดนตรี" },
-  { id: "building", label: "อาคารสถานที่" },
-  { id: "welfare", label: "สงเคราะห์" },
-  { id: "pastoral", label: "ศิษยาภิบาล" },
-  { id: "admin", label: "บริหารและธุรการ" },
-  { id: "other", label: "อื่น ๆ" },
-] as const;
 
 const fmtBaht = (n: number) =>
   `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -464,7 +449,7 @@ export default function CountingDetail() {
                       onChange={e => setCategory(e.target.value)}
                       className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
                     >
-                      {CATEGORIES.map(c => (
+                      {OFFERING_CATEGORIES.map(c => (
                         <option key={c.id} value={c.id}>
                           {c.label}
                         </option>
@@ -572,9 +557,9 @@ export default function CountingDetail() {
                     const who = envelope.isAnonymous
                       ? "ไม่ระบุนาม"
                       : (member?.name ?? envelope.donorName ?? "ไม่ระบุชื่อ");
-                    const categoryLabel =
-                      CATEGORIES.find(c => c.id === envelope.category)?.label ??
-                      envelope.category;
+                    const categoryLabel = offeringCategoryLabel(
+                      envelope.category
+                    );
                     const fundName =
                       funds.find(f => f.id === envelope.fundId)?.name ??
                       "ไม่ระบุกองทุน";

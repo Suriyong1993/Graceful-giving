@@ -57,6 +57,13 @@ import {
 } from "@/components/ui/sheet";
 import { Illustration } from "@/components/Illustration";
 import { AppMenu } from "@/components/layout/AppNavigation";
+import {
+  EXPENSE_CATEGORIES,
+  OFFERING_CATEGORIES,
+  offeringCategoryLabel,
+  type ExpenseCategory,
+  type OfferingCategory,
+} from "@shared/categories";
 
 export const quickActions = [
   { label: "บันทึกถวาย", icon: HandCoins, tone: "income" },
@@ -163,7 +170,7 @@ export default function Home() {
 
   // Multi-step offering form state
   const [offeringStep, setOfferingStep] = useState<1 | 2 | 3>(1);
-  const [offeringType, setOfferingType] = useState("ถวายประจำสัปดาห์");
+  const [offeringType, setOfferingType] = useState<OfferingCategory>("general");
   const [offeringAmount, setOfferingAmount] = useState("");
   const [offeringFund, setOfferingFund] = useState("");
   const [offeringMethod, setOfferingMethod] = useState("เงินสด");
@@ -174,7 +181,7 @@ export default function Home() {
   const [expenseForm, setExpenseForm] = useState({
     title: "",
     amount: "",
-    category: "อุปกรณ์นมัสการ",
+    category: "worship" as ExpenseCategory,
     fundId: "",
     paymentMethod: "โอนธนาคาร",
     notes: "",
@@ -238,7 +245,7 @@ export default function Home() {
       setOfferingSuccess(true);
       setOfferingOpen(false);
       toast.success("บันทึกการถวายเรียบร้อยแล้ว", {
-        description: `ยอดเงิน ฿${Number(offeringAmount).toLocaleString()} เข้า${fundName}`,
+        description: `${offeringCategoryLabel(offeringType)} ฿${Number(offeringAmount).toLocaleString()} เข้า${fundName}`,
       });
     },
     onError: error => {
@@ -254,7 +261,7 @@ export default function Home() {
       setExpenseForm({
         title: "",
         amount: "",
-        category: "อุปกรณ์นมัสการ",
+        category: "worship" as ExpenseCategory,
         fundId: "",
         paymentMethod: "โอนธนาคาร",
         notes: "",
@@ -303,26 +310,7 @@ export default function Home() {
   const chartData = monthlyStatsData ?? [];
   const fundAccounts = accountsData ?? [];
 
-  // Category & payment method mappers
-  const mapOfferingCategory = (
-    cat: string
-  ): "general" | "tithe" | "mission" | "building" | "welfare" | "special" => {
-    switch (cat) {
-      case "สิบลด (Tithe)":
-        return "tithe";
-      case "ถวายพิเศษ / ขอบพระคุณ":
-        return "special";
-      case "ถวายพันธกิจ":
-        return "mission";
-      case "ถวายสร้างอาคาร":
-        return "building";
-      case "การสงเคราะห์":
-        return "welfare";
-      default:
-        return "general";
-    }
-  };
-
+  // Payment method mapper (Thai button labels -> API values)
   const mapPaymentMethod = (m: string): "cash" | "transfer" | "check" => {
     switch (m) {
       case "โอนธนาคาร":
@@ -335,33 +323,6 @@ export default function Home() {
     }
   };
 
-  const mapExpenseCategory = (
-    cat: string
-  ):
-    | "admin"
-    | "building"
-    | "welfare"
-    | "utilities"
-    | "ministry"
-    | "pastoral"
-    | "worship"
-    | "other" => {
-    switch (cat) {
-      case "อุปกรณ์นมัสการ":
-        return "worship";
-      case "สาธารณูปโภค":
-        return "utilities";
-      case "พันธกิจชุมชน":
-        return "ministry";
-      case "ค่าบำรุงอาคาร":
-        return "building";
-      case "กิจกรรมเยาวชน":
-        return "ministry";
-      default:
-        return "other";
-    }
-  };
-
   // Combined transactions
   const allTransactions = useMemo(() => {
     const list: any[] = [];
@@ -370,12 +331,7 @@ export default function Home() {
         list.push({
           id: `offering-${o.id}`,
           rawId: o.id,
-          title:
-            o.category === "tithe"
-              ? "ถวายสิบลด"
-              : o.category === "mission"
-                ? "ถวายพันธกิจ"
-                : "ถวายประจำสัปดาห์",
+          title: offeringCategoryLabel(o.category),
           date: o.receiptDate || o.createdAt,
           type: "income",
           category: o.category,
@@ -461,7 +417,7 @@ export default function Home() {
       return;
     }
     createOfferingMutation.mutate({
-      category: mapOfferingCategory(offeringType),
+      category: offeringType,
       amount: Number(offeringAmount),
       fundId: Number(offeringFund),
       method: mapPaymentMethod(offeringMethod),
@@ -1678,25 +1634,18 @@ export default function Home() {
                 ประเภทการถวาย
               </label>
               <div className="grid grid-cols-2 gap-2">
-                {[
-                  "ถวายประจำสัปดาห์",
-                  "สิบลด (Tithe)",
-                  "ถวายพิเศษ / ขอบพระคุณ",
-                  "ถวายพันธกิจ",
-                  "ถวายสร้างอาคาร",
-                  "การสงเคราะห์",
-                ].map(cat => (
+                {OFFERING_CATEGORIES.map(cat => (
                   <button
-                    key={cat}
+                    key={cat.id}
                     type="button"
-                    onClick={() => setOfferingType(cat)}
+                    onClick={() => setOfferingType(cat.id)}
                     className={`p-3 rounded-2xl border text-xs font-bold text-left transition-all ${
-                      offeringType === cat
+                      offeringType === cat.id
                         ? "bg-[#FFF4DF] border-[#E99A4A] text-[#70452E] shadow-2xs"
                         : "bg-white border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
                     }`}
                   >
-                    {cat}
+                    {cat.label}
                   </button>
                 ))}
               </div>
@@ -1892,7 +1841,7 @@ export default function Home() {
               <p>
                 <span className="text-[#927D6D]">รายการ:</span>{" "}
                 <span className="font-bold text-[#70452E]">
-                  {submittedOffering.type}
+                  {offeringCategoryLabel(submittedOffering.type)}
                 </span>
               </p>
               <p>
@@ -1935,7 +1884,7 @@ export default function Home() {
               createExpenseMutation.mutate({
                 description: expenseForm.title,
                 amount: Number(expenseForm.amount),
-                category: mapExpenseCategory(expenseForm.category),
+                category: expenseForm.category,
                 fundId: Number(expenseForm.fundId),
                 details: expenseForm.notes || undefined,
               });
@@ -1980,15 +1929,18 @@ export default function Home() {
                 <select
                   value={expenseForm.category}
                   onChange={e =>
-                    setExpenseForm({ ...expenseForm, category: e.target.value })
+                    setExpenseForm({
+                      ...expenseForm,
+                      category: e.target.value as ExpenseCategory,
+                    })
                   }
                   className="w-full p-2.5 rounded-xl bg-white border border-[#E9D9BF] text-xs"
                 >
-                  <option value="อุปกรณ์นมัสการ">อุปกรณ์นมัสการ</option>
-                  <option value="สาธารณูปโภค">สาธารณูปโภค (น้ำ-ไฟ)</option>
-                  <option value="พันธกิจชุมชน">พันธกิจชุมชน</option>
-                  <option value="ค่าบำรุงอาคาร">ค่าบำรุงอาคาร</option>
-                  <option value="กิจกรรมเยาวชน">กิจกรรมเยาวชน</option>
+                  {EXPENSE_CATEGORIES.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

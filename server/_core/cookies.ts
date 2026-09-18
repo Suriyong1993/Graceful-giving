@@ -39,10 +39,16 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
+
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // SameSite=None is only legal on a secure origin. Browsers reject such a
+    // cookie over plain http, which silently breaks both sign-in and sign-out
+    // on non-https origins. Fall back to Lax there; https keeps None so the
+    // session still works when the app is embedded cross-site.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }

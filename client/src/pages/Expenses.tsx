@@ -23,11 +23,19 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@shared/categories";
 
 export default function Expenses() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+  });
+  const funds = fundsQuery.data ?? [];
+  const fundName = (id: number | null) =>
+    funds.find(f => f.id === id)?.name ?? "ไม่ระบุกองทุน";
 
   const {
     data: expensesData,
@@ -46,7 +54,7 @@ export default function Expenses() {
         date: e.expenseDate || e.createdAt,
         payee: e.payee || "ทั่วไป",
         receiptRef: e.receiptRef || "-",
-        fund: "บัญชีทั่วไป",
+        fundId: e.fundId as number | null,
         status: e.status || "approved",
       }));
     }
@@ -76,7 +84,7 @@ export default function Expenses() {
     const rows = filteredExpenses
       .map(
         e =>
-          `"${e.id}","${new Date(e.date).toLocaleDateString("th-TH")}","${e.description}","${e.category}","${e.payee}",${e.amount},"${e.receiptRef}","${e.fund}","${e.status}"`
+          `"${e.id}","${new Date(e.date).toLocaleDateString("th-TH")}","${e.description}","${expenseCategoryLabel(e.category)}","${e.payee}",${e.amount},"${e.receiptRef}","${fundName(e.fundId)}","${e.status}"`
       )
       .join("\n");
     const blob = new Blob(["\uFEFF" + headers + rows], {
@@ -95,56 +103,24 @@ export default function Expenses() {
     toast.success("ส่งออกข้อมูลรายจ่ายสำเร็จ");
   };
 
-  const getCategoryLabel = (category: string) => {
+  const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "utility":
-        return {
-          label: "สาธารณูปโภค",
-          icon: Zap,
-          color: "bg-amber-100 text-amber-800",
-        };
+      case "utilities":
+        return { icon: Zap, color: "bg-amber-100 text-amber-800" };
       case "ministry":
-        return {
-          label: "พันธกิจ",
-          icon: Users,
-          color: "bg-sky-100 text-sky-800",
-        };
-      case "salary":
-        return {
-          label: "เงินเดือน/ค่าตอบแทน",
-          icon: Receipt,
-          color: "bg-purple-100 text-purple-800",
-        };
-      case "mission":
-        return {
-          label: "มิชชันภายนอก",
-          icon: Cross,
-          color: "bg-emerald-100 text-emerald-800",
-        };
+        return { icon: Users, color: "bg-sky-100 text-sky-800" };
+      case "pastoral":
+        return { icon: Cross, color: "bg-emerald-100 text-emerald-800" };
+      case "admin":
+        return { icon: Receipt, color: "bg-purple-100 text-purple-800" };
       case "building":
-        return {
-          label: "อาคารสถานที่",
-          icon: Building,
-          color: "bg-orange-100 text-orange-800",
-        };
-      case "education":
-        return {
-          label: "การศึกษา/รวี",
-          icon: GraduationCap,
-          color: "bg-blue-100 text-blue-800",
-        };
-      case "benevolence":
-        return {
-          label: "สงเคราะห์",
-          icon: HeartHandshake,
-          color: "bg-rose-100 text-rose-800",
-        };
+        return { icon: Building, color: "bg-orange-100 text-orange-800" };
+      case "worship":
+        return { icon: GraduationCap, color: "bg-blue-100 text-blue-800" };
+      case "welfare":
+        return { icon: HeartHandshake, color: "bg-rose-100 text-rose-800" };
       default:
-        return {
-          label: "ทั่วไป",
-          icon: Receipt,
-          color: "bg-stone-100 text-stone-700",
-        };
+        return { icon: Receipt, color: "bg-stone-100 text-stone-700" };
     }
   };
 
@@ -240,13 +216,12 @@ export default function Expenses() {
             activeFilter={categoryFilter}
             onFilterChange={setCategoryFilter}
             filters={[
-              { label: "ทุกหมวดหมู่", id: "all" },
-              { label: "สาธารณูปโภค", id: "utility" },
-              { label: "พันธกิจ", id: "ministry" },
-              { label: "สงเคราะห์", id: "benevolence" },
-              { label: "การศึกษา/รวี", id: "education" },
-              { label: "อาคารสถานที่", id: "building" },
-              { label: "เงินเดือน", id: "salary" },
+              { label: "ทุกหมวดหมู่", id: "all", count: expenses.length },
+              ...EXPENSE_CATEGORIES.map(c => ({
+                label: c.label,
+                id: c.id,
+                count: expenses.filter(e => e.category === c.id).length,
+              })),
             ]}
           />
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
@@ -303,12 +278,14 @@ export default function Expenses() {
                 </thead>
                 <tbody className="divide-y divide-[#E9D9BF]/40">
                   {filteredExpenses.map(e => {
-                    const cat = getCategoryLabel(e.category);
+                    const cat = getCategoryIcon(e.category);
                     const CatIcon = cat.icon;
                     return (
                       <tr
                         key={e.id}
-                        onClick={() => setLocation(`/transactions/${e.id}`)}
+                        onClick={() =>
+                          setLocation(`/transactions/expense-${e.id}`)
+                        }
                         className="hover:bg-[#FFF4DF]/30 cursor-pointer transition-colors"
                       >
                         <td className="py-4 px-6 whitespace-nowrap text-[#70452E]/80">
@@ -326,14 +303,14 @@ export default function Expenses() {
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cat.color}`}
                           >
                             <CatIcon className="w-3.5 h-3.5" />
-                            {cat.label}
+                            {expenseCategoryLabel(e.category)}
                           </span>
                         </td>
                         <td className="py-4 px-6 text-[#70452E]/80 whitespace-nowrap">
                           {e.payee}
                         </td>
                         <td className="py-4 px-6 text-xs text-[#70452E]/80 whitespace-nowrap">
-                          {e.fund}
+                          {fundName(e.fundId)}
                         </td>
                         <td className="py-4 px-6 text-xs text-[#70452E]/60 font-mono whitespace-nowrap">
                           {e.receiptRef}
@@ -358,12 +335,12 @@ export default function Expenses() {
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-[#E9D9BF]/40">
               {filteredExpenses.map(e => {
-                const cat = getCategoryLabel(e.category);
+                const cat = getCategoryIcon(e.category);
                 const CatIcon = cat.icon;
                 return (
                   <div
                     key={e.id}
-                    onClick={() => setLocation(`/transactions/${e.id}`)}
+                    onClick={() => setLocation(`/transactions/expense-${e.id}`)}
                     className="p-4 flex items-center justify-between gap-3 active:bg-[#FFF4DF]/40"
                   >
                     <div className="space-y-1 min-w-0">
@@ -372,7 +349,7 @@ export default function Expenses() {
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${cat.color}`}
                         >
                           <CatIcon className="w-3 h-3" />
-                          {cat.label}
+                          {expenseCategoryLabel(e.category)}
                         </span>
                         <span className="text-xs text-[#70452E]/60 font-mono">
                           {e.receiptRef}

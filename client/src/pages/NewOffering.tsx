@@ -17,6 +17,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
+  OFFERING_CATEGORIES,
+  offeringCategoryLabel,
+  type OfferingCategory,
+} from "@shared/categories";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -26,9 +31,14 @@ import {
 export default function NewOffering() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
+  // Real funds from the database; ids are never assumed.
+  const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+  });
+  const funds = fundsQuery.data ?? [];
 
   // Form State
-  const [category, setCategory] = useState("ถวายประจำสัปดาห์");
+  const [category, setCategory] = useState<OfferingCategory>("general");
   const [amount, setAmount] = useState("");
   const [fundId, setFundId] = useState("");
   const [method, setMethod] = useState("เงินสด");
@@ -45,7 +55,7 @@ export default function NewOffering() {
         donorName ||
         isAnonymous ||
         fundId ||
-        category !== "ถวายประจำสัปดาห์" ||
+        category !== "general" ||
         method !== "เงินสด"
     );
   useUnsavedChanges(isDirty);
@@ -82,16 +92,7 @@ export default function NewOffering() {
     }
 
     createMutation.mutate({
-      category:
-        category === "สิบลด"
-          ? "tithe"
-          : category === "ถวายพันธกิจ"
-            ? "mission"
-            : category === "ถวายก่อสร้าง"
-              ? "building"
-              : category === "ถวายพิเศษ"
-                ? "special"
-                : "general",
+      category,
       amount: Number(amount),
       fundId: Number(fundId),
       method:
@@ -104,14 +105,7 @@ export default function NewOffering() {
     });
   };
 
-  const categories = [
-    { id: "ถวายประจำสัปดาห์", label: "ถวายประจำสัปดาห์" },
-    { id: "สิบลด", label: "สิบลด (Tithe)" },
-    { id: "ถวายพิเศษ", label: "ถวายพิเศษ / ขอบพระคุณ" },
-    { id: "ถวายพันธกิจ", label: "ถวายพันธกิจและการประกาศ" },
-    { id: "ถวายก่อสร้าง", label: "ถวายก่อสร้าง / อาคาร" },
-    { id: "บริจาค", label: "การสงเคราะห์ / บริจาค" },
-  ];
+  const categories = OFFERING_CATEGORIES;
 
   const quickAmounts = [100, 300, 500, 1000, 2000, 5000];
 
@@ -224,17 +218,25 @@ export default function NewOffering() {
               3. เข้ากองทุน
             </label>
             <select
+              required
               value={fundId}
               onChange={e => setFundId(e.target.value)}
               className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs sm:text-sm text-[#38251B] focus:outline-none focus:border-[#E99A4A]"
             >
-              <option value="">เลือกกองทุนที่รับรายการ</option>
-              <option value="1">บัญชีทั่วไป (เพื่อการดำเนินงาน)</option>
-              <option value="2">กองทุนพันธกิจและการประกาศ</option>
-              <option value="3">กองทุนอาคารและสถานที่</option>
-              <option value="4">กองทุนการสงเคราะห์สมาชิก</option>
-              <option value="5">กองทุนอนุชนและรวีวารศึกษา</option>
+              <option value="" disabled>
+                — เลือกกองทุน —
+              </option>
+              {funds.map(f => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
             </select>
+            {funds.length === 0 && (
+              <p className="text-xs text-[#D45945]">
+                ยังไม่มีกองทุนในระบบ ต้องสร้างกองทุนก่อนบันทึกการถวาย
+              </p>
+            )}
           </div>
 
           {/* 4. วิธีรับเงิน */}
@@ -365,7 +367,9 @@ export default function NewOffering() {
           <div className="p-4 rounded-2xl bg-[#FFF4DF] border border-[#E9D9BF] text-xs text-left space-y-1.5">
             <p className="flex justify-between">
               <span className="text-[#927D6D]">ประเภท:</span>
-              <span className="font-bold text-[#70452E]">{category}</span>
+              <span className="font-bold text-[#70452E]">
+                {offeringCategoryLabel(category)}
+              </span>
             </p>
             <p className="flex justify-between">
               <span className="text-[#927D6D]">จำนวนเงิน:</span>

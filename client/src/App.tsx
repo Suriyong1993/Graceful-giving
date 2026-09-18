@@ -38,6 +38,39 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Updates = lazy(() => import("./pages/Updates"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 
+/** Routes reachable without a session. Everything else needs one. */
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/404",
+  ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
+];
+
+function normalizePath(path: string) {
+  return path.length > 1 ? path.replace(/\/+$/, "") : path;
+}
+
+/**
+ * Sends signed-out visitors to /login. Without this the app shell renders for
+ * anyone and every query fails with UNAUTHORIZED, which reads as a broken page
+ * rather than as "please sign in".
+ */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const [location, setLocation] = useLocation();
+  const { isAuthenticated, loading } = useAuth();
+  const isPublic = PUBLIC_PATHS.includes(normalizePath(location));
+
+  useEffect(() => {
+    if (loading || isPublic || isAuthenticated) return;
+    setLocation("/login");
+  }, [loading, isPublic, isAuthenticated, setLocation]);
+
+  if (isPublic) return <>{children}</>;
+  if (loading) return <RouteLoading />;
+  if (!isAuthenticated) return <RouteLoading />;
+  return <>{children}</>;
+}
+
 const SETUP_EXEMPT_PATHS = [
   "/setup",
   "/login",
@@ -176,7 +209,9 @@ function App() {
           <Toaster position="top-center" richColors />
           <SetupGate />
           <Suspense fallback={<RouteLoading />}>
-            <Router />
+            <AuthGate>
+              <Router />
+            </AuthGate>
           </Suspense>
         </TooltipProvider>
       </ThemeProvider>

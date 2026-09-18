@@ -23,6 +23,7 @@ import {
   getChurchProfile,
   getExpenseById,
   getFinancialReportData,
+  getFinancialReportSummary,
   getFinancialSummary,
   getMonthlyStats,
   getOfferingById,
@@ -73,6 +74,10 @@ import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
 import type { CountingStatus } from "@shared/counting";
 import { canTransition, isEditable } from "@shared/counting";
+import {
+  EXPENSE_CATEGORY_IDS,
+  OFFERING_CATEGORY_IDS,
+} from "@shared/categories";
 
 // ─── Permission helpers ────────────────────────────────────────────────────────
 
@@ -170,24 +175,10 @@ const newsCategory = z.enum([
 ]);
 const newsStatus = z.enum(["draft", "published", "archived"]);
 const eventStatus = z.enum(["draft", "published", "cancelled"]);
-const offeringCategory = z.enum([
-  "tithe",
-  "general",
-  "mission",
-  "building",
-  "welfare",
-  "special",
-]);
-const expenseCategory = z.enum([
-  "utilities",
-  "ministry",
-  "pastoral",
-  "admin",
-  "building",
-  "worship",
-  "welfare",
-  "other",
-]);
+// Built from the shared category source of truth, so the API can never accept
+// a value the database enum would reject, or reject one the UI offers.
+const offeringCategory = z.enum(OFFERING_CATEGORY_IDS);
+const expenseCategory = z.enum(EXPENSE_CATEGORY_IDS);
 const expenseStatus = z.enum(["draft", "approved", "paid"]);
 const paymentMethod = z.enum(["cash", "transfer", "check"]);
 const churchRoleEnum = z.enum([
@@ -744,6 +735,16 @@ export const appRouter = router({
 
   // ── Reports ──────────────────────────────────────────────────────────────────
   reports: router({
+    /** Category totals and fund balances for the report screen. */
+    summary: protectedProcedure
+      .input(reportDateRange)
+      .query(async ({ input }) =>
+        getFinancialReportSummary(
+          DEFAULT_CHURCH_ID,
+          input.fromDate,
+          input.toDate
+        )
+      ),
     financial: protectedProcedure
       .input(reportDateRange)
       .query(async ({ input }) => {

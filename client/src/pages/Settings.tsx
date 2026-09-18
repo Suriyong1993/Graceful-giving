@@ -19,8 +19,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { LogOut } from "lucide-react";
+import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
 
 export default function Settings() {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "church" | "roles" | "categories" | "payment"
   >("church");
@@ -120,7 +124,7 @@ export default function Settings() {
       bankName,
       bankAccount,
       bankAccountName,
-      fiscalYearStartMonth: 1,
+      fiscalYearStartMonth: churchProfile?.fiscalYearStartMonth ?? 1,
       motto,
     });
   };
@@ -331,6 +335,32 @@ export default function Settings() {
           </form>
         )}
 
+        {/* Account and sign out */}
+        {activeTab === "church" && (
+          <section className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8">
+            <h3 className="text-base font-bold text-[#38251B]">บัญชีผู้ใช้</h3>
+            <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-[#674F42]">
+                <p className="font-bold text-[#38251B]">
+                  {user?.name || "ผู้ใช้งาน"}
+                </p>
+                <p>{user?.email || "ไม่ระบุอีเมล"}</p>
+                <p className="mt-1">
+                  บทบาท: {user?.churchRole || "ยังไม่กำหนด"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-bold text-rose-700 transition-colors hover:bg-rose-100"
+              >
+                <LogOut className="h-4 w-4" />
+                ออกจากระบบ
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Tab 2: Roles */}
         {activeTab === "roles" && (
           <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
@@ -368,28 +398,43 @@ export default function Settings() {
               หมวดหมู่การเงินมาตรฐานคริสตจักร
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/60">
-                <p className="font-bold text-[#38251B]">หมวดรายรับ (Income)</p>
-                <ul className="list-disc pl-5 mt-1.5 space-y-1 text-[#70452E]/80">
-                  <li>เงินถวายสิบลด (Tithes)</li>
-                  <li>เงินถวายทั่วไปประจำสัปดาห์ (General)</li>
-                  <li>เงินถวายพันธกิจและประกาศ (Mission)</li>
-                  <li>เงินถวายสมทบสร้างอาคาร (Building)</li>
-                  <li>เงินถวายขอบพระคุณ (Thanksgiving)</li>
+            <p className="text-sm text-[#674F42]">
+              หมวดหมู่เหล่านี้คือค่าที่ระบบใช้จริงทั้งในฐานข้อมูล แบบฟอร์ม
+              และรายงาน
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-[#E9D9BF]/60 bg-[#FFF9EE] p-4">
+                <p className="font-bold text-[#38251B]">
+                  หมวดรายรับ (เงินถวาย)
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {OFFERING_CATEGORIES.map(c => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-3 text-sm text-[#674F42]"
+                    >
+                      <span>{c.label}</span>
+                      <span className="font-mono text-xs text-[#927D6D]">
+                        {c.id}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
-
-              <div className="p-3.5 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/60">
-                <p className="font-bold text-[#38251B]">
-                  หมวดรายจ่าย (Expenses)
-                </p>
-                <ul className="list-disc pl-5 mt-1.5 space-y-1 text-[#70452E]/80">
-                  <li>ค่าสาธารณูปโภค (Utility)</li>
-                  <li>พันธกิจและกิจกรรมคริสตจักร (Ministry)</li>
-                  <li>สงเคราะห์และสังคม (Benevolence)</li>
-                  <li>อาคารและสถานที่ (Facilities)</li>
-                  <li>เงินเดือนและค่าตอบแทนบุคลากร (Staff)</li>
+              <div className="rounded-2xl border border-[#E9D9BF]/60 bg-[#FFF9EE] p-4">
+                <p className="font-bold text-[#38251B]">หมวดรายจ่าย</p>
+                <ul className="mt-2 space-y-1">
+                  {EXPENSE_CATEGORIES.map(c => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-3 text-sm text-[#674F42]"
+                    >
+                      <span>{c.label}</span>
+                      <span className="font-mono text-xs text-[#927D6D]">
+                        {c.id}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
