@@ -23,8 +23,8 @@ export default function Members() {
   const [notes, setNotes] = useState("");
   const isDirty = Boolean(showCreate && (name || phone || email || notes));
   useUnsavedChanges(isDirty);
-  const closeCreateForm = () => {
-    if (!confirmDiscardChanges(isDirty)) return;
+  const closeCreateForm = async () => {
+    if (!(await confirmDiscardChanges(isDirty))) return;
     setShowCreate(false);
     setName("");
     setPhone("");

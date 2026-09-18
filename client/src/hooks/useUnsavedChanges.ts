@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { Swal } from "@/lib/sweetalert";
 
 export const UNSAVED_CHANGES_MESSAGE =
   "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?";
@@ -15,11 +16,24 @@ export function hasUnsavedChanges(): boolean {
   return dirtyForms.size > 0;
 }
 
+export function clearUnsavedChanges(): void {
+  dirtyForms.clear();
+}
+
 /** Guard for navigation away from whatever form is currently mounted. */
-export function confirmDiscardPendingChanges(
+export async function confirmDiscardPendingChanges(
   message: string = UNSAVED_CHANGES_MESSAGE
-): boolean {
-  return !hasUnsavedChanges() || window.confirm(message);
+): Promise<boolean> {
+  if (!hasUnsavedChanges()) return true;
+  return await Swal.confirm(
+    "มีข้อมูลที่ยังไม่ได้บันทึก",
+    message,
+    {
+      confirmButtonText: "ออกจากหน้านี้",
+      cancelButtonText: "กรอกข้อมูลต่อ",
+      icon: "warning",
+    }
+  );
 }
 
 /**
@@ -65,9 +79,20 @@ export function useUnsavedChanges(
 
     window.history.pushState(null, "", window.location.href);
 
-    const handlePopState = () => {
+    const handlePopState = async () => {
       if (!isDirtyRef.current) return;
-      if (window.confirm(message)) {
+      const isConfirmed = await Swal.confirm(
+        "มีข้อมูลที่ยังไม่ได้บันทึก",
+        message,
+        {
+          confirmButtonText: "ออกจากหน้านี้",
+          cancelButtonText: "กรอกข้อมูลต่อ",
+          icon: "warning",
+        }
+      );
+      if (isConfirmed) {
+        clearUnsavedChanges();
+        isDirtyRef.current = false;
         window.history.back();
       } else {
         window.history.pushState(null, "", window.location.href);
@@ -80,11 +105,20 @@ export function useUnsavedChanges(
 }
 
 /** Guard for in-app navigation triggered by a button or link. */
-export function confirmDiscardChanges(
+export async function confirmDiscardChanges(
   isDirty: boolean,
   message: string = UNSAVED_CHANGES_MESSAGE
-): boolean {
-  return !isDirty || window.confirm(message);
+): Promise<boolean> {
+  if (!isDirty) return true;
+  return await Swal.confirm(
+    "มีข้อมูลที่ยังไม่ได้บันทึก",
+    message,
+    {
+      confirmButtonText: "ออกจากหน้านี้",
+      cancelButtonText: "กรอกข้อมูลต่อ",
+      icon: "warning",
+    }
+  );
 }
 
 /**
@@ -95,8 +129,12 @@ export function confirmDiscardChanges(
 export function useGuardedNavigate() {
   const [, setLocation] = useLocation();
   return useCallback(
-    (path: string) => {
-      if (confirmDiscardPendingChanges()) setLocation(path);
+    async (path: string) => {
+      const allowed = await confirmDiscardPendingChanges();
+      if (allowed) {
+        clearUnsavedChanges();
+        setLocation(path);
+      }
     },
     [setLocation]
   );

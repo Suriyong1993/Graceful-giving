@@ -22,6 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Swal } from "@/lib/sweetalert";
 import {
   confirmDiscardChanges,
   useUnsavedChanges,
@@ -226,28 +227,32 @@ export default function TransactionDetail() {
           )}
           {transaction && (
             <button
-              onClick={() => {
-                if (
-                  !window.confirm(
-                    "ต้องการยกเลิกรายการนี้หรือไม่? ข้อมูลจะไม่ถูกลบถาวร แต่ยอดกองทุนจะถูกปรับกลับ"
-                  )
-                )
-                  return;
+              onClick={async () => {
+                const isConfirmed = await Swal.confirm(
+                  "ยืนยันการยกเลิกรายการ?",
+                  "ข้อมูลจะไม่ถูกลบถาวร แต่ยอดเงินในกองทุนจะถูกปรับกลับสถานะเดิม",
+                  {
+                    confirmButtonText: "ยืนยันยกเลิกรายการ",
+                    cancelButtonText: "ปิดหน้าต่าง",
+                    icon: "warning",
+                  }
+                );
+                if (!isConfirmed) return;
                 if (isOffering) deleteOffering.mutate({ id: recordId });
                 if (isExpense) deleteExpense.mutate({ id: recordId });
               }}
               disabled={deleteOffering.isPending || deleteExpense.isPending}
-              className="min-h-11 px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1.5 disabled:opacity-50"
+              className="min-h-11 px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <Ban className="w-4 h-4" />
               <span>ยกเลิกรายการ</span>
             </button>
           )}
           <button
-            onClick={() => {
-              if (confirmDiscardChanges(isDirty)) setLocation("/transactions");
+            onClick={async () => {
+              if (await confirmDiscardChanges(isDirty)) setLocation("/transactions");
             }}
-            className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5"
+            className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>กลับหน้ารายการ</span>

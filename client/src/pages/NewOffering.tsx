@@ -59,8 +59,8 @@ export default function NewOffering() {
         method !== "เงินสด"
     );
   useUnsavedChanges(isDirty);
-  const goBack = () => {
-    if (confirmDiscardChanges(isDirty)) {
+  const goBack = async () => {
+    if (await confirmDiscardChanges(isDirty)) {
       setLocation("/offerings");
     }
   };

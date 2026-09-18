@@ -5,6 +5,7 @@ import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
+import { Swal } from "@/lib/sweetalert";
 import {
   confirmDiscardChanges,
   useUnsavedChanges,
@@ -23,61 +24,49 @@ export default function MemberDetail() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
-  const [baseline, setBaseline] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    notes: "",
-  });
+
   useEffect(() => {
     if (query.data) {
-      const loaded = {
-        name: query.data.name,
-        phone: query.data.phone || "",
-        email: query.data.email || "",
-        notes: query.data.notes || "",
-      };
-      setName(loaded.name);
-      setPhone(loaded.phone);
-      setEmail(loaded.email);
-      setNotes(loaded.notes);
-      setBaseline(loaded);
+      setName(query.data.name ?? "");
+      setPhone(query.data.phone ?? "");
+      setEmail(query.data.email ?? "");
+      setNotes(query.data.notes ?? "");
     }
   }, [query.data]);
-  const isDirty =
-    name !== baseline.name ||
-    phone !== baseline.phone ||
-    email !== baseline.email ||
-    notes !== baseline.notes;
-  useUnsavedChanges(isDirty);
+
   const update = trpc.members.update.useMutation({
     onSuccess: async () => {
-      await Promise.all([
-        utils.members.getById.invalidate({ id }),
-        utils.members.list.invalidate(),
-      ]);
-      toast.success("บันทึกข้อมูลสมาชิกแล้ว");
+      await utils.members.list.invalidate();
+      await utils.members.getById.invalidate({ id });
+      await Swal.success("บันทึกข้อมูลสำเร็จ!", "อัปเดตข้อมูลสมาชิกเรียบร้อยแล้ว");
     },
-    onError: error =>
-      toast.error(error.message || "บันทึกข้อมูลสมาชิกไม่สำเร็จ"),
+    onError: async error => {
+      await Swal.error("เกิดข้อผิดพลาด", error.message || "ไม่สามารถบันทึกข้อมูลได้");
+    },
   });
+
   const deactivate = trpc.members.deactivate.useMutation({
     onSuccess: async () => {
-      await Promise.all([
-        utils.members.getById.invalidate({ id }),
-        utils.members.list.invalidate(),
-      ]);
-      toast.success("เปลี่ยนสถานะสมาชิกเป็น inactive แล้ว");
+      await utils.members.list.invalidate();
+      await utils.members.getById.invalidate({ id });
+      await Swal.success("ปิดใช้งานสำเร็จ!", "ปิดใช้งานสมาชิกเรียบร้อยแล้ว");
     },
-    onError: error =>
-      toast.error(error.message || "เปลี่ยนสถานะสมาชิกไม่สำเร็จ"),
+    onError: async error => {
+      await Swal.error("เกิดข้อผิดพลาด", error.message || "ไม่สามารถปิดใช้งานได้");
+    },
   });
+
+  const isDirty =
+    Boolean(query.data) &&
+    (name !== (query.data?.name ?? "") ||
+      phone !== (query.data?.phone ?? "") ||
+      email !== (query.data?.email ?? "") ||
+      notes !== (query.data?.notes ?? ""));
+  useUnsavedChanges(isDirty);
+
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (name.trim().length < 2) {
-      toast.error("กรุณาระบุชื่อสมาชิก");
-      return;
-    }
+    if (!Number.isInteger(id) || id <= 0) return;
     update.mutate({
       id,
       name: name.trim(),
@@ -92,8 +81,8 @@ export default function MemberDetail() {
       <div className="max-w-3xl space-y-6">
         <button
           type="button"
-          onClick={() => {
-            if (confirmDiscardChanges(isDirty)) setLocation("/members");
+          onClick={async () => {
+            if (await confirmDiscardChanges(isDirty)) setLocation("/members");
           }}
           className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-[#70452E]"
         >
@@ -135,11 +124,21 @@ export default function MemberDetail() {
                 disabled={
                   deactivate.isPending || query.data.status === "inactive"
                 }
-                onClick={() => {
-                  if (window.confirm("ต้องการปิดใช้งานสมาชิกนี้หรือไม่?"))
+                onClick={async () => {
+                  const isConfirmed = await Swal.confirm(
+                    "ยืนยันการปิดใช้งานสมาชิก?",
+                    "คุณต้องการปิดใช้งานสมาชิกนี้หรือไม่? ข้อมูลประวัติการถวายจะยังคงอยู่แต่สมาชิกจะไม่สามารถใช้งานได้",
+                    {
+                      confirmButtonText: "ยืนยันปิดใช้งาน",
+                      cancelButtonText: "ยกเลิก",
+                      icon: "warning",
+                    }
+                  );
+                  if (isConfirmed) {
                     deactivate.mutate({ id });
+                  }
                 }}
-                className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50"
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer"
               >
                 ปิดใช้งาน
               </button>

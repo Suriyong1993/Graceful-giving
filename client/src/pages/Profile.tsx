@@ -508,7 +508,7 @@ export default function Profile() {
                   "ต้องการออกจากระบบ?",
                   "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชีปัจจุบัน"
                 );
-                if (confirmed.isConfirmed) {
+                if (confirmed) {
                   await logout();
                 }
               }}

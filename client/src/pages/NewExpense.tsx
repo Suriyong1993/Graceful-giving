@@ -61,8 +61,8 @@ export default function NewExpense() {
         category !== "utilities"
     );
   useUnsavedChanges(isDirty);
-  const goBack = () => {
-    if (confirmDiscardChanges(isDirty)) setLocation("/expenses");
+  const goBack = async () => {
+    if (await confirmDiscardChanges(isDirty)) setLocation("/expenses");
   };
 
   const uploadReceiptMutation = trpc.expenses.uploadReceipt.useMutation({

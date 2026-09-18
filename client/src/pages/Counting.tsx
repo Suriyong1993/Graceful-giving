@@ -49,8 +49,8 @@ export default function Counting() {
   const isDirty = showCreate && (serviceDate !== lastSunday() || notes !== "");
   useUnsavedChanges(isDirty);
 
-  const closeCreate = () => {
-    if (!confirmDiscardChanges(isDirty)) return;
+  const closeCreate = async () => {
+    if (!(await confirmDiscardChanges(isDirty))) return;
     setShowCreate(false);
     setServiceDate(lastSunday());
     setNotes("");

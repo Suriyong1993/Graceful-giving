@@ -1,26 +1,36 @@
 import React from "react";
-import { Link } from "wouter";
-import { confirmDiscardPendingChanges } from "@/hooks/useUnsavedChanges";
+import { Link, useLocation } from "wouter";
+import {
+  confirmDiscardPendingChanges,
+  clearUnsavedChanges,
+  hasUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 
 type LinkProps = React.ComponentProps<typeof Link>;
 
 /**
  * A wouter `Link` that asks for confirmation before leaving a form with
- * unsaved edits. Cancelling prevents the default, so wouter skips the
- * navigation and any composed handler — such as the menu sheet's close —
- * never runs, leaving the user on the form.
- *
- * Takes no ref: wouter's `Link` props do not accept one, and the only
- * `asChild` consumer (the menu sheet's `SheetClose`) needs the click
- * handler rather than the node.
+ * unsaved edits using our beautiful SweetAlert modal. Cancelling prevents
+ * the default navigation, leaving the user on the form.
  */
 export function GuardedLink({ onClick, ...props }: LinkProps) {
+  const [, setLocation] = useLocation();
+  const targetHref = (props as any).href || (props as any).to;
+
   return (
     <Link
       {...props}
-      onClick={event => {
-        if (!confirmDiscardPendingChanges()) {
+      onClick={async event => {
+        if (hasUnsavedChanges()) {
           event.preventDefault();
+          const allowed = await confirmDiscardPendingChanges();
+          if (allowed) {
+            clearUnsavedChanges();
+            if (targetHref) {
+              setLocation(String(targetHref));
+            }
+            onClick?.(event);
+          }
           return;
         }
         onClick?.(event);
