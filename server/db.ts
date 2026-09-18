@@ -53,7 +53,10 @@ import type { CountingStatus } from "@shared/counting";
 import { reconcile } from "@shared/counting";
 import { ENV } from "./_core/env";
 
+import { runSchemaInit } from "./schema_init";
+
 let _db: ReturnType<typeof drizzle> | null = null;
+let _schemaInitialized = false;
 
 export const DEFAULT_CHURCH_ID = "demo-church";
 
@@ -69,6 +72,21 @@ export async function getDb() {
       // Eager health-check: `postgres` connects lazily, so verify now to preserve
       // the getDb()-returns-null (never throws) contract on unreachable URLs.
       await client`SELECT 1`;
+
+      if (!_schemaInitialized) {
+        _schemaInitialized = true;
+        try {
+          const res = await client`SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'`;
+          if (res.length === 0) {
+            console.log("[Database] Initializing tables for Neon Postgres...");
+            await runSchemaInit(client);
+            console.log("[Database] Tables initialized successfully.");
+          }
+        } catch (initErr) {
+          console.warn("[Database] Schema init check failed:", initErr);
+        }
+      }
+
       _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
