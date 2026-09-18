@@ -597,6 +597,7 @@ export const appRouter = router({
           expenseDate: z.coerce.date().optional(),
           payee: z.string().trim().max(120).nullable().optional(),
           receiptRef: z.string().trim().max(120).nullable().optional(),
+          receiptUrl: z.string().url().nullable().optional(),
           status: expenseStatus.optional(),
         })
       )
