@@ -3,7 +3,13 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { canManageChurchSettings } from "@shared/roles";
+import {
+  isSuperAdmin,
+  canManageFinance,
+  canCountOfferings,
+  canViewReports,
+  canManageChurchSettings,
+} from "@shared/roles";
 import { trpc } from "@/lib/trpc";
 import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -136,6 +142,55 @@ function RouteLoading() {
   );
 }
 
+function RoleGuard({
+  children,
+  canAccess,
+  title = "สิทธิ์การเข้าถึงถูกจำกัด (Restricted Access)",
+  message = "คุณไม่มีสิทธิ์เข้าถึงส่วนนี้ หากจำเป็นต้องใช้งาน กรุณาติดต่อผู้ดูแลระบบสูงสุด",
+}: {
+  children: React.ReactNode;
+  canAccess: (user: any) => boolean;
+  title?: string;
+  message?: string;
+}) {
+  const { user, loading } = useAuth();
+  if (loading) return <RouteLoading />;
+  if (!user || !canAccess(user)) {
+    return (
+      <div className="min-h-screen bg-[#FFF9EE] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-rose-100 border-2 border-rose-200 mx-auto flex items-center justify-center text-rose-600">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-8 h-8"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-[#38251B]">{title}</h2>
+          <p className="text-sm text-[#70452E]/80 leading-relaxed">{message}</p>
+          <div className="pt-2">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#E99A4A] text-white font-bold text-sm hover:bg-[#d88939] transition-all shadow-xs"
+            >
+              กลับสู่หน้าหลัก
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
@@ -151,43 +206,142 @@ function Router() {
 
       {/* Offerings */}
       {/* Weekly offering count */}
-      <Route path="/counting" component={Counting} />
-      <Route path="/counting/:id" component={CountingDetail} />
+      <Route path="/counting">
+        <RoleGuard
+          canAccess={canCountOfferings}
+          message="ส่วนการนับเงินถวายสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการนับเงินเท่านั้น"
+        >
+          <Counting />
+        </RoleGuard>
+      </Route>
+      <Route path="/counting/:id">
+        <RoleGuard
+          canAccess={canCountOfferings}
+          message="ส่วนการนับเงินถวายสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการนับเงินเท่านั้น"
+        >
+          <CountingDetail />
+        </RoleGuard>
+      </Route>
 
       <Route path="/offerings" component={Offerings} />
       <Route path="/offerings/new" component={NewOffering} />
 
       {/* Expenses */}
-      <Route path="/expenses" component={Expenses} />
-      <Route path="/expenses/new" component={NewExpense} />
+      <Route path="/expenses">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนการจัดการรายจ่ายสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
+        >
+          <Expenses />
+        </RoleGuard>
+      </Route>
+      <Route path="/expenses/new">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนการบันทึกรายจ่ายสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
+        >
+          <NewExpense />
+        </RoleGuard>
+      </Route>
 
       {/* Funds & Accounts */}
-      <Route path="/funds" component={Funds} />
-      <Route path="/funds/:id" component={FundDetail} />
+      <Route path="/funds">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนกองทุนสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการเท่านั้น"
+        >
+          <Funds />
+        </RoleGuard>
+      </Route>
+      <Route path="/funds/:id">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนกองทุนสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการเท่านั้น"
+        >
+          <FundDetail />
+        </RoleGuard>
+      </Route>
 
       {/* Budgets */}
-      <Route path="/budgets" component={Budgets} />
-      <Route path="/budgets/:id" component={BudgetDetail} />
+      <Route path="/budgets">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
+        >
+          <Budgets />
+        </RoleGuard>
+      </Route>
+      <Route path="/budgets/:id">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
+        >
+          <BudgetDetail />
+        </RoleGuard>
+      </Route>
 
       {/* Ministries & Team */}
       <Route path="/ministries" component={Ministries} />
       <Route path="/ministries/:id" component={MinistryDetail} />
 
       {/* Members Directory */}
-      <Route path="/members" component={Members} />
-      <Route path="/members/:id" component={MemberDetail} />
+      <Route path="/members">
+        <RoleGuard
+          canAccess={u =>
+            canManageChurchSettings(u) ||
+            canManageFinance(u) ||
+            u?.churchRole === "DEACON"
+          }
+          message="ส่วนทะเบียนสมาชิกสงวนไว้สำหรับคณะกรรมการคริสตจักรเท่านั้น"
+        >
+          <Members />
+        </RoleGuard>
+      </Route>
+      <Route path="/members/:id">
+        <RoleGuard
+          canAccess={u =>
+            canManageChurchSettings(u) ||
+            canManageFinance(u) ||
+            u?.churchRole === "DEACON"
+          }
+          message="ส่วนทะเบียนสมาชิกสงวนไว้สำหรับคณะกรรมการคริสตจักรเท่านั้น"
+        >
+          <MemberDetail />
+        </RoleGuard>
+      </Route>
 
       {/* Reports & Analytics */}
-      <Route path="/reports" component={Reports} />
+      <Route path="/reports">
+        <RoleGuard
+          canAccess={canViewReports}
+          message="รายงานทางการเงินและสถิติคริสตจักรสงวนไว้สำหรับผู้ได้รับอนุญาตเท่านั้น"
+        >
+          <Reports />
+        </RoleGuard>
+      </Route>
 
       {/* Approvals & Workflows */}
-      <Route path="/approvals" component={Approvals} />
+      <Route path="/approvals">
+        <RoleGuard
+          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          message="ส่วนการอนุมัติโครงการและการเงินสงวนไว้สำหรับผู้อนุมัติเท่านั้น"
+        >
+          <Approvals />
+        </RoleGuard>
+      </Route>
 
       {/* Notifications */}
       <Route path="/notifications" component={Notifications} />
 
       {/* Church & System Settings */}
-      <Route path="/settings" component={Settings} />
+      <Route path="/settings">
+        <RoleGuard
+          canAccess={isSuperAdmin}
+          message="หน้านี้สงวนไว้สำหรับผู้ดูแลระบบสูงสุด (SUPER_ADMIN) เท่านั้น เพื่อความปลอดภัยของข้อมูลคริสตจักรและการกำหนดสิทธิ์ผู้ใช้งาน"
+        >
+          <Settings />
+        </RoleGuard>
+      </Route>
 
       {/* User Profile */}
       <Route path="/profile" component={Profile} />

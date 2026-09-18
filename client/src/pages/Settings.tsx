@@ -18,18 +18,23 @@ import {
   Shield,
   UserCheck,
   Users,
+  FileText,
+  Search,
+  Filter,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Swal } from "@/lib/sweetalert";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { LogOut } from "lucide-react";
 import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
-import { isSuperAdmin, getChurchRoleInfo } from "@shared/roles";
+import { isSuperAdmin, getChurchRoleInfo, CHURCH_ROLES } from "@shared/roles";
 
 export default function Settings() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    "church" | "roles" | "categories" | "payment"
+    "church" | "roles" | "categories" | "payment" | "audit"
   >("church");
   const utils = trpc.useUtils();
 
@@ -44,13 +49,26 @@ export default function Settings() {
     retry: false,
   });
 
+  const auditQuery = trpc.audit.list.useQuery(
+    { limit: 100 },
+    {
+      enabled: activeTab === "audit",
+      retry: false,
+    }
+  );
+
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
+
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditActionFilter, setAuditActionFilter] = useState<string>("ALL");
 
   const setRoleMutation = trpc.auth.setChurchRole.useMutation({
     onSuccess: () => {
-      toast.success("อัปเดตบทบาทผู้ใช้งานเรียบร้อยแล้ว");
       void usersQuery.refetch();
       void utils.auth.me.invalidate();
+      void auditQuery.refetch();
     },
     onError: err => {
       toast.error(err.message || "ไม่สามารถอัปเดตบทบาทได้");
@@ -61,14 +79,37 @@ export default function Settings() {
   });
 
   const handleRoleChange = async (userId: number, newRole: string) => {
+    const targetUser = usersQuery.data?.find(u => u.id === userId);
+    const targetRoleInfo = getChurchRoleInfo(newRole as any);
+
+    const isConfirmed = await Swal.confirm(
+      "ยืนยันการเปลี่ยนบทบาท?",
+      `คุณต้องการปรับบทบาทของ "${targetUser?.name || targetUser?.email || "ผู้ใช้งาน"}" เป็น "${targetRoleInfo.badgeLabel}" หรือไม่? ผู้ใช้จะได้รับสิทธิ์และเมนูตามบทบาทนี้ทันที`,
+      {
+        confirmButtonText: "ยืนยันเปลี่ยนบทบาท",
+        cancelButtonText: "ยกเลิก",
+      }
+    );
+
+    if (!isConfirmed) return;
+
     setUpdatingUserId(userId);
     try {
       await setRoleMutation.mutateAsync({
         userId,
         churchRole: newRole as any,
       });
-    } catch {
-      // Handled in onError
+      await Swal.success(
+        "เปลี่ยนบทบาทสำเร็จ!",
+        `ได้เปลี่ยนบทบาทของ ${targetUser?.name || "ผู้ใช้งาน"} เป็น ${targetRoleInfo.badgeLabel} เรียบร้อยแล้ว`
+      );
+    } catch (err: any) {
+      await Swal.error(
+        "ไม่สามารถเปลี่ยนบทบาทได้",
+        err.message || "เกิดข้อผิดพลาดในการปรับเปลี่ยนบทบาท"
+      );
+    } finally {
+      setUpdatingUserId(null);
     }
   };
 
@@ -131,15 +172,19 @@ export default function Settings() {
   useUnsavedChanges(isDirty);
 
   const updateProfileMutation = trpc.church.updateProfile.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       setIsSaving(false);
       void utils.church.getProfile.invalidate();
-      toast.success("บันทึกการตั้งค่าข้อมูลคริสตจักรเรียบร้อยแล้ว");
       refetch();
+      await Swal.success(
+        "บันทึกข้อมูลสำเร็จ!",
+        "บันทึกการตั้งค่าข้อมูลคริสตจักรเรียบร้อยแล้ว"
+      );
     },
-    onError: error => {
+    onError: async error => {
       setIsSaving(false);
-      toast.error(
+      await Swal.error(
+        "บันทึกไม่สำเร็จ",
         error.message || "บันทึกการตั้งค่าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
       );
     },
@@ -334,6 +379,17 @@ export default function Settings() {
             <QrCode className="w-4 h-4 text-sky-600 shrink-0" />
             <span>บัญชีธนาคาร & พร้อมเพย์</span>
           </button>
+          <button
+            onClick={() => setActiveTab("audit")}
+            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+              activeTab === "audit"
+                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
+                : "text-[#70452E]/70 hover:text-[#38251B]"
+            }`}
+          >
+            <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+            <span>ตรวจสอบประวัติ (Audit Log)</span>
+          </button>
         </div>
 
         {/* Tab 1: Church Profile Form */}
@@ -511,6 +567,36 @@ export default function Settings() {
                 )}
               </div>
 
+              {/* Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#70452E]/50" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาชื่อผู้ใช้งาน หรือ อีเมล..."
+                    value={roleSearch}
+                    onChange={e => setRoleSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#E9D9BF] bg-[#FFF9EE]/40 text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-[#70452E]/60 shrink-0" />
+                  <select
+                    value={roleFilter}
+                    onChange={e => setRoleFilter(e.target.value)}
+                    className="px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                  >
+                    <option value="ALL">บทบาททั้งหมด</option>
+                    <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด</option>
+                    <option value="PASTOR">✝️ ศิษยาภิบาล</option>
+                    <option value="TREASURER">💰 เหรัญญิก</option>
+                    <option value="DEACON">🤝 มัคนายก</option>
+                    <option value="COUNTER">📝 ทีมนับเงิน</option>
+                    <option value="MEMBER">👤 สมาชิกทั่วไป</option>
+                  </select>
+                </div>
+              </div>
+
               {usersQuery.isLoading ? (
                 <div className="py-12 flex flex-col items-center justify-center text-sm text-[#70452E]/70 gap-3">
                   <Loader2 className="w-6 h-6 animate-spin text-[#E99A4A]" />
@@ -532,73 +618,95 @@ export default function Settings() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E9D9BF]/40">
-                      {usersQuery.data.map(u => {
-                        const isMe = u.openId === user?.openId;
-                        const isUpdating = updatingUserId === u.id;
-                        const canEdit =
-                          user?.churchRole === "SUPER_ADMIN" ||
-                          user?.role === "admin";
+                      {(() => {
+                        const filteredUsers = (usersQuery.data || []).filter(u => {
+                          const matchesSearch =
+                            !roleSearch ||
+                            (u.name && u.name.toLowerCase().includes(roleSearch.toLowerCase())) ||
+                            (u.email && u.email.toLowerCase().includes(roleSearch.toLowerCase()));
+                          const matchesFilter =
+                            roleFilter === "ALL" || (u.churchRole || "MEMBER") === roleFilter;
+                          return matchesSearch && matchesFilter;
+                        });
 
-                        return (
-                          <tr
-                            key={u.id}
-                            className="hover:bg-[#FFF9EE]/50 transition-colors"
-                          >
-                            <td className="py-3.5 px-3">
-                              <div className="font-bold text-[#38251B] flex items-center gap-2">
-                                <span>{u.name || "ไม่ระบุชื่อ"}</span>
-                                {isMe && (
-                                  <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full border border-amber-300">
-                                    คุณ
+                        if (filteredUsers.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={4} className="py-8 text-center text-xs text-[#70452E]/70 bg-[#FFF9EE]/30">
+                                ไม่พบผู้ใช้งานที่ตรงกับเงื่อนไขการค้นหา
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filteredUsers.map(u => {
+                          const isMe = u.openId === user?.openId;
+                          const isUpdating = updatingUserId === u.id;
+                          const canEdit =
+                            user?.churchRole === "SUPER_ADMIN" ||
+                            user?.role === "admin";
+
+                          return (
+                            <tr
+                              key={u.id}
+                              className="hover:bg-[#FFF9EE]/50 transition-colors"
+                            >
+                              <td className="py-3.5 px-3">
+                                <div className="font-bold text-[#38251B] flex items-center gap-2">
+                                  <span>{u.name || "ไม่ระบุชื่อ"}</span>
+                                  {isMe && (
+                                    <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full border border-amber-300">
+                                      คุณ
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-3 text-[#674F42]">
+                                {u.email || "-"}
+                              </td>
+                              <td className="py-3.5 px-3 text-xs text-[#927D6D]">
+                                {u.lastSignedIn
+                                  ? new Date(u.lastSignedIn).toLocaleDateString("th-TH", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "-"}
+                              </td>
+                              <td className="py-3.5 px-3 text-right">
+                                {canEdit ? (
+                                  <div className="inline-flex items-center gap-2">
+                                    {isUpdating && (
+                                      <Loader2 className="w-4 h-4 animate-spin text-[#E99A4A]" />
+                                    )}
+                                    <select
+                                      value={u.churchRole || "MEMBER"}
+                                      disabled={isUpdating}
+                                      onChange={e =>
+                                        handleRoleChange(u.id, e.target.value)
+                                      }
+                                      className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] shadow-sm hover:border-[#E99A4A] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20 transition-all cursor-pointer disabled:opacity-50"
+                                    >
+                                      <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)</option>
+                                      <option value="PASTOR">✝️ ศิษยาภิบาล (PASTOR)</option>
+                                      <option value="TREASURER">💰 เหรัญญิกคริสตจักร (TREASURER)</option>
+                                      <option value="DEACON">🤝 มัคนายก / คณะกรรมการ (DEACON)</option>
+                                      <option value="COUNTER">📝 ทีมนับเงินถวาย (COUNTER)</option>
+                                      <option value="MEMBER">👤 สมาชิกคริสตจักร (MEMBER)</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF4DF] text-[#70452E] border border-[#E9D9BF]">
+                                    {u.churchRole || "MEMBER"}
                                   </span>
                                 )}
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-3 text-[#674F42]">
-                              {u.email || "-"}
-                            </td>
-                            <td className="py-3.5 px-3 text-xs text-[#927D6D]">
-                              {u.lastSignedIn
-                                ? new Date(u.lastSignedIn).toLocaleDateString("th-TH", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
-                                : "-"}
-                            </td>
-                            <td className="py-3.5 px-3 text-right">
-                              {canEdit ? (
-                                <div className="inline-flex items-center gap-2">
-                                  {isUpdating && (
-                                    <Loader2 className="w-4 h-4 animate-spin text-[#E99A4A]" />
-                                  )}
-                                  <select
-                                    value={u.churchRole || "MEMBER"}
-                                    disabled={isUpdating}
-                                    onChange={e =>
-                                      handleRoleChange(u.id, e.target.value)
-                                    }
-                                    className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] shadow-sm hover:border-[#E99A4A] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20 transition-all cursor-pointer disabled:opacity-50"
-                                  >
-                                    <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)</option>
-                                    <option value="PASTOR">✝️ ศิษยาภิบาล (PASTOR)</option>
-                                    <option value="TREASURER">💰 เหรัญญิกคริสตจักร (TREASURER)</option>
-                                    <option value="DEACON">🤝 มัคนายก / คณะกรรมการ (DEACON)</option>
-                                    <option value="COUNTER">📝 ทีมนับเงินถวาย (COUNTER)</option>
-                                    <option value="MEMBER">👤 สมาชิกคริสตจักร (MEMBER)</option>
-                                  </select>
-                                </div>
-                              ) : (
-                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF4DF] text-[#70452E] border border-[#E9D9BF]">
-                                  {u.churchRole || "MEMBER"}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -745,6 +853,191 @@ export default function Settings() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab 5: Audit Log */}
+        {activeTab === "audit" && (
+          <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E9D9BF]/60 pb-5">
+              <div>
+                <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  บันทึกประวัติการดำเนินงาน (Audit Log)
+                </h3>
+                <p className="text-xs text-[#70452E]/80 mt-1">
+                  ตรวจสอบความปลอดภัย การปรับเปลี่ยนบทบาทผู้ใช้ และการแก้ไขข้อมูลสำคัญทั้งหมดในระบบ
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void auditQuery.refetch()}
+                disabled={auditQuery.isFetching}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-[#E9D9BF] bg-[#FFF9EE] hover:bg-[#FFF4DF] text-xs font-semibold text-[#70452E] transition-all disabled:opacity-50 self-start sm:self-auto"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    auditQuery.isFetching ? "animate-spin text-[#E99A4A]" : ""
+                  }`}
+                />
+                <span>รีเฟรชข้อมูล</span>
+              </button>
+            </div>
+
+            {/* Search & Filter Bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#70452E]/50" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อผู้ดำเนินการ, อีเมล หรือกิจกรรม..."
+                  value={auditSearch}
+                  onChange={e => setAuditSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#E9D9BF] bg-[#FFF9EE]/40 text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-[#70452E]/60 shrink-0" />
+                <select
+                  value={auditActionFilter}
+                  onChange={e => setAuditActionFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                >
+                  <option value="ALL">กิจกรรมทั้งหมด</option>
+                  <option value="AUTH_SET_CHURCH_ROLE">
+                    👑 เปลี่ยนบทบาทผู้ใช้ (AUTH_SET_CHURCH_ROLE)
+                  </option>
+                  <option value="AUTH_UPDATE_PROFILE">
+                    👤 แก้ไขโปรไฟล์ (AUTH_UPDATE_PROFILE)
+                  </option>
+                  <option value="CHURCH_UPDATE_PROFILE">
+                    🏛️ แก้ไขข้อมูลคริสตจักร (CHURCH_UPDATE_PROFILE)
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {auditQuery.isLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center text-sm text-[#70452E]/70 gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-[#E99A4A]" />
+                <span>กำลังโหลด Audit Log...</span>
+              </div>
+            ) : (() => {
+                const logs = (auditQuery.data || []).filter(log => {
+                  const matchesSearch =
+                    !auditSearch ||
+                    (log.userName &&
+                      log.userName
+                        .toLowerCase()
+                        .includes(auditSearch.toLowerCase())) ||
+                    (log.userEmail &&
+                      log.userEmail
+                        .toLowerCase()
+                        .includes(auditSearch.toLowerCase())) ||
+                    log.action.toLowerCase().includes(auditSearch.toLowerCase());
+                  const matchesFilter =
+                    auditActionFilter === "ALL" ||
+                    log.action === auditActionFilter;
+                  return matchesSearch && matchesFilter;
+                });
+
+                if (logs.length === 0) {
+                  return (
+                    <div className="py-10 text-center text-sm text-[#70452E]/70 bg-[#FFF9EE] rounded-2xl border border-[#E9D9BF]/60">
+                      ยังไม่พบบันทึกประวัติ หรือไม่ตรงกับเงื่อนไขการค้นหา
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-[#E9D9BF]/70 font-bold text-[#70452E]/80 uppercase">
+                          <th className="pb-3 px-3">วัน-เวลา</th>
+                          <th className="pb-3 px-3">ผู้ดำเนินการ (Actor)</th>
+                          <th className="pb-3 px-3">กิจกรรม (Action)</th>
+                          <th className="pb-3 px-3">เป้าหมาย (Target)</th>
+                          <th className="pb-3 px-3">รายละเอียด (Details)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E9D9BF]/40">
+                        {logs.map(log => {
+                          const dateStr = new Date(
+                            log.createdAt
+                          ).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          });
+
+                          let actionBadge = (
+                            <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-mono text-[11px] border border-slate-300">
+                              {log.action}
+                            </span>
+                          );
+                          if (log.action === "AUTH_SET_CHURCH_ROLE") {
+                            actionBadge = (
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-300">
+                                👑 เปลี่ยนบทบาทผู้ใช้
+                              </span>
+                            );
+                          } else if (log.action === "AUTH_UPDATE_PROFILE") {
+                            actionBadge = (
+                              <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-[11px] border border-blue-300">
+                                👤 แก้ไขโปรไฟล์
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <tr
+                              key={log.id}
+                              className="hover:bg-[#FFF9EE]/50 transition-colors"
+                            >
+                              <td className="py-3.5 px-3 text-[#927D6D] font-mono whitespace-nowrap">
+                                {dateStr}
+                              </td>
+                              <td className="py-3.5 px-3 font-semibold text-[#38251B]">
+                                <div>{log.userName || "ไม่ระบุชื่อ"}</div>
+                                {log.userEmail && (
+                                  <div className="text-[11px] text-[#70452E]/70 font-normal">
+                                    {log.userEmail}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-3 whitespace-nowrap">
+                                {actionBadge}
+                              </td>
+                              <td className="py-3.5 px-3 text-[#674F42]">
+                                <span className="font-mono text-[11px] bg-[#FFF4DF] px-2 py-0.5 rounded-md border border-[#E9D9BF]">
+                                  {log.entity}
+                                  {log.entityId ? ` #${log.entityId}` : ""}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-3 text-[#674F42] max-w-sm">
+                                {log.metadata ? (
+                                  <div
+                                    className="font-mono text-[11px] bg-slate-50 p-1.5 rounded-lg border border-slate-200 truncate max-w-[280px]"
+                                    title={JSON.stringify(log.metadata, null, 2)}
+                                  >
+                                    {JSON.stringify(log.metadata)}
+                                  </div>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
           </div>
         )}
       </div>

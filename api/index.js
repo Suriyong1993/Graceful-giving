@@ -414,6 +414,10 @@ var users = pgTable("users", {
   churchRole: varchar("churchRole", { length: 20 }).$type(),
   /** Comma-separated or serialized list of multiple church roles */
   churchRoles: text("churchRoles"),
+  avatarUrl: text("avatarUrl"),
+  phone: varchar("phone", { length: 40 }),
+  department: varchar("department", { length: 120 }),
+  bio: text("bio"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date()),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
@@ -802,11 +806,19 @@ var TABLE_STATEMENTS = [
     "role" "user_role" DEFAULT 'user' NOT NULL,
     "churchRole" varchar(20),
     "churchRoles" text,
+    "avatarUrl" text,
+    "phone" varchar(40),
+    "department" varchar(120),
+    "bio" text,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL,
     "lastSignedIn" timestamp DEFAULT now() NOT NULL
   );`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "churchRoles" text;`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "avatarUrl" text;`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(40);`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "department" varchar(120);`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "bio" text;`,
   `CREATE TABLE IF NOT EXISTS "church_profiles" (
     "id" serial PRIMARY KEY NOT NULL,
     "churchId" varchar(64) NOT NULL UNIQUE,
@@ -1200,7 +1212,11 @@ async function updateUserProfile(userId, input) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(users).set({
-    ...input.name ? { name: input.name } : {},
+    ...input.name !== void 0 ? { name: input.name } : {},
+    ...input.avatarUrl !== void 0 ? { avatarUrl: input.avatarUrl } : {},
+    ...input.phone !== void 0 ? { phone: input.phone } : {},
+    ...input.department !== void 0 ? { department: input.department } : {},
+    ...input.bio !== void 0 ? { bio: input.bio } : {},
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(users.id, userId));
 }
@@ -1750,6 +1766,22 @@ async function createAuditLog(input) {
     entityId: input.entityId ?? null,
     metadata: input.metadata
   });
+}
+async function listAuditLogs(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select({
+    id: auditLogs.id,
+    churchId: auditLogs.churchId,
+    userId: auditLogs.userId,
+    userName: users.name,
+    userEmail: users.email,
+    action: auditLogs.action,
+    entity: auditLogs.entity,
+    entityId: auditLogs.entityId,
+    metadata: auditLogs.metadata,
+    createdAt: auditLogs.createdAt
+  }).from(auditLogs).leftJoin(users, eq(auditLogs.userId, users.id)).orderBy(desc(auditLogs.createdAt)).limit(limit);
 }
 async function getFinancialReportData(churchId = DEFAULT_CHURCH_ID, fromDate, toDate) {
   const db = await getDb();
@@ -2343,10 +2375,22 @@ var appRouter = router({
     }),
     updateProfile: protectedProcedure.input(
       z2.object({
-        name: z2.string().trim().min(1).max(180)
+        name: z2.string().trim().min(1).max(180).optional(),
+        avatarUrl: z2.string().nullable().optional(),
+        phone: z2.string().max(40).nullable().optional(),
+        department: z2.string().max(120).nullable().optional(),
+        bio: z2.string().max(500).nullable().optional()
       })
     ).mutation(async ({ ctx, input }) => {
       await updateUserProfile(ctx.user.id, input);
+      await createAuditLog({
+        churchId: "default",
+        userId: ctx.user.id,
+        action: "update_profile",
+        entity: "user",
+        entityId: ctx.user.id,
+        metadata: { fields: Object.keys(input) }
+      });
       return { success: true };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -2361,9 +2405,21 @@ var appRouter = router({
         churchRole: churchRoleEnum.nullable(),
         churchRoles: z2.array(churchRoleEnum).optional()
       })
-    ).mutation(async ({ input }) => {
+    ).mutation(async ({ ctx, input }) => {
       const roles = input.churchRoles || (input.churchRole ? [input.churchRole] : null);
       await updateUserChurchRole(input.userId, input.churchRole, roles);
+      await createAuditLog({
+        churchId: "default",
+        userId: ctx.user.id,
+        action: "update_user_role",
+        entity: "user",
+        entityId: input.userId,
+        metadata: {
+          assignedRole: input.churchRole,
+          assignedRoles: roles,
+          updatedBy: ctx.user.name || ctx.user.email
+        }
+      });
       return { success: true };
     })
   }),
@@ -3459,6 +3515,16 @@ var appRouter = router({
       });
       return { success: true };
     })
+  }),
+  // ── Audit Logs ──────────────────────────────────────────────────────────────
+  audit: router({
+    list: adminProcedure2.input(
+      z2.object({
+        limit: z2.number().min(1).max(200).default(50)
+      }).optional()
+    ).query(async ({ input }) => {
+      return await listAuditLogs(input?.limit ?? 50);
+    })
   })
 });
 
@@ -3524,6 +3590,10 @@ var sdk = {
           role: "admin",
           churchRole: "SUPER_ADMIN",
           churchRoles: "SUPER_ADMIN",
+          avatarUrl: null,
+          phone: null,
+          department: null,
+          bio: null,
           createdAt: /* @__PURE__ */ new Date(),
           updatedAt: /* @__PURE__ */ new Date(),
           lastSignedIn: /* @__PURE__ */ new Date()
@@ -3547,7 +3617,10 @@ var sdk = {
       } catch {
       }
     }
-    return user ?? null;
+    if (!user) {
+      throw new Error("Failed to authenticate or initialize user session");
+    }
+    return user;
   }
 };
 

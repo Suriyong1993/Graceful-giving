@@ -196,14 +196,24 @@ export async function updateUserChurchRole(
 
 export async function updateUserProfile(
   userId: number,
-  input: { name?: string }
+  input: {
+    name?: string;
+    avatarUrl?: string | null;
+    phone?: string | null;
+    department?: string | null;
+    bio?: string | null;
+  }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db
     .update(users)
     .set({
-      ...(input.name ? { name: input.name } : {}),
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+      ...(input.department !== undefined ? { department: input.department } : {}),
+      ...(input.bio !== undefined ? { bio: input.bio } : {}),
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
@@ -1112,6 +1122,28 @@ export async function createAuditLog(
     entityId: input.entityId ?? null,
     metadata: input.metadata,
   });
+}
+
+export async function listAuditLogs(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select({
+      id: auditLogs.id,
+      churchId: auditLogs.churchId,
+      userId: auditLogs.userId,
+      userName: users.name,
+      userEmail: users.email,
+      action: auditLogs.action,
+      entity: auditLogs.entity,
+      entityId: auditLogs.entityId,
+      metadata: auditLogs.metadata,
+      createdAt: auditLogs.createdAt,
+    })
+    .from(auditLogs)
+    .leftJoin(users, eq(auditLogs.userId, users.id))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(limit);
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

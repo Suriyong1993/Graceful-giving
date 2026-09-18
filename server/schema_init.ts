@@ -28,11 +28,19 @@ export const TABLE_STATEMENTS: string[] = [
     "role" "user_role" DEFAULT 'user' NOT NULL,
     "churchRole" varchar(20),
     "churchRoles" text,
+    "avatarUrl" text,
+    "phone" varchar(40),
+    "department" varchar(120),
+    "bio" text,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL,
     "lastSignedIn" timestamp DEFAULT now() NOT NULL
   );`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "churchRoles" text;`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "avatarUrl" text;`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "phone" varchar(40);`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "department" varchar(120);`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "bio" text;`,
 
   `CREATE TABLE IF NOT EXISTS "church_profiles" (
     "id" serial PRIMARY KEY NOT NULL,

@@ -121,6 +121,10 @@ export const users = pgTable("users", {
   >(),
   /** Comma-separated or serialized list of multiple church roles */
   churchRoles: text("churchRoles"),
+  avatarUrl: text("avatarUrl"),
+  phone: varchar("phone", { length: 40 }),
+  department: varchar("department", { length: 120 }),
+  bio: text("bio"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()

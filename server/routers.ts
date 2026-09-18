@@ -9,6 +9,7 @@ import {
   createChurchEvent,
   createChurchNews,
   createAuditLog,
+  listAuditLogs,
   createNotification,
   createExpense,
   createFinanceAccount,
@@ -269,11 +270,23 @@ export const appRouter = router({
     updateProfile: protectedProcedure
       .input(
         z.object({
-          name: z.string().trim().min(1).max(180),
+          name: z.string().trim().min(1).max(180).optional(),
+          avatarUrl: z.string().nullable().optional(),
+          phone: z.string().max(40).nullable().optional(),
+          department: z.string().max(120).nullable().optional(),
+          bio: z.string().max(500).nullable().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         await updateUserProfile(ctx.user.id, input);
+        await createAuditLog({
+          churchId: "default",
+          userId: ctx.user.id,
+          action: "update_profile",
+          entity: "user",
+          entityId: ctx.user.id,
+          metadata: { fields: Object.keys(input) },
+        });
         return { success: true } as const;
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -290,11 +303,23 @@ export const appRouter = router({
           churchRoles: z.array(churchRoleEnum).optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const roles =
           input.churchRoles ||
           (input.churchRole ? [input.churchRole] : null);
         await updateUserChurchRole(input.userId, input.churchRole, roles);
+        await createAuditLog({
+          churchId: "default",
+          userId: ctx.user.id,
+          action: "update_user_role",
+          entity: "user",
+          entityId: input.userId,
+          metadata: {
+            assignedRole: input.churchRole,
+            assignedRoles: roles,
+            updatedBy: ctx.user.name || ctx.user.email,
+          },
+        });
         return { success: true } as const;
       }),
   }),
@@ -1551,6 +1576,21 @@ export const appRouter = router({
           metadata: {},
         });
         return { success: true } as const;
+      }),
+  }),
+
+  // ── Audit Logs ──────────────────────────────────────────────────────────────
+  audit: router({
+    list: adminProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(200).default(50),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        return await listAuditLogs(input?.limit ?? 50);
       }),
   }),
 });

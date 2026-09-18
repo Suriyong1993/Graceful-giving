@@ -84,6 +84,10 @@ export const sdk = {
           role: "admin",
           churchRole: "SUPER_ADMIN",
           churchRoles: "SUPER_ADMIN",
+          avatarUrl: null,
+          phone: null,
+          department: null,
+          bio: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           lastSignedIn: new Date(),
@@ -109,6 +113,10 @@ export const sdk = {
       } catch {}
     }
 
-    return user ?? null;
+    if (!user) {
+      throw new Error("Failed to authenticate or initialize user session");
+    }
+
+    return user;
   },
 };
