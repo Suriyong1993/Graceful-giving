@@ -1,4 +1,4 @@
-﻿import { trpc } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +20,9 @@ function TrpcProvider({ children }: { children: React.ReactNode }) {
     if (!(error instanceof TRPCClientError)) return;
     if (typeof window === "undefined") return;
     if (error.message === UNAUTHED_ERR_MSG) {
-      signOut({ redirectUrl: "/login" });
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
   };
 

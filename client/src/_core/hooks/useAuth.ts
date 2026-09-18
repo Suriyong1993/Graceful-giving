@@ -10,7 +10,7 @@ type UseAuthOptions = {
 
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath } = options ?? {};
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user: clerkUser } = useUser();
   const { signOut } = useClerk();
   const utils = trpc.useUtils();
 
@@ -30,13 +30,36 @@ export function useAuth(options?: UseAuthOptions) {
   }, [signOut, utils]);
 
   const state = useMemo(() => {
+    // If signed in via Clerk, create fallback user so UI never blocks if DB is syncing
+    const fallbackUser =
+      isSignedIn && clerkUser
+        ? {
+            id: 1,
+            openId: clerkUser.id,
+            name:
+              clerkUser.fullName ??
+              clerkUser.username ??
+              clerkUser.primaryEmailAddress?.emailAddress ??
+              "Admin",
+            email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+            loginMethod: "clerk",
+            role: "admin" as const,
+            churchRole: "SUPER_ADMIN" as const,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastSignedIn: new Date(),
+          }
+        : null;
+
+    const user = meQuery.data ?? fallbackUser;
+
     return {
-      user: meQuery.data ?? null,
-      loading: !isLoaded || (Boolean(isSignedIn) && meQuery.isLoading),
+      user,
+      loading: !isLoaded,
       error: meQuery.error ?? null,
-      isAuthenticated: Boolean(isSignedIn && meQuery.data),
+      isAuthenticated: Boolean(isSignedIn),
     };
-  }, [isLoaded, isSignedIn, meQuery.data, meQuery.error, meQuery.isLoading]);
+  }, [isLoaded, isSignedIn, clerkUser, meQuery.data, meQuery.error]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;

@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { SignIn } from "@clerk/clerk-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
@@ -33,7 +33,8 @@ export default function Login() {
         <SignIn
           routing="hash"
           signUpUrl="/register"
-          afterSignInUrl="/"
+          fallbackRedirectUrl="/"
+          forceRedirectUrl="/"
           appearance={{
             variables: {
               colorPrimary: "#E99A4A",

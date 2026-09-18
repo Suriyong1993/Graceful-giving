@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { SignUp } from "@clerk/clerk-react";
 import { Sprout } from "lucide-react";
 
@@ -19,7 +19,8 @@ export default function Register() {
         <SignUp
           routing="hash"
           signInUrl="/login"
-          afterSignUpUrl="/"
+          fallbackRedirectUrl="/"
+          forceRedirectUrl="/"
           appearance={{
             variables: {
               colorPrimary: "#E99A4A",
