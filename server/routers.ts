@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { storagePut } from "./storage";
 import {
   approveWithdrawal,
   createChurchEvent,
@@ -536,6 +537,7 @@ export const appRouter = router({
           expenseDate: z.coerce.date().optional(),
           payee: z.string().trim().max(120).optional(),
           receiptRef: z.string().trim().max(120).optional(),
+          receiptUrl: z.string().url().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -548,6 +550,7 @@ export const appRouter = router({
           expenseDate: input.expenseDate ?? new Date(),
           payee: input.payee ?? null,
           receiptRef: input.receiptRef ?? null,
+          receiptUrl: input.receiptUrl ?? null,
           status: "approved",
           recordedBy: ctx.user.id,
         } as any);
@@ -567,6 +570,20 @@ export const appRouter = router({
           link: null,
         });
         return { id };
+      }),
+    uploadReceipt: financeProcedure
+      .input(
+        z.object({
+          fileName: z.string().min(1).max(255),
+          contentType: z.string().min(1).max(100),
+          base64Data: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const ext = input.fileName.split(".").pop() ?? "bin";
+        const key = `expenses/receipt.${ext}`;
+        const { url } = await storagePut(key, input.base64Data, input.contentType);
+        return { url };
       }),
     update: financeProcedure
       .input(

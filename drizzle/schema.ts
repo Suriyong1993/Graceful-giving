@@ -297,6 +297,7 @@ export const expenses = pgTable("expenses", {
   expenseDate: timestamp("expenseDate").defaultNow().notNull(),
   payee: varchar("payee", { length: 120 }),
   receiptRef: varchar("receiptRef", { length: 120 }),
+  receiptUrl: text("receiptUrl"),
   status: expenseStatusEnum("status").default("approved").notNull(),
   approvedBy: integer("approvedBy"),
   recordedBy: integer("recordedBy").notNull(),

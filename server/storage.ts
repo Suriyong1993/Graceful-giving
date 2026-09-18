@@ -1,24 +1,18 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+// Supabase Storage helpers for CFOS (Graceful Giving)
+// Uploads receipt images/PDFs to Supabase Storage bucket "receipts".
 
-import { ENV } from "./_core/env";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const SUPABASE_STORAGE_BUCKET =
+  process.env.SUPABASE_STORAGE_BUCKET ?? "receipts";
 
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
-
-  if (!forgeUrl || !forgeKey) {
+function getSupabaseConfig() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
+      "Storage config missing: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
     );
   }
-
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
-}
-
-function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  return { url: SUPABASE_URL.replace(/\/+$/, ""), key: SUPABASE_SERVICE_ROLE_KEY };
 }
 
 function appendHashSuffix(relKey: string): string {
@@ -28,70 +22,81 @@ function appendHashSuffix(relKey: string): string {
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
 
+/**
+ * Upload a file to Supabase Storage and return its public URL.
+ * @param relKey      relative path e.g. "receipts/expense-123.jpg"
+ * @param data        Buffer, Uint8Array, or base64 string (raw, without data-URI prefix)
+ * @param contentType MIME type
+ */
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
-  contentType = "application/octet-stream",
+  contentType = "application/octet-stream"
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = appendHashSuffix(relKey.replace(/^\/+/, ""));
 
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
+  // Convert base64 string → Buffer if needed
+  const body: Buffer | Uint8Array =
+    typeof data === "string" ? Buffer.from(data, "base64") : data;
 
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
-  return { key, url: `/manus-storage/${key}` };
-}
-
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
-}
-
-export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = normalizeKey(relKey);
-
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
+  const uploadUrl = `${url}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  const resp = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true",
+    },
+    body: body as BodyInit,
   });
 
   if (!resp.ok) {
     const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
+    throw new Error(`Supabase Storage upload failed (${resp.status}): ${msg}`);
   }
 
-  const { url } = (await resp.json()) as { url: string };
-  return url;
+  // Public URL (bucket is set to public)
+  const publicUrl = `${url}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  return { key, url: publicUrl };
+}
+
+/**
+ * Get a signed URL for a private file (valid for 1 hour).
+ */
+export async function storageGetSignedUrl(relKey: string): Promise<string> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = relKey.replace(/^\/+/, "");
+
+  const signUrl = `${url}/storage/v1/object/sign/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  const resp = await fetch(signUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Supabase signed URL failed (${resp.status}): ${msg}`);
+  }
+
+  const result = (await resp.json()) as { signedURL?: string };
+  return `${url}${result.signedURL}`;
+}
+
+/**
+ * Get the public URL for a stored file.
+ */
+export async function storageGet(
+  relKey: string
+): Promise<{ key: string; url: string }> {
+  const { url } = getSupabaseConfig();
+  const key = relKey.replace(/^\/+/, "");
+  return {
+    key,
+    url: `${url}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${key}`,
+  };
 }

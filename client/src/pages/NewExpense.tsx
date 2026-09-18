@@ -41,6 +41,10 @@ export default function NewExpense() {
   const [receiptRef, setReceiptRef] = useState("");
   const [details, setDetails] = useState("");
   const [receiptFile, setReceiptFile] = useState<string | null>(null);
+  const [receiptFileName, setReceiptFileName] = useState<string>("");
+  const [receiptContentType, setReceiptContentType] = useState<string>("");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdExpenseId, setCreatedExpenseId] = useState<number | null>(null);
@@ -60,6 +64,18 @@ export default function NewExpense() {
   const goBack = () => {
     if (confirmDiscardChanges(isDirty)) setLocation("/expenses");
   };
+
+  const uploadReceiptMutation = trpc.expenses.uploadReceipt.useMutation({
+    onSuccess: data => {
+      setReceiptUrl(data.url);
+      setIsUploading(false);
+      toast.success("อัปโหลดใบเสร็จเรียบร้อยแล้ว ✓");
+    },
+    onError: err => {
+      setIsUploading(false);
+      toast.error(err.message || "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่");
+    },
+  });
 
   const createExpenseMutation = trpc.expenses.create.useMutation({
     onSuccess: data => {
@@ -107,6 +123,7 @@ export default function NewExpense() {
       fundId,
       payee: payee.trim() || undefined,
       receiptRef: receiptRef.trim() || undefined,
+      receiptUrl: receiptUrl ?? undefined,
       expenseDate: new Date(expenseDate),
     });
   };
@@ -141,16 +158,38 @@ export default function NewExpense() {
   });
   const funds = fundsQuery.data ?? [];
 
-  const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setReceiptFile(reader.result as string);
-        toast.info("แนบไฟล์ไว้ในแบบฟอร์มแล้ว แต่ยังไม่ได้บันทึกไฟล์ลงระบบ");
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("รองรับเฉพาะไฟล์ JPG, PNG, WEBP, GIF หรือ PDF เท่านั้น");
+      return;
     }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("ไฟล์ต้องมีขนาดไม่เกิน 10 MB");
+      return;
+    }
+
+    setReceiptFileName(file.name);
+    setReceiptContentType(file.type);
+    setIsUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Show preview immediately
+      setReceiptFile(dataUrl);
+      // Extract pure base64 (remove "data:...;base64," prefix)
+      const base64Data = dataUrl.split(",")[1];
+      uploadReceiptMutation.mutate({
+        fileName: file.name,
+        contentType: file.type,
+        base64Data,
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -393,32 +432,57 @@ export default function NewExpense() {
               3. แนบหลักฐานใบเสร็จ / สลิปโอนเงิน
             </h2>
 
-            {receiptFile ? (
-              <div className="p-4 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white border border-[#E9D9BF] overflow-hidden flex-shrink-0">
-                    <img
-                      src={receiptFile}
-                      alt="Receipt preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#38251B]">
-                      แนบหลักฐานเรียบร้อยแล้ว
-                    </p>
-                    <p className="text-xs text-[#70452E]/70">
-                      ไฟล์พร้อมบันทึกลงในระบบเอกสาร
-                    </p>
-                  </div>
+            {isUploading ? (
+              <div className="p-6 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] flex items-center gap-4">
+                <div className="w-8 h-8 border-4 border-[#E99A4A] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-[#38251B]">กำลังอัปโหลดไฟล์...</p>
+                  <p className="text-xs text-[#70452E]/70">{receiptFileName}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setReceiptFile(null)}
-                  className="text-xs text-red-600 hover:underline font-medium px-3 py-1.5"
-                >
-                  ลบไฟล์
-                </button>
+              </div>
+            ) : receiptFile ? (
+              <div className="p-4 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-[#E9D9BF] overflow-hidden flex-shrink-0">
+                      {receiptContentType.startsWith("image/") ? (
+                        <img
+                          src={receiptFile}
+                          alt="Receipt preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-[#E99A4A]" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#38251B]">
+                        {receiptUrl ? "✅ อัปโหลดสำเร็จแล้ว" : "แนบไฟล์เรียบร้อย"}
+                      </p>
+                      <p className="text-xs text-[#70452E]/70 truncate max-w-[160px]">{receiptFileName}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setReceiptFile(null); setReceiptUrl(null); setReceiptFileName(""); }}
+                    className="text-xs text-red-600 hover:underline font-medium px-3 py-1.5"
+                  >
+                    ลบไฟล์
+                  </button>
+                </div>
+                {receiptUrl && (
+                  <a
+                    href={receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                  >
+                    <ImageIcon className="w-3 h-3" />
+                    ดูใบเสร็จต้นฉบับ →
+                  </a>
+                )}
               </div>
             ) : (
               <label className="border-2 border-dashed border-[#E9D9BF] hover:border-[#E99A4A] rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer bg-[#FFF9EE]/30 hover:bg-[#FFF4DF]/30 transition-colors">
@@ -429,12 +493,12 @@ export default function NewExpense() {
                   คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่
                 </p>
                 <p className="text-xs text-[#70452E]/60 mt-1">
-                  รองรับไฟล์ภาพ JPG, PNG หรือเอกสาร PDF (ขนาดไม่เกิน 10MB)
+                  รองรับไฟล์ภาพ JPG, PNG, WEBP หรือเอกสาร PDF (ขนาดไม่เกิน 10 MB)
                 </p>
                 <input
                   type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleSimulateUpload}
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                  onChange={handleUpload}
                   className="hidden"
                 />
               </label>
@@ -452,11 +516,11 @@ export default function NewExpense() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isUploading}
               className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
-              <span>{isSubmitting ? "กำลังบันทึก..." : "บันทึกรายจ่าย"}</span>
+              <span>{isSubmitting ? "กำลังบันทึก..." : isUploading ? "กำลังอัปโหลด..." : "บันทึกรายจ่าย"}</span>
             </button>
           </div>
         </form>
