@@ -1,15 +1,10 @@
-import React, { useEffect } from "react";
-import { useLocation } from "wouter";
-import { startLogin } from "@/const";
+﻿import React from "react";
+import { SignIn } from "@clerk/clerk-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Illustration } from "@/components/Illustration";
-import { ArrowRight, ShieldCheck, Sprout } from "lucide-react";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { Sprout } from "lucide-react";
 
-/**
- * Sign-in is handled by the church OAuth server. There is no local password
- * form, because the API exposes no password login — a form here could only
- * pretend to work.
- */
 export default function Login() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, loading } = useAuth();
@@ -34,56 +29,19 @@ export default function Login() {
           <p className="text-sm text-[#674F42]">ระบบบัญชีการเงินคริสตจักร</p>
         </div>
 
-        <div className="space-y-5 rounded-[32px] border border-[#E9D9BF] bg-white p-6 shadow-sm sm:p-8">
-          <div className="mx-auto size-24 overflow-hidden rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-1">
-            <Illustration
-              src="/illustrations/bible_cross.jpg"
-              alt="พระคัมภีร์และกางเขน"
-              className="size-full rounded-2xl object-cover"
-              width={96}
-              height={96}
-            />
-          </div>
-
-          <div className="space-y-1 text-center">
-            <h2 className="text-lg font-bold text-[#38251B]">เข้าสู่ระบบ</h2>
-            <p className="text-sm leading-relaxed text-[#674F42]">
-              ใช้บัญชีที่คริสตจักรออกให้
-              ระบบจะพาไปยืนยันตัวตนที่หน้าเข้าสู่ระบบกลาง
-              แล้วกลับมาที่นี่โดยอัตโนมัติ
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => startLogin()}
-            disabled={loading}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#E99A4A] py-3.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#DE8640] disabled:opacity-50"
-          >
-            <span>{loading ? "กำลังตรวจสอบบัญชี…" : "เข้าสู่ระบบ"}</span>
-            <ArrowRight className="size-4" />
-          </button>
-
-          <div className="flex items-start gap-2 rounded-2xl border border-[#E9D9BF] bg-[#FFF9EE] p-3">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#4F8B33]" />
-            <p className="text-sm leading-relaxed text-[#674F42]">
-              ข้อมูลการเงินเปิดให้เฉพาะผู้ที่ได้รับสิทธิ์
-              หากเข้าสู่ระบบแล้วยังไม่เห็นเมนูการเงิน
-              กรุณาติดต่อผู้ดูแลระบบของคริสตจักร
-            </p>
-          </div>
-        </div>
-
-        <p className="mt-6 text-center text-sm text-[#674F42]">
-          ยังไม่มีบัญชี?{" "}
-          <button
-            type="button"
-            onClick={() => setLocation("/register")}
-            className="font-bold text-[#E99A4A] underline-offset-2 hover:underline"
-          >
-            วิธีขอเปิดบัญชี
-          </button>
-        </p>
+        {/* Clerk Sign-In component — handles all auth providers */}
+        <SignIn
+          routing="hash"
+          signUpUrl="/register"
+          afterSignInUrl="/"
+          appearance={{
+            variables: {
+              colorPrimary: "#E99A4A",
+              colorBackground: "#FFFDF8",
+              borderRadius: "1rem",
+            },
+          }}
+        />
       </div>
     </div>
   );
