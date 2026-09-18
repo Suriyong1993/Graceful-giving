@@ -45,6 +45,7 @@ import {
   voidOffering,
   updateMember,
   deactivateMember,
+  getAllUsers,
   markNotificationRead,
   markAllNotificationsRead,
   updateChurchEvent,
@@ -136,7 +137,7 @@ function canApproveDeduction(user: User): boolean {
 // ─── Shared Procedures ────────────────────────────────────────────────────────
 
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.churchRole !== "SUPER_ADMIN") {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "เฉพาะผู้ดูแลระบบเท่านั้น",
@@ -185,6 +186,7 @@ const churchRoleEnum = z.enum([
   "SUPER_ADMIN",
   "PASTOR",
   "TREASURER",
+  "DEACON",
   "COUNTER",
   "MEMBER",
 ]);
@@ -250,6 +252,9 @@ export const appRouter = router({
   // ── Auth ────────────────────────────────────────────────────────────────────
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    listUsers: churchLeaderProcedure.query(async () => {
+      return await getAllUsers();
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

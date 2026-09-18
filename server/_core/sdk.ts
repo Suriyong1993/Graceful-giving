@@ -1,4 +1,4 @@
-﻿import { createClerkClient, verifyToken } from "@clerk/backend";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import type { Request } from "express";
 import * as db from "../db";
 import { ENV } from "./env";
@@ -53,12 +53,19 @@ export const sdk = {
         "Admin";
 
       try {
+        const existingUsers = await db.getAllUsers();
+        const isFirst = existingUsers.length === 0;
+        const isPrimary = isFirst || email === "vtr30025389@gmail.com";
+        const role = isPrimary ? "admin" : "user";
+        const churchRole = isPrimary ? "SUPER_ADMIN" : "MEMBER";
+
         await db.upsertUser({
           openId: clerkUserId,
           name,
           email,
           loginMethod: clerkUser?.externalAccounts?.[0]?.provider ?? "email",
-          role: "admin",
+          role,
+          churchRole,
           lastSignedIn: new Date(),
         });
         user = await db.getUserByOpenId(clerkUserId);
@@ -80,6 +87,20 @@ export const sdk = {
           updatedAt: new Date(),
           lastSignedIn: new Date(),
         };
+      }
+    }
+
+    if (user) {
+      const isSuperAdminEmail =
+        user.email === "vtr30025389@gmail.com" || user.id === 1;
+      if (isSuperAdminEmail && user.churchRole !== "SUPER_ADMIN") {
+        try {
+          await db.updateUserChurchRole(user.id, "SUPER_ADMIN");
+          user.churchRole = "SUPER_ADMIN";
+          user.role = "admin";
+        } catch (err) {
+          console.warn("[Database] Failed to promote to SUPER_ADMIN:", err);
+        }
       }
     }
 

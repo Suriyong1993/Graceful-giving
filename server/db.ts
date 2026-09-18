@@ -127,6 +127,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     values.role = "admin";
     updateSet.role = "admin";
   }
+  if (user.churchRole !== undefined) {
+    values.churchRole = user.churchRole;
+    updateSet.churchRole = user.churchRole;
+  }
   values.lastSignedIn ??= new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
@@ -147,15 +151,35 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select({
+      id: users.id,
+      openId: users.openId,
+      name: users.name,
+      email: users.email,
+      loginMethod: users.loginMethod,
+      role: users.role,
+      churchRole: users.churchRole,
+      createdAt: users.createdAt,
+      lastSignedIn: users.lastSignedIn,
+    })
+    .from(users)
+    .orderBy(desc(users.lastSignedIn));
+}
+
 export async function updateUserChurchRole(
   userId: number,
   churchRole: string | null
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  const role = churchRole === "SUPER_ADMIN" ? "admin" : "user";
   await db
     .update(users)
-    .set({ churchRole } as any)
+    .set({ churchRole, role } as any)
     .where(eq(users.id, userId));
 }
 

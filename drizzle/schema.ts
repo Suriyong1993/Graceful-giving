@@ -117,7 +117,7 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").default("user").notNull(),
   /** Church-specific role for financial access control */
   churchRole: varchar("churchRole", { length: 20 }).$type<
-    "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "COUNTER" | "MEMBER"
+    "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "DEACON" | "COUNTER" | "MEMBER"
   >(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
@@ -133,6 +133,7 @@ export type ChurchRole =
   | "SUPER_ADMIN"
   | "PASTOR"
   | "TREASURER"
+  | "DEACON"
   | "COUNTER"
   | "MEMBER";
 

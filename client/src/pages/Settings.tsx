@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CreditCard,
   Globe,
+  Loader2,
   Lock,
   Mail,
   Phone,
@@ -35,6 +36,39 @@ export default function Settings() {
     isLoading,
     refetch,
   } = trpc.church.getProfile.useQuery(undefined, { retry: false });
+
+  const usersQuery = trpc.auth.listUsers.useQuery(undefined, {
+    enabled: activeTab === "roles",
+    retry: false,
+  });
+
+  const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
+
+  const setRoleMutation = trpc.auth.setChurchRole.useMutation({
+    onSuccess: () => {
+      toast.success("อัปเดตบทบาทผู้ใช้งานเรียบร้อยแล้ว");
+      void usersQuery.refetch();
+      void utils.auth.me.invalidate();
+    },
+    onError: err => {
+      toast.error(err.message || "ไม่สามารถอัปเดตบทบาทได้");
+    },
+    onSettled: () => {
+      setUpdatingUserId(null);
+    },
+  });
+
+  const handleRoleChange = async (userId: number, newRole: string) => {
+    setUpdatingUserId(userId);
+    try {
+      await setRoleMutation.mutateAsync({
+        userId,
+        churchRole: newRole as any,
+      });
+    } catch {
+      // Handled in onError
+    }
+  };
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -133,27 +167,72 @@ export default function Settings() {
     {
       role: "SUPER_ADMIN",
       title: "ผู้ดูแลระบบสูงสุด",
-      desc: "เข้าถึงทุกฟังก์ชัน จัดการสิทธิ์ และตั้งค่าคริสตจักรทั้งหมด",
+      appointee: "พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร",
+      desc: "ดูแลระบบและโครงสร้างทั้งหมด จัดการผู้ใช้งานและสิทธิ์ ตั้งค่าคริสตจักร และตรวจสอบ Audit Log (สิทธิ์สูงสุดของระบบ)",
+      duties: [
+        "ดูแลระบบและโครงสร้างทั้งหมด",
+        "จัดการผู้ใช้งานและสิทธิ์",
+        "ตั้งค่าคริสตจักร",
+        "ตรวจสอบ Audit Log",
+        "เข้าถึงข้อมูลทุกส่วนตามสิทธิ์สูงสุดของระบบ",
+      ],
     },
     {
       role: "TREASURER",
       title: "เหรัญญิกคริสตจักร",
-      desc: "บันทึกบัญชี ตรวจสอบงบ เบิกจ่ายเงิน และออกใบเสร็จรับเงินถวาย",
+      appointee: "สุดารัตน์ จิณเซ่ง, อาจารย์ทัศนา ดวงจิตร",
+      desc: "บันทึกรายรับ-รายจ่าย ตรวจสอบเงินถวายและบัญชี จัดการเบิกจ่าย ติดตามงบประมาณ ออกใบเสร็จ และจัดทำรายงานการเงิน",
+      duties: [
+        "บันทึกรายรับและรายจ่าย",
+        "ตรวจสอบเงินถวาย",
+        "ตรวจสอบบัญชีและยอดเงิน",
+        "จัดการรายการเบิกจ่าย",
+        "ตรวจสอบและติดตามงบประมาณ",
+        "ออกใบเสร็จรับเงินถวาย",
+        "จัดทำรายงานทางการเงิน",
+      ],
     },
     {
       role: "PASTOR",
       title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ",
-      desc: "อนุมัติโครงการ ดูรายงานการเงิน อภิบาลสมาชิก และจัดการฝ่ายงาน",
+      appointee: "ศบ.อาจารย์สรรเสริญ ดวงจิตร",
+      desc: "กำกับทิศทางและงานของคริสตจักร พิจารณาและอนุมัติโครงการ ตรวจสอบภาพรวมการเงิน และดูแลด้านอภิบาลสมาชิก",
+      duties: [
+        "กำกับทิศทางและงานของคริสตจักร",
+        "พิจารณาและอนุมัติโครงการตามอำนาจที่กำหนด",
+        "ตรวจสอบภาพรวมด้านการเงิน",
+        "ติดตามการดำเนินงานของฝ่ายต่าง ๆ",
+        "ดูแลด้านอภิบาลและสมาชิก",
+        "ติดตามผลการดำเนินพันธกิจ",
+      ],
     },
     {
       role: "DEACON",
       title: "มัคนายก / คณะกรรมการ",
-      desc: "ตรวจรับงาน เสนองบประมาณ และดูแลพันธกิจตามฝ่ายที่รับผิดชอบ",
+      appointee: "อาจารย์ทัศนา ดวงจิตร",
+      desc: "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ ตรวจรับงานและติดตามโครงการ เสนอคำของบประมาณและรายการเบิกจ่าย",
+      duties: [
+        "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ",
+        "ตรวจรับงานและติดตามโครงการ",
+        "เสนอคำของบประมาณ",
+        "เสนอรายการเบิกจ่าย",
+        "ตรวจสอบการใช้ทรัพยากรของฝ่าย",
+        "ดูรายงานเฉพาะส่วนที่ได้รับมอบหมาย",
+      ],
     },
     {
       role: "MEMBER",
       title: "สมาชิกคริสตจักร",
-      desc: "ดูข่าวสาร ตารางรับใช้ และประวัติการถวายส่วนบุคคลที่ปลอดภัย",
+      appointee: "สมาชิกคริสตจักรทั่วไป",
+      desc: "ดูข่าวสาร ประกาศ ตารางกิจกรรม ตารางรับใช้ และดูประวัติการถวายส่วนบุคคลอย่างปลอดภัย",
+      duties: [
+        "ดูข่าวสารและประกาศ",
+        "ดูตารางกิจกรรมและตารางรับใช้",
+        "ดูข้อมูลกิจกรรมที่ตนเองเกี่ยวข้อง",
+        "ดูประวัติการถวายส่วนบุคคล",
+        "ดูใบเสร็จหรือหลักฐานการถวายของตนเอง",
+        "จัดการข้อมูลส่วนตัวตามที่ระบบอนุญาต",
+      ],
     },
   ];
 
@@ -346,7 +425,24 @@ export default function Settings() {
                 </p>
                 <p>{user?.email || "ไม่ระบุอีเมล"}</p>
                 <p className="mt-1">
-                  บทบาท: {user?.churchRole || "ยังไม่กำหนด"}
+                  บทบาทในระบบ:{" "}
+                  <span className="font-bold text-emerald-700">
+                    {user?.churchRole === "SUPER_ADMIN"
+                      ? "👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)"
+                      : user?.churchRole === "PASTOR"
+                      ? "✝️ ศิษยาภิบาล (PASTOR)"
+                      : user?.churchRole === "TREASURER"
+                      ? "💰 เหรัญญิกคริสตจักร (TREASURER)"
+                      : user?.churchRole === "DEACON"
+                      ? "🤝 มัคนายก / คณะกรรมการ (DEACON)"
+                      : user?.churchRole === "COUNTER"
+                      ? "📝 ทีมนับเงินถวาย (COUNTER)"
+                      : user?.churchRole === "MEMBER"
+                      ? "👤 สมาชิกคริสตจักร (MEMBER)"
+                      : user?.role === "admin"
+                      ? "👑 ผู้ดูแลระบบ (Admin)"
+                      : "👤 สมาชิกทั่วไป"}
+                  </span>
                 </p>
               </div>
               <button
@@ -361,31 +457,177 @@ export default function Settings() {
           </section>
         )}
 
-        {/* Tab 2: Roles */}
+        {/* Tab 2: Roles & User Management */}
         {activeTab === "roles" && (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
-            <h3 className="text-base font-bold text-[#38251B] flex items-center gap-2">
-              <Shield className="w-5 h-5 text-emerald-600" />
-              โครงสร้างสิทธิ์การใช้งาน (Role-based Access Control)
-            </h3>
-
-            <div className="space-y-3">
-              {churchRoles.map(r => (
-                <div
-                  key={r.role}
-                  className="p-4 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/60 space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-[#38251B]">
-                      {r.title}
-                    </span>
-                    <span className="font-mono text-xs text-[#70452E]/70 bg-white px-2 py-0.5 rounded-md border border-[#E9D9BF]">
-                      {r.role}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#70452E]/80">{r.desc}</p>
+          <div className="space-y-6">
+            {/* User Management Table */}
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E9D9BF]/60 pb-5">
+                <div>
+                  <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#E99A4A]" />
+                    จัดการบทบาทและสิทธิ์ผู้ใช้งานในระบบ
+                  </h3>
+                  <p className="text-xs text-[#70452E]/80 mt-1">
+                    กำหนดบทบาทให้ผู้ที่เข้าสู่ระบบ เพื่อให้ได้รับสิทธิ์การใช้งานตรงตามตำแหน่งหน้าที่จริง
+                  </p>
                 </div>
-              ))}
+                {user?.churchRole === "SUPER_ADMIN" || user?.role === "admin" ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-auto">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    คุณมีสิทธิ์กำหนดบทบาท
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 self-start sm:self-auto">
+                    เฉพาะผู้ดูแลระบบสูงสุดที่สามารถเปลี่ยนสิทธิ์ได้
+                  </span>
+                )}
+              </div>
+
+              {usersQuery.isLoading ? (
+                <div className="py-12 flex flex-col items-center justify-center text-sm text-[#70452E]/70 gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#E99A4A]" />
+                  <span>กำลังโหลดรายชื่อผู้ใช้งาน...</span>
+                </div>
+              ) : !usersQuery.data || usersQuery.data.length === 0 ? (
+                <div className="py-8 text-center text-sm text-[#70452E]/70 bg-[#FFF9EE] rounded-2xl border border-[#E9D9BF]/60">
+                  ยังไม่พบข้อมูลผู้ใช้งานในระบบ
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#E9D9BF]/70 text-xs font-bold text-[#70452E]/80 uppercase">
+                        <th className="pb-3 px-3">ผู้ใช้งาน</th>
+                        <th className="pb-3 px-3">อีเมล</th>
+                        <th className="pb-3 px-3">เข้าใช้ล่าสุด</th>
+                        <th className="pb-3 px-3 text-right">บทบาทในระบบ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E9D9BF]/40">
+                      {usersQuery.data.map(u => {
+                        const isMe = u.openId === user?.openId;
+                        const isUpdating = updatingUserId === u.id;
+                        const canEdit =
+                          user?.churchRole === "SUPER_ADMIN" ||
+                          user?.role === "admin";
+
+                        return (
+                          <tr
+                            key={u.id}
+                            className="hover:bg-[#FFF9EE]/50 transition-colors"
+                          >
+                            <td className="py-3.5 px-3">
+                              <div className="font-bold text-[#38251B] flex items-center gap-2">
+                                <span>{u.name || "ไม่ระบุชื่อ"}</span>
+                                {isMe && (
+                                  <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full border border-amber-300">
+                                    คุณ
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-3 text-[#674F42]">
+                              {u.email || "-"}
+                            </td>
+                            <td className="py-3.5 px-3 text-xs text-[#927D6D]">
+                              {u.lastSignedIn
+                                ? new Date(u.lastSignedIn).toLocaleDateString("th-TH", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "-"}
+                            </td>
+                            <td className="py-3.5 px-3 text-right">
+                              {canEdit ? (
+                                <div className="inline-flex items-center gap-2">
+                                  {isUpdating && (
+                                    <Loader2 className="w-4 h-4 animate-spin text-[#E99A4A]" />
+                                  )}
+                                  <select
+                                    value={u.churchRole || "MEMBER"}
+                                    disabled={isUpdating}
+                                    onChange={e =>
+                                      handleRoleChange(u.id, e.target.value)
+                                    }
+                                    className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] shadow-sm hover:border-[#E99A4A] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20 transition-all cursor-pointer disabled:opacity-50"
+                                  >
+                                    <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)</option>
+                                    <option value="PASTOR">✝️ ศิษยาภิบาล (PASTOR)</option>
+                                    <option value="TREASURER">💰 เหรัญญิกคริสตจักร (TREASURER)</option>
+                                    <option value="DEACON">🤝 มัคนายก / คณะกรรมการ (DEACON)</option>
+                                    <option value="COUNTER">📝 ทีมนับเงินถวาย (COUNTER)</option>
+                                    <option value="MEMBER">👤 สมาชิกคริสตจักร (MEMBER)</option>
+                                  </select>
+                                </div>
+                              ) : (
+                                <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF4DF] text-[#70452E] border border-[#E9D9BF]">
+                                  {u.churchRole || "MEMBER"}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Structure and Appointed Roles Reference */}
+            <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+              <div>
+                <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-emerald-600" />
+                  โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
+                </h3>
+                <p className="text-xs text-[#70452E]/80 mt-1">
+                  กำหนดบทบาท หน้าที่ความรับผิดชอบ และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {churchRoles.map(r => (
+                  <div
+                    key={r.role}
+                    className="p-5 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]/70 space-y-3"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E9D9BF]/50 pb-3">
+                      <div>
+                        <span className="font-bold text-base text-[#38251B]">
+                          {r.title}
+                        </span>
+                        <span className="ml-2.5 font-mono text-xs text-[#70452E]/70 bg-white px-2.5 py-0.5 rounded-md border border-[#E9D9BF]">
+                          {r.role}
+                        </span>
+                      </div>
+                      <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-white text-[#38251B] border-[#E9D9BF] self-start sm:self-auto">
+                        ผู้รับผิดชอบ: <span className="text-[#E99A4A] font-bold">{r.appointee}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-[#70452E]/90 leading-relaxed font-medium">
+                      {r.desc}
+                    </p>
+
+                    <div className="pt-1">
+                      <p className="text-xs font-bold text-[#38251B] mb-1.5">ขอบเขตหน้าที่ในระบบ:</p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[#674F42]">
+                        {r.duties.map((duty, idx) => (
+                          <li key={idx} className="flex items-start gap-1.5">
+                            <span className="text-emerald-600 font-bold">•</span>
+                            <span>{duty}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

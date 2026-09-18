@@ -1107,6 +1107,10 @@ async function upsertUser(user) {
     values.role = "admin";
     updateSet.role = "admin";
   }
+  if (user.churchRole !== void 0) {
+    values.churchRole = user.churchRole;
+    updateSet.churchRole = user.churchRole;
+  }
   values.lastSignedIn ??= /* @__PURE__ */ new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = /* @__PURE__ */ new Date();
   await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
@@ -1117,10 +1121,26 @@ async function getUserByOpenId(openId) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : void 0;
 }
+async function getAllUsers() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select({
+    id: users.id,
+    openId: users.openId,
+    name: users.name,
+    email: users.email,
+    loginMethod: users.loginMethod,
+    role: users.role,
+    churchRole: users.churchRole,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn
+  }).from(users).orderBy(desc(users.lastSignedIn));
+}
 async function updateUserChurchRole(userId, churchRole) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(users).set({ churchRole }).where(eq(users.id, userId));
+  const role = churchRole === "SUPER_ADMIN" ? "admin" : "user";
+  await db.update(users).set({ churchRole, role }).where(eq(users.id, userId));
 }
 async function getChurchProfile(churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
@@ -2133,7 +2153,7 @@ function canApproveDeduction(user) {
   return user.role === "admin" || user.churchRole === "SUPER_ADMIN" || user.churchRole === "PASTOR" || user.churchRole === "TREASURER";
 }
 var adminProcedure2 = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
+  if (ctx.user.role !== "admin" && ctx.user.churchRole !== "SUPER_ADMIN") {
     throw new TRPCError3({
       code: "FORBIDDEN",
       message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1C\u0E39\u0E49\u0E14\u0E39\u0E41\u0E25\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"
@@ -2175,6 +2195,7 @@ var churchRoleEnum = z2.enum([
   "SUPER_ADMIN",
   "PASTOR",
   "TREASURER",
+  "DEACON",
   "COUNTER",
   "MEMBER"
 ]);
@@ -2226,6 +2247,9 @@ var appRouter = router({
   // ── Auth ────────────────────────────────────────────────────────────────────
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    listUsers: churchLeaderProcedure.query(async () => {
+      return await getAllUsers();
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -3356,12 +3380,18 @@ var sdk = {
       const email = clerkUser?.emailAddresses?.[0]?.emailAddress ?? null;
       const name = `${clerkUser?.firstName ?? ""} ${clerkUser?.lastName ?? ""}`.trim() || clerkUser?.username || "Admin";
       try {
+        const existingUsers = await getAllUsers();
+        const isFirst = existingUsers.length === 0;
+        const isPrimary = isFirst || email === "vtr30025389@gmail.com";
+        const role = isPrimary ? "admin" : "user";
+        const churchRole = isPrimary ? "SUPER_ADMIN" : "MEMBER";
         await upsertUser({
           openId: clerkUserId,
           name,
           email,
           loginMethod: clerkUser?.externalAccounts?.[0]?.provider ?? "email",
-          role: "admin",
+          role,
+          churchRole,
           lastSignedIn: /* @__PURE__ */ new Date()
         });
         user = await getUserByOpenId(clerkUserId);
@@ -3381,6 +3411,18 @@ var sdk = {
           updatedAt: /* @__PURE__ */ new Date(),
           lastSignedIn: /* @__PURE__ */ new Date()
         };
+      }
+    }
+    if (user) {
+      const isSuperAdminEmail = user.email === "vtr30025389@gmail.com" || user.id === 1;
+      if (isSuperAdminEmail && user.churchRole !== "SUPER_ADMIN") {
+        try {
+          await updateUserChurchRole(user.id, "SUPER_ADMIN");
+          user.churchRole = "SUPER_ADMIN";
+          user.role = "admin";
+        } catch (err) {
+          console.warn("[Database] Failed to promote to SUPER_ADMIN:", err);
+        }
       }
     }
     try {
