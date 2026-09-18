@@ -82,6 +82,29 @@ export const memberStatusEnum = pgEnum("member_status", [
   "inactive",
   "pending",
 ]);
+export const countingSessionStatusEnum = pgEnum("counting_session_status", [
+  "counting",
+  "counted",
+  "verified",
+  "posted",
+  "closed",
+]);
+export const cashKindEnum = pgEnum("cash_kind", ["note", "coin"]);
+export const bankRecordTypeEnum = pgEnum("bank_record_type", [
+  /** A member transferred straight into the church account. */
+  "transfer_in",
+  /** The treasurer banked counted cash. */
+  "cash_deposit",
+]);
+export const sessionDocumentKindEnum = pgEnum("session_document_kind", [
+  "count_sheet",
+  "envelope_photo",
+  "deposit_slip",
+  "transfer_slip",
+  "passbook_page",
+  "deduction_receipt",
+  "other",
+]);
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -94,7 +117,7 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").default("user").notNull(),
   /** Church-specific role for financial access control */
   churchRole: varchar("churchRole", { length: 20 }).$type<
-    "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "MEMBER"
+    "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "COUNTER" | "MEMBER"
   >(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
@@ -106,7 +129,12 @@ export const users = pgTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-export type ChurchRole = "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "MEMBER";
+export type ChurchRole =
+  | "SUPER_ADMIN"
+  | "PASTOR"
+  | "TREASURER"
+  | "COUNTER"
+  | "MEMBER";
 
 // ─── Church Profile ───────────────────────────────────────────────────────────
 
@@ -150,6 +178,8 @@ export const members = pgTable("members", {
   phone: varchar("phone", { length: 30 }),
   email: varchar("email", { length: 320 }),
   status: memberStatusEnum("status").default("active").notNull(),
+  /** Standing offering-envelope number issued to this member. */
+  envelopeNo: varchar("envelopeNo", { length: 30 }),
   avatarUrl: varchar("avatarUrl", { length: 500 }),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -230,6 +260,8 @@ export const offerings = pgTable("offerings", {
   /** Visible only to TREASURER and SUPER_ADMIN */
   donorName: varchar("donorName", { length: 120 }),
   donorMemberId: integer("donorMemberId"),
+  /** Set when the row was posted from a weekly counting session. */
+  sessionId: integer("sessionId"),
   receiptDate: timestamp("receiptDate").defaultNow().notNull(),
   method: offeringMethodEnum("method").default("cash").notNull(),
   /** Bank transfer reference or cheque number */
@@ -377,3 +409,185 @@ export const churchEvents = pgTable("church_events", {
 
 export type ChurchEvent = typeof churchEvents.$inferSelect;
 export type InsertChurchEvent = typeof churchEvents.$inferInsert;
+
+// ─── Weekly Offering Count ────────────────────────────────────────────────────
+
+/**
+ * One counting session per worship service. The church currently holds a single
+ * Sunday morning service, but `serviceRound` keeps the model ready for more
+ * without the UI having to show it.
+ */
+export const countingSessions = pgTable("counting_sessions", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
+  /** The Sunday this offering was received. */
+  serviceDate: timestamp("serviceDate").notNull(),
+  /** 1 = the morning service. Reserved for churches with several rounds. */
+  serviceRound: integer("serviceRound").default(1).notNull(),
+  serviceName: varchar("serviceName", { length: 120 }),
+  status: countingSessionStatusEnum("status").default("counting").notNull(),
+  countedBy: integer("countedBy").notNull(),
+  countSubmittedAt: timestamp("countSubmittedAt"),
+  /** Must differ from countedBy: nobody verifies their own count. */
+  verifiedBy: integer("verifiedBy"),
+  verifiedAt: timestamp("verifiedAt"),
+  postedBy: integer("postedBy"),
+  postedAt: timestamp("postedAt"),
+  closedAt: timestamp("closedAt"),
+  /** Required before posting when any variance is non-zero. */
+  varianceNote: text("varianceNote"),
+  varianceApprovedBy: integer("varianceApprovedBy"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+/** One row per offering envelope, or per lump sum with no envelope. */
+export const offeringEnvelopes = pgTable("offering_envelopes", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
+  /** The member's standing envelope number; null for loose or anonymous giving. */
+  envelopeNo: varchar("envelopeNo", { length: 30 }),
+  memberId: integer("memberId"),
+  /** Used when the giver is not a registered member. */
+  donorName: varchar("donorName", { length: 180 }),
+  isAnonymous: boolean("isAnonymous").default(false).notNull(),
+  category: offeringCategoryEnum("category").default("general").notNull(),
+  fundId: integer("fundId"),
+  method: offeringMethodEnum("method").default("cash").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  /** Bank reference or cheque number when the gift did not arrive as cash. */
+  reference: varchar("reference", { length: 120 }),
+  notes: text("notes"),
+  recordedBy: integer("recordedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+/**
+ * The physical count sheet: one row per denomination.
+ * The subtotal is intentionally not stored — it is always denomination ×
+ * quantity, and a stored copy could disagree with its own inputs.
+ */
+export const cashCounts = pgTable("cash_counts", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  /** Face value in baht: 1000 … 0.25 */
+  denomination: decimal("denomination", { precision: 8, scale: 2 }).notNull(),
+  kind: cashKindEnum("kind").notNull(),
+  quantity: integer("quantity").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+/**
+ * Cash taken out of the offering before it reaches the bank.
+ * The church allows this, so the trail must stay complete:
+ * counted cash − deductions = bank deposit.
+ */
+export const sessionDeductions = pgTable("session_deductions", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
+  purpose: varchar("purpose", { length: 200 }).notNull(),
+  reason: text("reason").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  /** Who received the money. */
+  paidTo: varchar("paidTo", { length: 180 }).notNull(),
+  requestedBy: integer("requestedBy").notNull(),
+  /** Must differ from requestedBy. */
+  approvedBy: integer("approvedBy"),
+  approvedAt: timestamp("approvedAt"),
+  category: expenseCategoryEnum("category").default("other").notNull(),
+  fundId: integer("fundId"),
+  /** Set once the deduction is written into the expense ledger. */
+  expenseId: integer("expenseId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+/** Money arriving in or leaving for the bank account, matched to the passbook. */
+export const bankRecords = pgTable("bank_records", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
+  type: bankRecordTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  /** Who sent the transfer; null for a cash deposit made by the treasurer. */
+  transferredBy: integer("transferredBy"),
+  transferredByName: varchar("transferredByName", { length: 180 }),
+  bankRef: varchar("bankRef", { length: 120 }),
+  occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+  /** Passbook reconciliation. */
+  passbookMatched: boolean("passbookMatched").default(false).notNull(),
+  passbookDate: timestamp("passbookDate"),
+  matchedBy: integer("matchedBy"),
+  recordedBy: integer("recordedBy").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+/**
+ * Evidence for the session. Files live in the church's Google Drive; only the
+ * identifiers and metadata are kept here.
+ */
+export const sessionDocuments = pgTable("session_documents", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("sessionId").notNull(),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
+  kind: sessionDocumentKindEnum("kind").default("other").notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  mimeType: varchar("mimeType", { length: 120 }),
+  fileSize: integer("fileSize"),
+  /** Google Drive file id. */
+  driveFileId: varchar("driveFileId", { length: 180 }),
+  /** Drive webViewLink, or another URL when the file is stored elsewhere. */
+  fileUrl: varchar("fileUrl", { length: 600 }),
+  /** Drive folder path used, e.g. "2026/09/2026-09-20". */
+  drivePath: varchar("drivePath", { length: 300 }),
+  /** Links the document to the deduction or bank record it evidences. */
+  deductionId: integer("deductionId"),
+  bankRecordId: integer("bankRecordId"),
+  uploadedBy: integer("uploadedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CountingSession = typeof countingSessions.$inferSelect;
+export type InsertCountingSession = typeof countingSessions.$inferInsert;
+export type OfferingEnvelope = typeof offeringEnvelopes.$inferSelect;
+export type InsertOfferingEnvelope = typeof offeringEnvelopes.$inferInsert;
+export type CashCount = typeof cashCounts.$inferSelect;
+export type InsertCashCount = typeof cashCounts.$inferInsert;
+export type SessionDeduction = typeof sessionDeductions.$inferSelect;
+export type InsertSessionDeduction = typeof sessionDeductions.$inferInsert;
+export type BankRecord = typeof bankRecords.$inferSelect;
+export type InsertBankRecord = typeof bankRecords.$inferInsert;
+export type SessionDocument = typeof sessionDocuments.$inferSelect;
+export type InsertSessionDocument = typeof sessionDocuments.$inferInsert;

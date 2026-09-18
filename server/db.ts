@@ -2,6 +2,7 @@ import {
   and,
   asc,
   between,
+  count,
   desc,
   eq,
   gte,
@@ -13,18 +14,27 @@ import {
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
+  bankRecords,
   budgetPlans,
+  cashCounts,
   churchEvents,
   churchNews,
   churchProfiles,
+  countingSessions,
   expenses,
   financeAccounts,
+  InsertBankRecord,
+  InsertCashCount,
   InsertChurchEvent,
   InsertChurchNews,
   InsertChurchProfile,
+  InsertCountingSession,
   InsertExpense,
   InsertFinanceAccount,
   InsertOffering,
+  InsertOfferingEnvelope,
+  InsertSessionDeduction,
+  InsertSessionDocument,
   InsertUser,
   InsertWithdrawalRequest,
   InsertMember,
@@ -32,10 +42,15 @@ import {
   auditLogs,
   members,
   notifications,
+  offeringEnvelopes,
   offerings,
+  sessionDeductions,
+  sessionDocuments,
   users,
   withdrawalRequests,
 } from "../drizzle/schema";
+import type { CountingStatus } from "@shared/counting";
+import { reconcile } from "@shared/counting";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -482,7 +497,7 @@ export async function createOffering(
     // Update fund balance in the same transaction as the offering insert.
     if (input.fundId) {
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
       );
     }
     return result[0].id;
@@ -529,11 +544,11 @@ export async function updateOffering(
       const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
       if (oldFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance - ${oldAmount} WHERE id = ${oldFundId} AND "churchId" = ${churchId}`
         );
       if (newFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance + ${newAmount} WHERE id = ${newFundId} AND "churchId" = ${churchId}`
         );
     }
     return id;
@@ -636,7 +651,7 @@ export async function createExpense(
     // Deduct fund balance in the same transaction as the expense insert.
     if (input.fundId) {
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance - ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
       );
     }
     return result[0].id;
@@ -683,11 +698,11 @@ export async function updateExpense(
       const newFundId = input.fundId === undefined ? oldFundId : input.fundId;
       if (oldFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance + ${oldAmount} WHERE id = ${oldFundId} AND "churchId" = ${churchId}`
         );
       if (newFundId)
         await tx.execute(
-          sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND churchId = ${churchId}`
+          sql`UPDATE finance_accounts SET balance = balance - ${newAmount} WHERE id = ${newFundId} AND "churchId" = ${churchId}`
         );
     }
     return id;
@@ -732,7 +747,7 @@ export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
     if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance - ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND "churchId" = ${churchId}`
       );
     return true;
   });
@@ -772,7 +787,7 @@ export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
     if (!updatedRows[0]) return false;
     if (existing[0].fundId)
       await tx.execute(
-        sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND churchId = ${churchId}`
+        sql`UPDATE finance_accounts SET balance = balance + ${Number(existing[0].amount)} WHERE id = ${existing[0].fundId} AND "churchId" = ${churchId}`
       );
     return true;
   });
@@ -1257,4 +1272,549 @@ export async function deleteChurchEvent(id: number) {
     .where(
       and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
     );
+}
+
+// ─── Weekly Offering Counting ─────────────────────────────────────────────────
+
+const num = (value: unknown) => parseFloat((value as string) ?? "0");
+
+export async function listCountingSessions(
+  churchId = DEFAULT_CHURCH_ID,
+  limit = 52
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(countingSessions)
+    .where(eq(countingSessions.churchId, churchId))
+    .orderBy(desc(countingSessions.serviceDate))
+    .limit(limit);
+  return rows;
+}
+
+export async function getCountingSession(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(countingSessions)
+    .where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * The session with every part needed to reconcile it. Returns null when the
+ * session does not exist, so callers can map that to NOT_FOUND.
+ */
+export async function getCountingSessionDetail(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const session = await getCountingSession(id, churchId);
+  if (!session) return null;
+
+  const [envelopeRows, cashRows, deductionRows, bankRows, documentRows] =
+    await Promise.all([
+      db
+        .select()
+        .from(offeringEnvelopes)
+        .where(eq(offeringEnvelopes.sessionId, id))
+        .orderBy(asc(offeringEnvelopes.id)),
+      db
+        .select()
+        .from(cashCounts)
+        .where(eq(cashCounts.sessionId, id))
+        .orderBy(desc(cashCounts.denomination)),
+      db
+        .select()
+        .from(sessionDeductions)
+        .where(eq(sessionDeductions.sessionId, id))
+        .orderBy(asc(sessionDeductions.id)),
+      db
+        .select()
+        .from(bankRecords)
+        .where(eq(bankRecords.sessionId, id))
+        .orderBy(asc(bankRecords.id)),
+      db
+        .select()
+        .from(sessionDocuments)
+        .where(eq(sessionDocuments.sessionId, id))
+        .orderBy(desc(sessionDocuments.createdAt)),
+    ]);
+
+  const envelopes = envelopeRows.map(r => ({ ...r, amount: num(r.amount) }));
+  const cash = cashRows.map(r => ({
+    ...r,
+    denomination: num(r.denomination),
+  }));
+  const deductions = deductionRows.map(r => ({ ...r, amount: num(r.amount) }));
+  const bank = bankRows.map(r => ({ ...r, amount: num(r.amount) }));
+
+  return {
+    session,
+    envelopes,
+    cashCounts: cash,
+    deductions,
+    bankRecords: bank,
+    documents: documentRows,
+    reconciliation: reconcile({
+      envelopes,
+      cashCounts: cash,
+      deductions,
+      bankRecords: bank,
+    }),
+  };
+}
+
+export async function createCountingSession(
+  input: Omit<InsertCountingSession, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(countingSessions)
+    .values({ ...input, churchId })
+    .returning({ id: countingSessions.id });
+  return rows[0].id;
+}
+
+export async function updateCountingSession(
+  id: number,
+  input: Partial<Omit<InsertCountingSession, "churchId">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(countingSessions)
+    .set(input)
+    .where(
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+    )
+    .returning({ id: countingSessions.id });
+  return rows[0]?.id ?? null;
+}
+
+/**
+ * Moves the session to a new status, but only from the status the caller saw.
+ * The `from` guard makes the update a compare-and-set, so two people pressing
+ * the same button cannot both succeed.
+ */
+export async function setCountingSessionStatus(
+  id: number,
+  from: CountingStatus,
+  to: CountingStatus,
+  patch: Partial<Omit<InsertCountingSession, "churchId" | "status">> = {},
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(countingSessions)
+    .set({ ...patch, status: to })
+    .where(
+      and(
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId),
+        eq(countingSessions.status, from)
+      )
+    )
+    .returning({ id: countingSessions.id });
+  return rows.length > 0;
+}
+
+export async function addOfferingEnvelope(
+  input: Omit<InsertOfferingEnvelope, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(offeringEnvelopes)
+    .values({ ...input, churchId })
+    .returning({ id: offeringEnvelopes.id });
+  return rows[0].id;
+}
+
+export async function updateOfferingEnvelope(
+  id: number,
+  sessionId: number,
+  input: Partial<Omit<InsertOfferingEnvelope, "churchId" | "sessionId">>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(offeringEnvelopes)
+    .set(input)
+    .where(
+      and(
+        eq(offeringEnvelopes.id, id),
+        eq(offeringEnvelopes.sessionId, sessionId)
+      )
+    )
+    .returning({ id: offeringEnvelopes.id });
+  return rows[0]?.id ?? null;
+}
+
+export async function deleteOfferingEnvelope(id: number, sessionId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .delete(offeringEnvelopes)
+    .where(
+      and(
+        eq(offeringEnvelopes.id, id),
+        eq(offeringEnvelopes.sessionId, sessionId)
+      )
+    )
+    .returning({ id: offeringEnvelopes.id });
+  return rows.length > 0;
+}
+
+/** One row per denomination per session; writing the same denomination twice updates it. */
+export async function setCashCount(
+  input: InsertCashCount & { denomination: string }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.transaction(async tx => {
+    const existing = await tx
+      .select({ id: cashCounts.id })
+      .from(cashCounts)
+      .where(
+        and(
+          eq(cashCounts.sessionId, input.sessionId),
+          eq(cashCounts.denomination, input.denomination),
+          eq(cashCounts.kind, input.kind)
+        )
+      )
+      .limit(1);
+    if (existing[0]) {
+      await tx
+        .update(cashCounts)
+        .set({ quantity: input.quantity })
+        .where(eq(cashCounts.id, existing[0].id));
+      return existing[0].id;
+    }
+    const rows = await tx
+      .insert(cashCounts)
+      .values(input)
+      .returning({ id: cashCounts.id });
+    return rows[0].id;
+  });
+}
+
+export async function addSessionDeduction(
+  input: Omit<InsertSessionDeduction, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(sessionDeductions)
+    .values({ ...input, churchId })
+    .returning({ id: sessionDeductions.id });
+  return rows[0].id;
+}
+
+/** Approves a deduction. Rejects the attempt when the approver requested it. */
+export async function approveSessionDeduction(
+  id: number,
+  approverId: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(sessionDeductions)
+    .set({ approvedBy: approverId, approvedAt: new Date() })
+    .where(
+      and(
+        eq(sessionDeductions.id, id),
+        eq(sessionDeductions.churchId, churchId),
+        ne(sessionDeductions.requestedBy, approverId)
+      )
+    )
+    .returning({ id: sessionDeductions.id });
+  return rows.length > 0;
+}
+
+export async function deleteSessionDeduction(id: number, sessionId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .delete(sessionDeductions)
+    .where(
+      and(
+        eq(sessionDeductions.id, id),
+        eq(sessionDeductions.sessionId, sessionId)
+      )
+    )
+    .returning({ id: sessionDeductions.id });
+  return rows.length > 0;
+}
+
+export async function addBankRecord(
+  input: Omit<InsertBankRecord, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(bankRecords)
+    .values({ ...input, churchId })
+    .returning({ id: bankRecords.id });
+  return rows[0].id;
+}
+
+/** Marks a bank line as seen in the passbook. */
+export async function matchBankRecordToPassbook(
+  id: number,
+  matchedBy: number,
+  passbookDate: Date,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(bankRecords)
+    .set({ passbookMatched: true, passbookDate, matchedBy })
+    .where(and(eq(bankRecords.id, id), eq(bankRecords.churchId, churchId)))
+    .returning({ id: bankRecords.id });
+  return rows.length > 0;
+}
+
+export async function addSessionDocument(
+  input: Omit<InsertSessionDocument, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(sessionDocuments)
+    .values({ ...input, churchId })
+    .returning({ id: sessionDocuments.id });
+  return rows[0].id;
+}
+
+/**
+ * Writes a verified session into the ledger, in one transaction:
+ * every envelope becomes an offering row, every approved deduction becomes an
+ * expense row, and the fund balances move once. Nothing here recalculates the
+ * money — the caller must reconcile first.
+ */
+export async function postCountingSession(
+  id: number,
+  postedBy: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  return db.transaction(async tx => {
+    // Compare-and-set on `verified` so a session can never post twice.
+    const claimed = await tx
+      .update(countingSessions)
+      .set({ status: "posted", postedBy, postedAt: new Date() })
+      .where(
+        and(
+          eq(countingSessions.id, id),
+          eq(countingSessions.churchId, churchId),
+          eq(countingSessions.status, "verified")
+        )
+      )
+      .returning({
+        id: countingSessions.id,
+        serviceDate: countingSessions.serviceDate,
+      });
+    if (!claimed[0]) return null;
+    const serviceDate = claimed[0].serviceDate;
+
+    const envelopeRows = await tx
+      .select()
+      .from(offeringEnvelopes)
+      .where(eq(offeringEnvelopes.sessionId, id));
+
+    let offeringCount = 0;
+    for (const envelope of envelopeRows) {
+      await tx.insert(offerings).values({
+        churchId,
+        sessionId: id,
+        amount: envelope.amount,
+        category: envelope.category,
+        fundId: envelope.fundId,
+        donorName: envelope.isAnonymous ? null : envelope.donorName,
+        donorMemberId: envelope.memberId,
+        receiptDate: serviceDate,
+        method: envelope.method,
+        reference: envelope.reference,
+        notes: envelope.notes,
+        recordedBy: envelope.recordedBy,
+      });
+      if (envelope.fundId) {
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance + ${envelope.amount} WHERE id = ${envelope.fundId} AND "churchId" = ${churchId}`
+        );
+      }
+      offeringCount += 1;
+    }
+
+    const deductionRows = await tx
+      .select()
+      .from(sessionDeductions)
+      .where(eq(sessionDeductions.sessionId, id));
+
+    let deductionCount = 0;
+    for (const deduction of deductionRows) {
+      const inserted = await tx
+        .insert(expenses)
+        .values({
+          churchId,
+          amount: deduction.amount,
+          category: deduction.category,
+          fundId: deduction.fundId,
+          description: deduction.purpose,
+          details: `หักจากถุงถวาย ${deduction.reason}`,
+          expenseDate: serviceDate,
+          payee: deduction.paidTo,
+          status: "approved",
+          recordedBy: deduction.requestedBy,
+        } as InsertExpense)
+        .returning({ id: expenses.id });
+      await tx
+        .update(sessionDeductions)
+        .set({ expenseId: inserted[0].id })
+        .where(eq(sessionDeductions.id, deduction.id));
+      if (deduction.fundId) {
+        await tx.execute(
+          sql`UPDATE finance_accounts SET balance = balance - ${deduction.amount} WHERE id = ${deduction.fundId} AND "churchId" = ${churchId}`
+        );
+      }
+      deductionCount += 1;
+    }
+
+    return { offeringCount, deductionCount };
+  });
+}
+
+// ─── Financial report aggregation ─────────────────────────────────────────────
+
+export type ReportSummary = {
+  from: string;
+  to: string;
+  income: Array<{ category: string; total: number; count: number }>;
+  expense: Array<{ category: string; total: number; count: number }>;
+  totalIncome: number;
+  totalExpense: number;
+  net: number;
+  transactionCount: number;
+  funds: Array<{ id: number; name: string; type: string; balance: number }>;
+};
+
+/**
+ * Totals for the report screen, grouped by category and computed in the
+ * database from the same rows the ledger shows. Voided records are excluded,
+ * matching every other read path.
+ */
+export async function getFinancialReportSummary(
+  churchId = DEFAULT_CHURCH_ID,
+  fromDate: Date,
+  toDate: Date
+): Promise<ReportSummary> {
+  const empty: ReportSummary = {
+    from: fromDate.toISOString().slice(0, 10),
+    to: toDate.toISOString().slice(0, 10),
+    income: [],
+    expense: [],
+    totalIncome: 0,
+    totalExpense: 0,
+    net: 0,
+    transactionCount: 0,
+    funds: [],
+  };
+
+  const db = await getDb();
+  if (!db) return empty;
+
+  const [incomeRows, expenseRows, fundRows] = await Promise.all([
+    db
+      .select({
+        category: offerings.category,
+        total: sum(offerings.amount),
+        count: count(offerings.id),
+      })
+      .from(offerings)
+      .where(
+        and(
+          eq(offerings.churchId, churchId),
+          ne(offerings.status, "voided"),
+          between(offerings.receiptDate, fromDate, toDate)
+        )
+      )
+      .groupBy(offerings.category),
+    db
+      .select({
+        category: expenses.category,
+        total: sum(expenses.amount),
+        count: count(expenses.id),
+      })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.churchId, churchId),
+          ne(expenses.status, "voided"),
+          between(expenses.expenseDate, fromDate, toDate)
+        )
+      )
+      .groupBy(expenses.category),
+    db
+      .select()
+      .from(financeAccounts)
+      .where(
+        and(
+          eq(financeAccounts.churchId, churchId),
+          eq(financeAccounts.isActive, true)
+        )
+      )
+      .orderBy(asc(financeAccounts.sortOrder), asc(financeAccounts.name)),
+  ]);
+
+  const toRow = (r: { category: string; total: unknown; count: number }) => ({
+    category: r.category,
+    total: parseFloat((r.total as string) ?? "0"),
+    count: Number(r.count),
+  });
+
+  const income = incomeRows.map(toRow);
+  const expense = expenseRows.map(toRow);
+  const totalIncome = income.reduce((sum, r) => sum + r.total, 0);
+  const totalExpense = expense.reduce((sum, r) => sum + r.total, 0);
+
+  return {
+    ...empty,
+    income,
+    expense,
+    totalIncome,
+    totalExpense,
+    net: totalIncome - totalExpense,
+    transactionCount:
+      income.reduce((n, r) => n + r.count, 0) +
+      expense.reduce((n, r) => n + r.count, 0),
+    funds: fundRows.map(f => ({
+      id: f.id,
+      name: f.name,
+      type: f.type,
+      balance: parseFloat((f.balance as unknown as string) ?? "0"),
+    })),
+  };
 }

@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Illustration } from "@/components/Illustration";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 import {
   ArrowLeft,
   Building,
@@ -20,22 +24,14 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from "@shared/categories";
 
 export default function NewExpense() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
   const [amount, setAmount] = useState<string>("");
-  const [category, setCategory] = useState<
-    | "utilities"
-    | "ministry"
-    | "pastoral"
-    | "admin"
-    | "building"
-    | "worship"
-    | "welfare"
-    | "other"
-  >("utilities");
+  const [category, setCategory] = useState<ExpenseCategory>("utilities");
   const [description, setDescription] = useState("");
   const [payee, setPayee] = useState("");
   const [fundId, setFundId] = useState<number | null>(null);
@@ -48,33 +44,21 @@ export default function NewExpense() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdExpenseId, setCreatedExpenseId] = useState<number | null>(null);
-  const isDirty = Boolean(
-    amount ||
-      description ||
-      payee ||
-      receiptRef ||
-      details ||
-      receiptFile ||
-      fundId ||
-      category !== "utilities"
-  );
-  useEffect(() => {
-    if (!isDirty) return;
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [isDirty]);
+  const isDirty =
+    !showSuccessModal &&
+    Boolean(
+      amount ||
+        description ||
+        payee ||
+        receiptRef ||
+        details ||
+        receiptFile ||
+        fundId ||
+        category !== "utilities"
+    );
+  useUnsavedChanges(isDirty);
   const goBack = () => {
-    if (
-      !isDirty ||
-      window.confirm(
-        "คุณมีข้อมูลที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
-      )
-    )
-      setLocation("/expenses");
+    if (confirmDiscardChanges(isDirty)) setLocation("/expenses");
   };
 
   const createExpenseMutation = trpc.expenses.create.useMutation({
@@ -133,76 +117,29 @@ export default function NewExpense() {
     setAmount(val.toLocaleString("th-TH"));
   };
 
-  const categories = [
-    {
-      id: "utilities",
-      label: "สาธารณูปโภค",
-      icon: Zap,
-      desc: "ค่าน้ำ ค่าไฟ อินเทอร์เน็ต",
-    },
-    {
-      id: "ministry",
-      label: "พันธกิจในคริสตจักร",
-      icon: Users,
-      desc: "รวี กิจกรรม ค่าย กลุ่มแคร์",
-    },
-    {
-      id: "welfare",
-      label: "สงเคราะห์และชุมชน",
-      icon: HeartHandshake,
-      desc: "เยี่ยมเยียน ผู้ยากไร้ ชุมชน",
-    },
-    {
-      id: "worship",
-      label: "นมัสการและดนตรี",
-      icon: GraduationCap,
-      desc: "อุปกรณ์เสียง ลิขสิทธิ์เพลง",
-    },
-    {
-      id: "building",
-      label: "อาคารและบูรณะ",
-      icon: Building,
-      desc: "ซ่อมบำรุง บูรณะ ปรับปรุง",
-    },
-    {
-      id: "pastoral",
-      label: "ศิษยาภิบาล/ผู้ประกาศ",
-      icon: Cross,
-      desc: "ค่าตอบแทนและพันธกิจอภิบาล",
-    },
-    {
-      id: "admin",
-      label: "บริหารและธุรการ",
-      icon: Receipt,
-      desc: "อุปกรณ์สำนักงาน เอกสาร ภาษี",
-    },
-    {
-      id: "other",
-      label: "ค่าใช้จ่ายอื่นๆ",
-      icon: FileText,
-      desc: "เบ็ดเตล็ดและอื่นๆ",
-    },
-  ];
+  const categoryIcons: Record<string, { icon: typeof Zap; desc: string }> = {
+    utilities: { icon: Zap, desc: "ค่าน้ำ ค่าไฟ อินเทอร์เน็ต" },
+    ministry: { icon: Users, desc: "รวี กิจกรรม ค่าย กลุ่มแคร์" },
+    welfare: { icon: HeartHandshake, desc: "เยี่ยมเยียน ผู้ยากไร้ ชุมชน" },
+    worship: { icon: GraduationCap, desc: "อุปกรณ์เสียง ลิขสิทธิ์เพลง" },
+    building: { icon: Building, desc: "ซ่อมบำรุง บูรณะ ปรับปรุง" },
+    pastoral: { icon: Cross, desc: "ค่าตอบแทนและพันธกิจอภิบาล" },
+    admin: { icon: Receipt, desc: "อุปกรณ์สำนักงาน เอกสาร ภาษี" },
+    other: { icon: FileText, desc: "เบ็ดเตล็ดและอื่น ๆ" },
+  };
 
-  const funds = [
-    { id: 1, name: "บัญชีทั่วไป (General Fund)", balance: "฿ 285,400" },
-    {
-      id: 2,
-      name: "กองทุนพันธกิจและประกาศ (Mission Fund)",
-      balance: "฿ 120,500",
-    },
-    { id: 3, name: "กองทุนสงเคราะห์ (Benevolence Fund)", balance: "฿ 45,000" },
-    {
-      id: 4,
-      name: "กองทุนก่อสร้างและพัฒนา (Building Fund)",
-      balance: "฿ 850,000",
-    },
-    {
-      id: 5,
-      name: "กองทุนเพื่อเด็กและเยาวชน (Youth Fund)",
-      balance: "฿ 68,200",
-    },
-  ];
+  const categories = EXPENSE_CATEGORIES.map(c => ({
+    id: c.id,
+    label: c.label,
+    icon: categoryIcons[c.id]?.icon ?? FileText,
+    desc: categoryIcons[c.id]?.desc ?? "",
+  }));
+
+  // Real funds from the database; no balances are invented here.
+  const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+  });
+  const funds = fundsQuery.data ?? [];
 
   const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -393,14 +330,17 @@ export default function NewExpense() {
                   ตัดจ่ายจากกองทุน <span className="text-red-500">*</span>
                 </label>
                 <select
+                  required
                   value={fundId ?? ""}
                   onChange={e => setFundId(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
                 >
-                  <option value="">เลือกกองทุนที่ใช้จ่าย</option>
+                  <option value="" disabled>
+                    — เลือกกองทุน —
+                  </option>
                   {funds.map(f => (
                     <option key={f.id} value={f.id}>
-                      {f.name} (คงเหลือ {f.balance})
+                      {f.name}
                     </option>
                   ))}
                 </select>

@@ -127,7 +127,13 @@ export type StatusType =
   | "completed"
   | "active"
   | "inactive"
-  | "voided";
+  | "voided"
+  // Weekly offering counting session
+  | "counting"
+  | "counted"
+  | "verified"
+  | "posted"
+  | "closed";
 
 export const StatusBadge: React.FC<{
   status: StatusType | string;
@@ -153,6 +159,31 @@ export const StatusBadge: React.FC<{
         return {
           bg: "bg-stone-100 text-stone-600 border-stone-200",
           defaultLabel: "ยกเลิกรายการ",
+        };
+      case "counting":
+        return {
+          bg: "bg-[#FFF3DF] text-[#C26B1E] border-[#F6E1BF]",
+          defaultLabel: "กำลังนับ",
+        };
+      case "counted":
+        return {
+          bg: "bg-[#E7F1FB] text-[#2F6690] border-[#CBE0F2]",
+          defaultLabel: "รอตรวจสอบ",
+        };
+      case "verified":
+        return {
+          bg: "bg-[#EAF5E4] text-[#4F8B33] border-[#D2EAC7]",
+          defaultLabel: "ตรวจสอบแล้ว",
+        };
+      case "posted":
+        return {
+          bg: "bg-[#1b5e3a] text-white border-[#1b5e3a]",
+          defaultLabel: "ลงบัญชีแล้ว",
+        };
+      case "closed":
+        return {
+          bg: "bg-stone-200 text-stone-700 border-stone-300",
+          defaultLabel: "ปิดรอบแล้ว",
         };
       case "pending":
       default:

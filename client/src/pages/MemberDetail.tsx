@@ -5,6 +5,10 @@ import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
+import {
+  confirmDiscardChanges,
+  useUnsavedChanges,
+} from "@/hooks/useUnsavedChanges";
 
 export default function MemberDetail() {
   const [, setLocation] = useLocation();
@@ -19,14 +23,33 @@ export default function MemberDetail() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [baseline, setBaseline] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    notes: "",
+  });
   useEffect(() => {
     if (query.data) {
-      setName(query.data.name);
-      setPhone(query.data.phone || "");
-      setEmail(query.data.email || "");
-      setNotes(query.data.notes || "");
+      const loaded = {
+        name: query.data.name,
+        phone: query.data.phone || "",
+        email: query.data.email || "",
+        notes: query.data.notes || "",
+      };
+      setName(loaded.name);
+      setPhone(loaded.phone);
+      setEmail(loaded.email);
+      setNotes(loaded.notes);
+      setBaseline(loaded);
     }
   }, [query.data]);
+  const isDirty =
+    name !== baseline.name ||
+    phone !== baseline.phone ||
+    email !== baseline.email ||
+    notes !== baseline.notes;
+  useUnsavedChanges(isDirty);
   const update = trpc.members.update.useMutation({
     onSuccess: async () => {
       await Promise.all([
@@ -69,7 +92,9 @@ export default function MemberDetail() {
       <div className="max-w-3xl space-y-6">
         <button
           type="button"
-          onClick={() => setLocation("/members")}
+          onClick={() => {
+            if (confirmDiscardChanges(isDirty)) setLocation("/members");
+          }}
           className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-[#70452E]"
         >
           <ArrowLeft className="h-4 w-4" />

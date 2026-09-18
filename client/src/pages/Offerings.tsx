@@ -11,6 +11,7 @@ import {
 import { Illustration } from "@/components/Illustration";
 import { Download, HandCoins, Heart, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { offeringCategoryLabel } from "@shared/categories";
 
 export default function Offerings() {
   const [, setLocation] = useLocation();
@@ -28,14 +29,7 @@ export default function Offerings() {
     return (offeringsData ?? []).map(o => ({
       id: o.id,
       category: o.category,
-      title:
-        o.category === "tithe"
-          ? "ถวายสิบลด"
-          : o.category === "mission"
-            ? "ถวายพันธกิจ"
-            : o.category === "building"
-              ? "ถวายสร้างอาคาร"
-              : "ถวายประจำสัปดาห์",
+      title: offeringCategoryLabel(o.category),
       amount: Number(o.amount),
       date: o.receiptDate,
       method: o.method || "เงินสด",

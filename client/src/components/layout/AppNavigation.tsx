@@ -1,8 +1,10 @@
 import { type ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
+import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
   CheckCircle2,
+  Coins,
   CreditCard,
   FileBarChart,
   HandCoins,
@@ -32,6 +34,12 @@ export const navItems = [
     path: "/transactions",
     icon: ReceiptText,
     iconColor: "text-[#A8C978]",
+  },
+  {
+    label: "นับเงินถวาย",
+    path: "/counting",
+    icon: Coins,
+    iconColor: "text-[#E99A4A]",
   },
   {
     label: "ถวายทรัพย์",
@@ -135,7 +143,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
             const active = isActiveRoute(location, path);
             return (
               <SheetClose asChild key={path}>
-                <Link
+                <GuardedLink
                   href={path}
                   aria-current={active ? "page" : undefined}
                   onFocus={e =>
@@ -152,7 +160,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                     aria-hidden="true"
                   />
                   {label}
-                </Link>
+                </GuardedLink>
               </SheetClose>
             );
           })}

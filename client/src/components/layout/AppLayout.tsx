@@ -1,7 +1,9 @@
 import React from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { useGuardedNavigate } from "@/hooks/useUnsavedChanges";
+import { GuardedLink } from "./GuardedLink";
 import { AppMenu, isActiveRoute, navItems } from "./AppNavigation";
 import {
   Bell,
@@ -28,7 +30,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   subtitle,
   action,
 }) => {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
+  const navigate = useGuardedNavigate();
   const { user } = useAuth();
   const currentPath = activeRoute || location;
 
@@ -46,7 +49,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         {/* DESKTOP FIXED SIDEBAR (Visible on lg: >= 1024px) */}
         <aside className="hidden lg:flex flex-col w-72 bg-[#FFF4DF]/85 border-r border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
           {/* 1. Grace-giving Branding */}
-          <Link
+          <GuardedLink
             href="/"
             className="flex items-center gap-3 mb-6 cursor-pointer select-none"
           >
@@ -69,11 +72,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 การเงินเชื่อมใจ เพื่อคริสตจักร
               </p>
             </div>
-          </Link>
+          </GuardedLink>
 
           {/* Quick Offering Action Button */}
           <button
-            onClick={() => setLocation("/offerings/new")}
+            onClick={() => navigate("/offerings/new")}
             className="w-full mb-6 py-3 px-4 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold flex items-center justify-center gap-2 clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
             aria-label="บันทึกการถวายใหม่"
           >
@@ -91,7 +94,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               const isActive = isActiveRoute(currentPath, item.path);
 
               return (
-                <Link
+                <GuardedLink
                   key={item.path}
                   href={item.path}
                   aria-current={isActive ? "page" : undefined}
@@ -103,14 +106,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 >
                   <Icon className={`w-5 h-5 ${item.iconColor}`} />
                   <span>{item.label}</span>
-                </Link>
+                </GuardedLink>
               );
             })}
           </nav>
 
           {/* User Profile Card at Sidebar Bottom */}
           <div className="pt-4 mt-auto border-t border-[#E9D9BF]/80">
-            <Link
+            <GuardedLink
               href="/settings"
               className="flex items-center gap-3 p-3 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF] cursor-pointer hover:bg-white transition-all"
             >
@@ -130,7 +133,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       : "สมาชิกคริสตจักร"}
                 </p>
               </div>
-            </Link>
+            </GuardedLink>
           </div>
         </aside>
 
@@ -140,13 +143,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <header className="flex flex-wrap items-start justify-between gap-4 mb-6 pb-4 border-b border-[#E9D9BF]/60">
             <div className="flex w-full items-center justify-between lg:hidden">
               <AppMenu />
-              <Link
+              <GuardedLink
                 href="/notifications"
                 className="flex size-11 shrink-0 items-center justify-center rounded-full border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]"
                 aria-label="การแจ้งเตือน"
               >
                 <Bell className="size-5" aria-hidden="true" />
-              </Link>
+              </GuardedLink>
             </div>
             {/* Left: Page Title or Mobile Branding */}
             <div className="min-w-0 flex-1 basis-full sm:basis-0">
@@ -162,7 +165,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   )}
                 </div>
               ) : (
-                <Link
+                <GuardedLink
                   href="/"
                   className="flex items-center gap-2 cursor-pointer"
                 >
@@ -177,7 +180,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       Ledger
                     </span>
                   </div>
-                </Link>
+                </GuardedLink>
               )}
             </div>
 
@@ -190,7 +193,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               )}
 
               <button
-                onClick={() => setLocation("/notifications")}
+                onClick={() => navigate("/notifications")}
                 className="hidden lg:flex size-11 shrink-0 rounded-full bg-white border border-[#E9D9BF] shadow-xs items-center justify-center text-[#70452E] hover:bg-[#FFF4DF] transition-all relative focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                 aria-label="การแจ้งเตือน"
               >
@@ -212,7 +215,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         <div className="max-w-md mx-auto flex items-center justify-between relative">
           {/* 1. หน้าแรก */}
           <button
-            onClick={() => setLocation("/")}
+            onClick={() => navigate("/")}
             className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
               currentPath === "/"
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
@@ -227,7 +230,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           {/* 2. รายการ */}
           <button
-            onClick={() => setLocation("/transactions")}
+            onClick={() => navigate("/transactions")}
             className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/transactions")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
@@ -245,7 +248,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* 3. CENTER PRIMARY FAB: WARM ORANGE '+' BUTTON */}
           <div className="relative -top-5 flex flex-col items-center">
             <button
-              onClick={() => setLocation("/offerings/new")}
+              onClick={() => navigate("/offerings/new")}
               className="w-14 h-14 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-3 border-white focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
               aria-label="บันทึกการถวายใหม่"
             >
@@ -258,7 +261,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           {/* 4. รายงาน */}
           <button
-            onClick={() => setLocation("/reports")}
+            onClick={() => navigate("/reports")}
             className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/reports")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
@@ -275,7 +278,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           {/* 5. ฉัน */}
           <button
-            onClick={() => setLocation("/settings")}
+            onClick={() => navigate("/settings")}
             className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/settings")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"

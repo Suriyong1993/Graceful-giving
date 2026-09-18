@@ -23,6 +23,7 @@ import {
   getChurchProfile,
   getExpenseById,
   getFinancialReportData,
+  getFinancialReportSummary,
   getFinancialSummary,
   getMonthlyStats,
   getOfferingById,
@@ -52,9 +53,31 @@ import {
   updateChurchNewsStatus,
   updateUserChurchRole,
   upsertChurchProfile,
+  listCountingSessions,
+  getCountingSession,
+  getCountingSessionDetail,
+  createCountingSession,
+  setCountingSessionStatus,
+  addOfferingEnvelope,
+  updateOfferingEnvelope,
+  deleteOfferingEnvelope,
+  setCashCount,
+  addSessionDeduction,
+  approveSessionDeduction,
+  deleteSessionDeduction,
+  addBankRecord,
+  matchBankRecordToPassbook,
+  addSessionDocument,
+  postCountingSession,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
+import type { CountingStatus } from "@shared/counting";
+import { canTransition, isEditable } from "@shared/counting";
+import {
+  EXPENSE_CATEGORY_IDS,
+  OFFERING_CATEGORY_IDS,
+} from "@shared/categories";
 
 // ─── Permission helpers ────────────────────────────────────────────────────────
 
@@ -87,6 +110,26 @@ function canManageChurchSettings(user: User): boolean {
     user.role === "admin" ||
     user.churchRole === "SUPER_ADMIN" ||
     user.churchRole === "PASTOR"
+  );
+}
+
+/** COUNTER records the count; finance roles may also record it. */
+function canCountOfferings(user: User): boolean {
+  return user.churchRole === "COUNTER" || canManageFinance(user);
+}
+
+/** Verifying, banking and posting stay with the treasurer. */
+function canVerifyCount(user: User): boolean {
+  return canManageFinance(user);
+}
+
+/** A deduction from the offering bag needs a leader's approval. */
+function canApproveDeduction(user: User): boolean {
+  return (
+    user.role === "admin" ||
+    user.churchRole === "SUPER_ADMIN" ||
+    user.churchRole === "PASTOR" ||
+    user.churchRole === "TREASURER"
   );
 }
 
@@ -132,27 +175,19 @@ const newsCategory = z.enum([
 ]);
 const newsStatus = z.enum(["draft", "published", "archived"]);
 const eventStatus = z.enum(["draft", "published", "cancelled"]);
-const offeringCategory = z.enum([
-  "tithe",
-  "general",
-  "mission",
-  "building",
-  "welfare",
-  "special",
-]);
-const expenseCategory = z.enum([
-  "utilities",
-  "ministry",
-  "pastoral",
-  "admin",
-  "building",
-  "worship",
-  "welfare",
-  "other",
-]);
+// Built from the shared category source of truth, so the API can never accept
+// a value the database enum would reject, or reject one the UI offers.
+const offeringCategory = z.enum(OFFERING_CATEGORY_IDS);
+const expenseCategory = z.enum(EXPENSE_CATEGORY_IDS);
 const expenseStatus = z.enum(["draft", "approved", "paid"]);
 const paymentMethod = z.enum(["cash", "transfer", "check"]);
-const churchRoleEnum = z.enum(["SUPER_ADMIN", "PASTOR", "TREASURER", "MEMBER"]);
+const churchRoleEnum = z.enum([
+  "SUPER_ADMIN",
+  "PASTOR",
+  "TREASURER",
+  "COUNTER",
+  "MEMBER",
+]);
 const reportDateRange = z
   .object({ fromDate: z.coerce.date(), toDate: z.coerce.date() })
   .refine(data => data.fromDate <= data.toDate, {
@@ -164,6 +199,47 @@ function csvCell(value: string | number): string {
   const raw = String(value);
   const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
   return `"${safe.replace(/"/g, '""')}"`;
+}
+
+// ─── Counting session helpers ─────────────────────────────────────────────────
+
+async function requireCountingSession(id: number) {
+  const session = await getCountingSession(id);
+  if (!session) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "ไม่พบรอบนับเงินถวาย",
+    });
+  }
+  return session;
+}
+
+/** Counters may only change the count sheet and envelopes while counting. */
+function assertCountEditable(status: CountingStatus) {
+  if (!isEditable(status)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "รอบนี้ส่งนับแล้ว ต้องส่งกลับไปแก้ไขก่อนจึงจะบันทึกได้",
+    });
+  }
+}
+
+function assertCanCount(user: User) {
+  if (!canCountOfferings(user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "คุณไม่มีสิทธิ์บันทึกการนับเงินถวาย",
+    });
+  }
+}
+
+function assertCanVerify(user: User) {
+  if (!canVerifyCount(user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "เฉพาะเหรัญญิกหรือผู้ดูแลระบบเท่านั้น",
+    });
+  }
 }
 
 // ─── App Router ───────────────────────────────────────────────────────────────
@@ -544,7 +620,7 @@ export const appRouter = router({
           amount: input.amount.toFixed(2),
           purpose: input.purpose,
           details: input.details ?? null,
-          fundId: input.fundId ?? null,
+          fundId: input.fundId,
           requestedBy: ctx.user.id,
           requestDate: new Date(),
         } as any);
@@ -659,6 +735,16 @@ export const appRouter = router({
 
   // ── Reports ──────────────────────────────────────────────────────────────────
   reports: router({
+    /** Category totals and fund balances for the report screen. */
+    summary: protectedProcedure
+      .input(reportDateRange)
+      .query(async ({ input }) =>
+        getFinancialReportSummary(
+          DEFAULT_CHURCH_ID,
+          input.fromDate,
+          input.toDate
+        )
+      ),
     financial: protectedProcedure
       .input(reportDateRange)
       .query(async ({ input }) => {
@@ -844,6 +930,579 @@ export const appRouter = router({
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ input }) => {
         await deleteChurchEvent(input.id);
+        return { success: true } as const;
+      }),
+  }),
+  // ── Weekly Offering Counting ────────────────────────────────────────────────
+  counting: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      assertCanCount(ctx.user);
+      return listCountingSessions();
+    }),
+
+    get: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const detail = await getCountingSessionDetail(input.id);
+        if (!detail) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "ไม่พบรอบนับเงินถวาย",
+          });
+        }
+        return detail;
+      }),
+
+    create: protectedProcedure
+      .input(
+        z.object({
+          serviceDate: z.coerce.date(),
+          serviceRound: z.number().int().min(1).max(9).default(1),
+          serviceName: z.string().trim().max(120).optional(),
+          notes: z.string().trim().max(1000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const id = await createCountingSession({
+          serviceDate: input.serviceDate,
+          serviceRound: input.serviceRound,
+          serviceName: input.serviceName ?? null,
+          notes: input.notes ?? null,
+          countedBy: ctx.user.id,
+        });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "CREATE",
+          entity: "counting_session",
+          entityId: id,
+          metadata: input,
+        });
+        return { id };
+      }),
+
+    addEnvelope: protectedProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          envelopeNo: z.string().trim().max(30).optional(),
+          memberId: z.number().int().positive().optional(),
+          donorName: z.string().trim().max(180).optional(),
+          isAnonymous: z.boolean().default(false),
+          category: offeringCategory.default("general"),
+          fundId: z.number().int().positive(),
+          method: paymentMethod.default("cash"),
+          amount: z.number().positive(),
+          reference: z.string().trim().max(120).optional(),
+          notes: z.string().trim().max(500).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const id = await addOfferingEnvelope({
+          sessionId: input.sessionId,
+          envelopeNo: input.envelopeNo ?? null,
+          memberId: input.memberId ?? null,
+          donorName: input.isAnonymous ? null : (input.donorName ?? null),
+          isAnonymous: input.isAnonymous,
+          category: input.category,
+          fundId: input.fundId,
+          method: input.method,
+          amount: input.amount.toFixed(2),
+          reference: input.reference ?? null,
+          notes: input.notes ?? null,
+          recordedBy: ctx.user.id,
+        });
+        return { id };
+      }),
+
+    updateEnvelope: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          sessionId: z.number().int().positive(),
+          envelopeNo: z.string().trim().max(30).nullable().optional(),
+          memberId: z.number().int().positive().nullable().optional(),
+          donorName: z.string().trim().max(180).nullable().optional(),
+          isAnonymous: z.boolean().optional(),
+          category: offeringCategory.optional(),
+          fundId: z.number().int().positive().optional(),
+          method: paymentMethod.optional(),
+          amount: z.number().positive().optional(),
+          reference: z.string().trim().max(120).nullable().optional(),
+          notes: z.string().trim().max(500).nullable().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const { id, sessionId, amount, ...rest } = input;
+        const updated = await updateOfferingEnvelope(id, sessionId, {
+          ...rest,
+          ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
+        });
+        if (updated === null) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบรายการซอง" });
+        }
+        return { id: updated };
+      }),
+
+    removeEnvelope: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          sessionId: z.number().int().positive(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const removed = await deleteOfferingEnvelope(input.id, input.sessionId);
+        if (!removed) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบรายการซอง" });
+        }
+        return { success: true } as const;
+      }),
+
+    setCashCount: protectedProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          denomination: z.number().positive(),
+          kind: z.enum(["note", "coin"]),
+          quantity: z.number().int().min(0),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const id = await setCashCount({
+          sessionId: input.sessionId,
+          denomination: input.denomination.toFixed(2),
+          kind: input.kind,
+          quantity: input.quantity,
+        });
+        return { id };
+      }),
+
+    addDeduction: protectedProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          purpose: z.string().trim().min(2).max(200),
+          reason: z.string().trim().min(2).max(1000),
+          amount: z.number().positive(),
+          paidTo: z.string().trim().min(2).max(180),
+          category: expenseCategory.default("other"),
+          /**
+           * Required: cash leaving the bag must reduce a fund, otherwise the
+           * fund balance overstates what actually reached the bank.
+           */
+          fundId: z.number().int().positive(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const id = await addSessionDeduction({
+          sessionId: input.sessionId,
+          purpose: input.purpose,
+          reason: input.reason,
+          amount: input.amount.toFixed(2),
+          paidTo: input.paidTo,
+          category: input.category,
+          fundId: input.fundId ?? null,
+          requestedBy: ctx.user.id,
+        });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "CREATE",
+          entity: "session_deduction",
+          entityId: id,
+          metadata: input,
+        });
+        return { id };
+      }),
+
+    approveDeduction: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        if (!canApproveDeduction(ctx.user)) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "คุณไม่มีสิทธิ์อนุมัติรายการหักเบิก",
+          });
+        }
+        const approved = await approveSessionDeduction(input.id, ctx.user.id);
+        if (!approved) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "ไม่พบรายการ หรือผู้ขอเบิกไม่สามารถอนุมัติรายการของตัวเองได้",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "APPROVE",
+          entity: "session_deduction",
+          entityId: input.id,
+          metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    removeDeduction: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          sessionId: z.number().int().positive(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        assertCountEditable(session.status);
+        const removed = await deleteSessionDeduction(input.id, input.sessionId);
+        if (!removed) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "ไม่พบรายการหักเบิก",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "DELETE",
+          entity: "session_deduction",
+          entityId: input.id,
+          metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    addBankRecord: financeProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          type: z.enum(["transfer_in", "cash_deposit"]),
+          amount: z.number().positive(),
+          transferredBy: z.number().int().positive().optional(),
+          transferredByName: z.string().trim().max(180).optional(),
+          bankRef: z.string().trim().max(120).optional(),
+          occurredAt: z.coerce.date().optional(),
+          notes: z.string().trim().max(500).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await requireCountingSession(input.sessionId);
+        const id = await addBankRecord({
+          sessionId: input.sessionId,
+          type: input.type,
+          amount: input.amount.toFixed(2),
+          transferredBy: input.transferredBy ?? null,
+          transferredByName: input.transferredByName ?? null,
+          bankRef: input.bankRef ?? null,
+          occurredAt: input.occurredAt ?? new Date(),
+          notes: input.notes ?? null,
+          recordedBy: ctx.user.id,
+        });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "CREATE",
+          entity: "bank_record",
+          entityId: id,
+          metadata: input,
+        });
+        return { id };
+      }),
+
+    matchPassbook: financeProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          passbookDate: z.coerce.date(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const matched = await matchBankRecordToPassbook(
+          input.id,
+          ctx.user.id,
+          input.passbookDate
+        );
+        if (!matched) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "ไม่พบรายการธนาคาร",
+          });
+        }
+        return { success: true } as const;
+      }),
+
+    addDocument: protectedProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          kind: z
+            .enum([
+              "count_sheet",
+              "envelope_photo",
+              "deposit_slip",
+              "transfer_slip",
+              "passbook_page",
+              "deduction_receipt",
+              "other",
+            ])
+            .default("other"),
+          fileName: z.string().trim().min(1).max(255),
+          mimeType: z.string().trim().max(120).optional(),
+          fileSize: z.number().int().min(0).optional(),
+          driveFileId: z.string().trim().max(180).optional(),
+          fileUrl: z.string().trim().max(600).optional(),
+          drivePath: z.string().trim().max(300).optional(),
+          deductionId: z.number().int().positive().optional(),
+          bankRecordId: z.number().int().positive().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        await requireCountingSession(input.sessionId);
+        const id = await addSessionDocument({
+          sessionId: input.sessionId,
+          kind: input.kind,
+          fileName: input.fileName,
+          mimeType: input.mimeType ?? null,
+          fileSize: input.fileSize ?? null,
+          driveFileId: input.driveFileId ?? null,
+          fileUrl: input.fileUrl ?? null,
+          drivePath: input.drivePath ?? null,
+          deductionId: input.deductionId ?? null,
+          bankRecordId: input.bankRecordId ?? null,
+          uploadedBy: ctx.user.id,
+        });
+        return { id };
+      }),
+
+    /** counting → counted. The counter hands the sheet over for checking. */
+    submitCount: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.id);
+        if (!canTransition(session.status, "counted")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "รอบนี้ไม่อยู่ในสถานะที่ส่งนับได้",
+          });
+        }
+        const moved = await setCountingSessionStatus(
+          input.id,
+          session.status,
+          "counted",
+          { countSubmittedAt: new Date() }
+        );
+        if (!moved) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "สถานะรอบเปลี่ยนไปแล้ว กรุณาโหลดข้อมูลใหม่",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "SUBMIT",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    /** counted → counting. Sends the sheet back for a re-count. */
+    reopenCount: financeProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const session = await requireCountingSession(input.id);
+        if (!canTransition(session.status, "counting")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "รอบนี้ไม่สามารถส่งกลับไปนับใหม่ได้",
+          });
+        }
+        const moved = await setCountingSessionStatus(
+          input.id,
+          session.status,
+          "counting",
+          { verifiedBy: null, verifiedAt: null }
+        );
+        if (!moved) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "สถานะรอบเปลี่ยนไปแล้ว กรุณาโหลดข้อมูลใหม่",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "REOPEN",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    /** counted → verified. Never by the person who counted. */
+    verify: protectedProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        assertCanVerify(ctx.user);
+        const session = await requireCountingSession(input.id);
+        if (session.countedBy === ctx.user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "ผู้นับเงินไม่สามารถตรวจสอบรอบของตัวเองได้",
+          });
+        }
+        if (!canTransition(session.status, "verified")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "ต้องส่งนับให้เรียบร้อยก่อนจึงจะตรวจสอบได้",
+          });
+        }
+        const moved = await setCountingSessionStatus(
+          input.id,
+          session.status,
+          "verified",
+          { verifiedBy: ctx.user.id, verifiedAt: new Date() }
+        );
+        if (!moved) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "สถานะรอบเปลี่ยนไปแล้ว กรุณาโหลดข้อมูลใหม่",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "VERIFY",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {},
+        });
+        return { success: true } as const;
+      }),
+
+    /**
+     * verified → posted. Writes the ledger rows. A session that does not
+     * balance needs a written explanation and an approver first.
+     */
+    post: protectedProcedure
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          varianceNote: z.string().trim().max(1000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        assertCanVerify(ctx.user);
+        const detail = await getCountingSessionDetail(input.id);
+        if (!detail) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "ไม่พบรอบนับเงินถวาย",
+          });
+        }
+        if (!canTransition(detail.session.status, "posted")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "ต้องตรวจสอบรอบให้เรียบร้อยก่อนจึงจะลงบัญชีได้",
+          });
+        }
+
+        const unapproved = detail.deductions.filter(d => !d.approvedBy);
+        if (unapproved.length > 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `มีรายการหักเบิกที่ยังไม่ได้รับอนุมัติ ${unapproved.length} รายการ`,
+          });
+        }
+
+        const note = input.varianceNote?.trim() || detail.session.varianceNote;
+        if (!detail.reconciliation.isBalanced && !note) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "ยอดยังไม่ตรงกัน ต้องบันทึกคำอธิบายผลต่างก่อนลงบัญชี",
+          });
+        }
+        if (!detail.reconciliation.isBalanced) {
+          await setCountingSessionStatus(
+            input.id,
+            detail.session.status,
+            detail.session.status,
+            { varianceNote: note, varianceApprovedBy: ctx.user.id }
+          );
+        }
+
+        const result = await postCountingSession(input.id, ctx.user.id);
+        if (!result) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "รอบนี้ถูกลงบัญชีไปแล้ว หรือสถานะเปลี่ยนไปแล้ว",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "POST",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: { ...result, reconciliation: detail.reconciliation },
+        });
+        return result;
+      }),
+
+    /** posted → closed. Locks the round for good. */
+    close: financeProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const session = await requireCountingSession(input.id);
+        if (!canTransition(session.status, "closed")) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "ต้องลงบัญชีรอบนี้ก่อนจึงจะปิดรอบได้",
+          });
+        }
+        const moved = await setCountingSessionStatus(
+          input.id,
+          session.status,
+          "closed",
+          { closedAt: new Date() }
+        );
+        if (!moved) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "สถานะรอบเปลี่ยนไปแล้ว กรุณาโหลดข้อมูลใหม่",
+          });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "CLOSE",
+          entity: "counting_session",
+          entityId: input.id,
+          metadata: {},
+        });
         return { success: true } as const;
       }),
   }),
