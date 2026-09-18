@@ -17,75 +17,39 @@ export default function Offerings() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const { data: offeringsData, isLoading } = trpc.offerings.list.useQuery(
-    { limit: 50 },
-    { retry: false }
-  );
+  const {
+    data: offeringsData,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
   const offerings = useMemo(() => {
-    if (offeringsData && offeringsData.length > 0) {
-      return offeringsData.map((o: any) => ({
-        id: o.id,
-        category: o.category,
-        title:
-          o.category === "tithe"
-            ? "ถวายสิบลด"
-            : o.category === "mission"
-              ? "ถวายพันธกิจ"
-              : o.category === "building"
-                ? "ถวายสร้างอาคาร"
-                : "ถวายประจำสัปดาห์",
-        amount: Number(o.amount),
-        date: o.receiptDate || o.createdAt,
-        method: o.method || "เงินสด",
-        fund: "บัญชีทั่วไป",
-      }));
-    }
-
-    return [
-      {
-        id: 1,
-        category: "tithe",
-        title: "ถวายสิบลด (Tithe)",
-        amount: 5000,
-        date: "2026-09-12T10:30:00",
-        method: "โอนธนาคาร",
-        fund: "บัญชีทั่วไป",
-      },
-      {
-        id: 2,
-        category: "general",
-        title: "ถวายประจำสัปดาห์",
-        amount: 1000,
-        date: "2026-09-12T10:00:00",
-        method: "เงินสด",
-        fund: "บัญชีทั่วไป",
-      },
-      {
-        id: 3,
-        category: "mission",
-        title: "ถวายพันธกิจและประกาศ",
-        amount: 3500,
-        date: "2026-09-08T11:20:00",
-        method: "QR พร้อมเพย์",
-        fund: "กองทุนพันธกิจ",
-      },
-      {
-        id: 4,
-        category: "building",
-        title: "ถวายสมทบสร้างอาคาร",
-        amount: 2000,
-        date: "2026-09-05T09:15:00",
-        method: "เงินสด",
-        fund: "กองทุนอาคาร",
-      },
-    ];
+    return (offeringsData ?? []).map(o => ({
+      id: o.id,
+      category: o.category,
+      title:
+        o.category === "tithe"
+          ? "ถวายสิบลด"
+          : o.category === "mission"
+            ? "ถวายพันธกิจ"
+            : o.category === "building"
+              ? "ถวายสร้างอาคาร"
+              : "ถวายประจำสัปดาห์",
+      amount: Number(o.amount),
+      date: o.receiptDate,
+      method: o.method || "เงินสด",
+      fund: "บัญชีทั่วไป",
+    }));
   }, [offeringsData]);
 
   const filtered = useMemo(() => {
-    return offerings.filter((o) => {
-      const matchSearch = o.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchCat = categoryFilter === "all" || o.category === categoryFilter;
+    return offerings.filter(o => {
+      const matchSearch = o.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchCat =
+        categoryFilter === "all" || o.category === categoryFilter;
       return matchSearch && matchCat;
     });
   }, [offerings, searchTerm, categoryFilter]);
@@ -147,22 +111,22 @@ export default function Offerings() {
             {
               id: "tithe",
               label: "สิบลด",
-              count: offerings.filter((o) => o.category === "tithe").length,
+              count: offerings.filter(o => o.category === "tithe").length,
             },
             {
               id: "general",
               label: "ถวายทั่วไป",
-              count: offerings.filter((o) => o.category === "general").length,
+              count: offerings.filter(o => o.category === "general").length,
             },
             {
               id: "mission",
               label: "พันธกิจ",
-              count: offerings.filter((o) => o.category === "mission").length,
+              count: offerings.filter(o => o.category === "mission").length,
             },
             {
               id: "building",
               label: "สร้างอาคาร",
-              count: offerings.filter((o) => o.category === "building").length,
+              count: offerings.filter(o => o.category === "building").length,
             },
           ]}
           activeFilter={categoryFilter}
@@ -173,6 +137,13 @@ export default function Offerings() {
       {/* 3. Offerings List */}
       {isLoading ? (
         <LoadingSkeleton count={3} />
+      ) : isError ? (
+        <EmptyState
+          title="โหลดรายการถวายไม่สำเร็จ"
+          description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+          actionText="ลองใหม่"
+          onAction={() => refetch()}
+        />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="ยังไม่มีรายการถวาย"
@@ -182,7 +153,7 @@ export default function Offerings() {
         />
       ) : (
         <div className="bg-white rounded-[28px] border border-[#E9D9BF] clay-card-shadow divide-y divide-[#F0E6D8]/60 overflow-hidden">
-          {filtered.map((o) => (
+          {filtered.map(o => (
             <div
               key={o.id}
               onClick={() => setLocation(`/transactions/offering-${o.id}`)}

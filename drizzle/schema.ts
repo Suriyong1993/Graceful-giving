@@ -1,4 +1,15 @@
-import { boolean, decimal, integer, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  decimal,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 // ─── Shared enums (Postgres enum types need unique names; values mirror the old MySQL enums) ───
 
@@ -19,7 +30,11 @@ export const offeringCategoryEnum = pgEnum("offering_category", [
   "welfare",
   "special",
 ]);
-export const offeringMethodEnum = pgEnum("offering_method", ["cash", "transfer", "check"]);
+export const offeringMethodEnum = pgEnum("offering_method", [
+  "cash",
+  "transfer",
+  "check",
+]);
 export const expenseCategoryEnum = pgEnum("expense_category", [
   "utilities",
   "ministry",
@@ -30,11 +45,43 @@ export const expenseCategoryEnum = pgEnum("expense_category", [
   "welfare",
   "other",
 ]);
-export const expenseStatusEnum = pgEnum("expense_status", ["draft", "approved", "paid"]);
-export const withdrawalStatusEnum = pgEnum("withdrawal_status", ["pending", "approved", "rejected", "disbursed"]);
-export const newsCategoryEnum = pgEnum("news_category", ["announcement", "ministry", "finance", "pastoral"]);
-export const newsStatusEnum = pgEnum("news_status", ["draft", "published", "archived"]);
-export const eventStatusEnum = pgEnum("event_status", ["draft", "published", "cancelled"]);
+export const expenseStatusEnum = pgEnum("expense_status", [
+  "draft",
+  "approved",
+  "paid",
+  "voided",
+]);
+export const offeringStatusEnum = pgEnum("offering_status", [
+  "active",
+  "voided",
+]);
+export const withdrawalStatusEnum = pgEnum("withdrawal_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "disbursed",
+]);
+export const newsCategoryEnum = pgEnum("news_category", [
+  "announcement",
+  "ministry",
+  "finance",
+  "pastoral",
+]);
+export const newsStatusEnum = pgEnum("news_status", [
+  "draft",
+  "published",
+  "archived",
+]);
+export const eventStatusEnum = pgEnum("event_status", [
+  "draft",
+  "published",
+  "cancelled",
+]);
+export const memberStatusEnum = pgEnum("member_status", [
+  "active",
+  "inactive",
+  "pending",
+]);
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -46,7 +93,9 @@ export const users = pgTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: userRoleEnum("role").default("user").notNull(),
   /** Church-specific role for financial access control */
-  churchRole: varchar("churchRole", { length: 20 }).$type<"SUPER_ADMIN" | "PASTOR" | "TREASURER" | "MEMBER">(),
+  churchRole: varchar("churchRole", { length: 20 }).$type<
+    "SUPER_ADMIN" | "PASTOR" | "TREASURER" | "MEMBER"
+  >(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -93,6 +142,57 @@ export const churchProfiles = pgTable("church_profiles", {
 export type ChurchProfile = typeof churchProfiles.$inferSelect;
 export type InsertChurchProfile = typeof churchProfiles.$inferInsert;
 
+// ─── Members ──────────────────────────────────────────────────────────────────
+export const members = pgTable("members", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  phone: varchar("phone", { length: 30 }),
+  email: varchar("email", { length: 320 }),
+  status: memberStatusEnum("status").default("active").notNull(),
+  avatarUrl: varchar("avatarUrl", { length: 500 }),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export type Member = typeof members.$inferSelect;
+export type InsertMember = typeof members.$inferInsert;
+
+// ─── Persistent Notifications ────────────────────────────────────────────────
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  userId: integer("userId").notNull(),
+  type: varchar("type", { length: 40 }).notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description"),
+  link: varchar("link", { length: 500 }),
+  readAt: timestamp("readAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  userId: integer("userId").notNull(),
+  action: varchar("action", { length: 40 }).notNull(),
+  entity: varchar("entity", { length: 80 }).notNull(),
+  entityId: integer("entityId"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
 // ─── Finance Accounts / Funds ──────────────────────────────────────────────────
 
 /** Fund and ledger account definitions for the church. */
@@ -102,7 +202,9 @@ export const financeAccounts = pgTable("finance_accounts", {
   name: varchar("name", { length: 120 }).notNull(),
   type: financeAccountTypeEnum("type").default("general").notNull(),
   /** Running balance — updated whenever an offering or expense is recorded */
-  balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+  balance: decimal("balance", { precision: 15, scale: 2 })
+    .default("0")
+    .notNull(),
   description: text("description"),
   isActive: boolean("isActive").default(true).notNull(),
   sortOrder: integer("sortOrder").default(0).notNull(),
@@ -133,6 +235,8 @@ export const offerings = pgTable("offerings", {
   /** Bank transfer reference or cheque number */
   reference: varchar("reference", { length: 120 }),
   notes: text("notes"),
+  status: offeringStatusEnum("status").default("active").notNull(),
+  voidedAt: timestamp("voidedAt"),
   recordedBy: integer("recordedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
@@ -209,7 +313,10 @@ export const budgetPlans = pgTable("budget_plans", {
   month: integer("month"),
   fundId: integer("fundId"),
   category: varchar("category", { length: 80 }),
-  plannedAmount: decimal("plannedAmount", { precision: 15, scale: 2 }).notNull(),
+  plannedAmount: decimal("plannedAmount", {
+    precision: 15,
+    scale: 2,
+  }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
@@ -226,7 +333,9 @@ export type InsertBudgetPlan = typeof budgetPlans.$inferInsert;
 /** Published updates visible to church members. */
 export const churchNews = pgTable("church_news", {
   id: serial("id").primaryKey(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
   authorId: integer("authorId").notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   summary: varchar("summary", { length: 280 }).notNull(),
@@ -247,7 +356,9 @@ export type InsertChurchNews = typeof churchNews.$inferInsert;
 /** Church calendar events visible to members. */
 export const churchEvents = pgTable("church_events", {
   id: serial("id").primaryKey(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
   authorId: integer("authorId").notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   summary: varchar("summary", { length: 280 }).notNull(),

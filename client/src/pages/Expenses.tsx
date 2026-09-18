@@ -29,10 +29,12 @@ export default function Expenses() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
-  const { data: expensesData, isLoading } = trpc.expenses.list.useQuery(
-    { limit: 50 },
-    { retry: false }
-  );
+  const {
+    data: expensesData,
+    isLoading,
+    isError,
+    refetch,
+  } = trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
 
   const expenses = useMemo(() => {
     if (expensesData && expensesData.length > 0) {
@@ -49,67 +51,11 @@ export default function Expenses() {
       }));
     }
 
-    return [
-      {
-        id: 1,
-        category: "utility",
-        description: "ค่าไฟฟ้าและค่าน้ำประปา ประจำเดือนกันยายน",
-        amount: 8450,
-        date: "2026-09-11T14:00:00",
-        payee: "การไฟฟ้านครหลวง",
-        receiptRef: "INV-2026-0911",
-        fund: "บัญชีทั่วไป",
-        status: "approved",
-      },
-      {
-        id: 2,
-        category: "ministry",
-        description: "อุปกรณ์สื่อมัลติมีเดียและไมโครโฟนไร้สาย (รวี)",
-        amount: 14200,
-        date: "2026-09-09T11:15:00",
-        payee: "บริษัท ซาวด์ซิสเต็ม จำกัด",
-        receiptRef: "INV-88329",
-        fund: "กองทุนพันธกิจ",
-        status: "approved",
-      },
-      {
-        id: 3,
-        category: "benevolence",
-        description: "ถุงยังชีพสงเคราะห์ชุมชนรอบโบสถ์ 20 ชุด",
-        amount: 6000,
-        date: "2026-09-06T16:20:00",
-        payee: "ร้านค้าสวัสดิการชุมชน",
-        receiptRef: "RCP-4491",
-        fund: "กองทุนสงเคราะห์",
-        status: "approved",
-      },
-      {
-        id: 4,
-        category: "education",
-        description: "เอกสารและหนังสือเรียนพระคัมภีร์เด็ก",
-        amount: 2850,
-        date: "2026-09-03T09:30:00",
-        payee: "สมาคมพระคริสตธรรม",
-        receiptRef: "RCP-3310",
-        fund: "กองทุนเพื่อเด็ก",
-        status: "approved",
-      },
-      {
-        id: 5,
-        category: "building",
-        description: "ซ่อมแซมระบบเครื่องปรับอากาศห้องนมัสการชั้น 2",
-        amount: 5500,
-        date: "2026-09-01T13:45:00",
-        payee: "ช่างแอร์ สุรชัย เซอร์วิส",
-        receiptRef: "INV-5512",
-        fund: "กองทุนก่อสร้าง",
-        status: "approved",
-      },
-    ];
+    return [];
   }, [expensesData]);
 
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((item) => {
+    return expenses.filter(item => {
       const matchesSearch =
         item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.payee.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,10 +71,11 @@ export default function Expenses() {
   }, [filteredExpenses]);
 
   const exportCSV = () => {
-    const headers = "ID,วันที่,รายการ,หมวดหมู่,ผู้รับเงิน,จำนวนเงิน,เลขที่ใบเสร็จ,กองทุน,สถานะ\n";
+    const headers =
+      "ID,วันที่,รายการ,หมวดหมู่,ผู้รับเงิน,จำนวนเงิน,เลขที่ใบเสร็จ,กองทุน,สถานะ\n";
     const rows = filteredExpenses
       .map(
-        (e) =>
+        e =>
           `"${e.id}","${new Date(e.date).toLocaleDateString("th-TH")}","${e.description}","${e.category}","${e.payee}",${e.amount},"${e.receiptRef}","${e.fund}","${e.status}"`
       )
       .join("\n");
@@ -138,7 +85,10 @@ export default function Expenses() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `grace-giving-expenses-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute(
+      "download",
+      `grace-giving-expenses-${new Date().toISOString().slice(0, 10)}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -148,21 +98,53 @@ export default function Expenses() {
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case "utility":
-        return { label: "สาธารณูปโภค", icon: Zap, color: "bg-amber-100 text-amber-800" };
+        return {
+          label: "สาธารณูปโภค",
+          icon: Zap,
+          color: "bg-amber-100 text-amber-800",
+        };
       case "ministry":
-        return { label: "พันธกิจ", icon: Users, color: "bg-sky-100 text-sky-800" };
+        return {
+          label: "พันธกิจ",
+          icon: Users,
+          color: "bg-sky-100 text-sky-800",
+        };
       case "salary":
-        return { label: "เงินเดือน/ค่าตอบแทน", icon: Receipt, color: "bg-purple-100 text-purple-800" };
+        return {
+          label: "เงินเดือน/ค่าตอบแทน",
+          icon: Receipt,
+          color: "bg-purple-100 text-purple-800",
+        };
       case "mission":
-        return { label: "มิชชันภายนอก", icon: Cross, color: "bg-emerald-100 text-emerald-800" };
+        return {
+          label: "มิชชันภายนอก",
+          icon: Cross,
+          color: "bg-emerald-100 text-emerald-800",
+        };
       case "building":
-        return { label: "อาคารสถานที่", icon: Building, color: "bg-orange-100 text-orange-800" };
+        return {
+          label: "อาคารสถานที่",
+          icon: Building,
+          color: "bg-orange-100 text-orange-800",
+        };
       case "education":
-        return { label: "การศึกษา/รวี", icon: GraduationCap, color: "bg-blue-100 text-blue-800" };
+        return {
+          label: "การศึกษา/รวี",
+          icon: GraduationCap,
+          color: "bg-blue-100 text-blue-800",
+        };
       case "benevolence":
-        return { label: "สงเคราะห์", icon: HeartHandshake, color: "bg-rose-100 text-rose-800" };
+        return {
+          label: "สงเคราะห์",
+          icon: HeartHandshake,
+          color: "bg-rose-100 text-rose-800",
+        };
       default:
-        return { label: "ทั่วไป", icon: Receipt, color: "bg-stone-100 text-stone-700" };
+        return {
+          label: "ทั่วไป",
+          icon: Receipt,
+          color: "bg-stone-100 text-stone-700",
+        };
     }
   };
 
@@ -215,13 +197,19 @@ export default function Expenses() {
 
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
             <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
-              <span className="text-sm font-medium">หมวดหมู่หลักประจำเดือน</span>
+              <span className="text-sm font-medium">
+                หมวดหมู่หลักประจำเดือน
+              </span>
               <div className="w-8 h-8 rounded-full bg-[#A9D4ED]/20 flex items-center justify-center text-sky-700">
                 <Receipt className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-xl font-bold text-[#38251B]">สาธารณูปโภค & พันธกิจ</p>
-            <p className="text-xs text-[#70452E]/60 mt-1">สัดส่วน 62% ของงบประมาณ</p>
+            <p className="text-xl font-bold text-[#38251B]">
+              สาธารณูปโภค & พันธกิจ
+            </p>
+            <p className="text-xs text-[#70452E]/60 mt-1">
+              สัดส่วน 62% ของงบประมาณ
+            </p>
           </div>
 
           <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
@@ -237,7 +225,9 @@ export default function Expenses() {
                 มีใบเสร็จครบ
               </span>
             </div>
-            <p className="text-xs text-[#70452E]/60 mt-1">ผ่านการอนุมัติเรียบร้อย</p>
+            <p className="text-xs text-[#70452E]/60 mt-1">
+              ผ่านการอนุมัติเรียบร้อย
+            </p>
           </div>
         </div>
 
@@ -280,6 +270,13 @@ export default function Expenses() {
         {/* Table & List */}
         {isLoading ? (
           <LoadingSkeleton count={5} />
+        ) : isError ? (
+          <EmptyState
+            title="โหลดรายการรายจ่ายไม่สำเร็จ"
+            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+            actionText="ลองใหม่"
+            onAction={() => refetch()}
+          />
         ) : filteredExpenses.length === 0 ? (
           <EmptyState
             title="ไม่พบรายการรายจ่าย"
@@ -305,7 +302,7 @@ export default function Expenses() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E9D9BF]/40">
-                  {filteredExpenses.map((e) => {
+                  {filteredExpenses.map(e => {
                     const cat = getCategoryLabel(e.category);
                     const CatIcon = cat.icon;
                     return (
@@ -342,7 +339,11 @@ export default function Expenses() {
                           {e.receiptRef}
                         </td>
                         <td className="py-4 px-6 text-right whitespace-nowrap font-medium">
-                          <MoneyDisplay amount={e.amount} type="expense" size="sm" />
+                          <MoneyDisplay
+                            amount={e.amount}
+                            type="expense"
+                            size="sm"
+                          />
                         </td>
                         <td className="py-4 px-6 text-center whitespace-nowrap">
                           <StatusBadge status={e.status} />
@@ -356,7 +357,7 @@ export default function Expenses() {
 
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-[#E9D9BF]/40">
-              {filteredExpenses.map((e) => {
+              {filteredExpenses.map(e => {
                 const cat = getCategoryLabel(e.category);
                 const CatIcon = cat.icon;
                 return (
@@ -381,11 +382,16 @@ export default function Expenses() {
                         {e.description}
                       </p>
                       <p className="text-xs text-[#70452E]/70">
-                        {e.payee} • {new Date(e.date).toLocaleDateString("th-TH")}
+                        {e.payee} •{" "}
+                        {new Date(e.date).toLocaleDateString("th-TH")}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <MoneyDisplay amount={e.amount} type="expense" size="sm" />
+                      <MoneyDisplay
+                        amount={e.amount}
+                        type="expense"
+                        size="sm"
+                      />
                       <div className="mt-1">
                         <StatusBadge status={e.status} />
                       </div>

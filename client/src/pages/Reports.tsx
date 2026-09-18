@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { trpc } from "@/lib/trpc";
+import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { MoneyDisplay } from "@/components/common/CommonUI";
 import {
   BarChart3,
@@ -18,26 +20,56 @@ import {
 import { toast } from "sonner";
 
 export default function Reports() {
-  const [reportType, setReportType] = useState<"cashflow" | "funds" | "budget" | "offerings">("cashflow");
+  const [reportType, setReportType] = useState<
+    "cashflow" | "funds" | "budget" | "offerings"
+  >("cashflow");
   const [selectedPeriod, setSelectedPeriod] = useState("2026-q3");
 
-  const monthlyFlow = [
-    { month: "เม.ย. 69", income: 84500, expense: 62000 },
-    { month: "พ.ค. 69", income: 91200, expense: 71500 },
-    { month: "มิ.ย. 69", income: 88400, expense: 59000 },
-    { month: "ก.ค. 69", income: 95600, expense: 84200 },
-    { month: "ส.ค. 69", income: 104500, expense: 73800 },
-    { month: "ก.ย. 69", income: 98200, expense: 65950 },
-  ];
+  const {
+    data: monthlyFlow = [],
+    isLoading,
+    isError,
+  } = trpc.finance.monthlyStats.useQuery({ months: 6 }, { retry: false });
+  const utils = trpc.useUtils();
 
-  const maxVal = Math.max(...monthlyFlow.map((m) => Math.max(m.income, m.expense)));
+  const maxVal =
+    monthlyFlow.length > 0
+      ? Math.max(...monthlyFlow.map(m => Math.max(m.income, m.expense)))
+      : 0;
 
   const handleExportPDF = () => {
-    toast.success("กำลังสร้างรายงาน PDF สรุปงบการเงินสำหรับคณะธรรมกิจ...");
+    toast.info(
+      "การส่งออก PDF ยังไม่พร้อมใช้งาน เนื่องจากยังไม่มีบริการสร้างไฟล์"
+    );
   };
 
   const handleExportExcel = () => {
-    toast.success("ส่งออกข้อมูล Excel ทางบัญชีเรียบร้อย");
+    toast.info(
+      "การส่งออก Excel ยังไม่พร้อมใช้งาน เนื่องจากยังไม่มีบริการสร้างไฟล์"
+    );
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      const result = await utils.reports.exportCsv.fetch({
+        fromDate: new Date("2026-01-01T00:00:00.000Z"),
+        toDate: new Date(),
+      });
+      const blob = new Blob(["\uFEFF" + result.csv], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `grace-giving-financial-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("ส่งออกรายงาน CSV เรียบร้อยแล้ว");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "ส่งออกรายงาน CSV ไม่สำเร็จ"
+      );
+    }
   };
 
   return (
@@ -60,6 +92,13 @@ export default function Reports() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF9EE] text-sm font-medium shadow-sm transition-colors"
+            >
+              <Download className="w-4 h-4 text-[#4F8B33]" />
+              <span>ส่งออก CSV</span>
+            </button>
             <button
               onClick={handleExportPDF}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF9EE] text-sm font-medium shadow-sm transition-colors"
@@ -116,7 +155,7 @@ export default function Reports() {
             <Calendar className="w-4 h-4 text-[#70452E]/70" />
             <select
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
+              onChange={e => setSelectedPeriod(e.target.value)}
               className="px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] focus:outline-none"
             >
               <option value="2026-q3">ไตรมาสที่ 3/2026 (ก.ค. - ก.ย.)</option>
@@ -150,34 +189,49 @@ export default function Reports() {
           </div>
 
           {/* Bar Chart Bars */}
-          <div className="grid grid-cols-6 gap-2 sm:gap-6 pt-4 h-64 items-end">
-            {monthlyFlow.map((m, idx) => {
-              const incomeHeight = (m.income / maxVal) * 100;
-              const expenseHeight = (m.expense / maxVal) * 100;
+          {isLoading ? (
+            <LoadingSkeleton count={1} height="h-64" />
+          ) : isError ? (
+            <p className="py-16 text-center text-sm text-[#B3261E]">
+              โหลดข้อมูลรายงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง
+            </p>
+          ) : monthlyFlow.length === 0 ? (
+            <p className="py-16 text-center text-sm text-[#927D6D]">
+              ยังไม่มีข้อมูลรายรับและรายจ่ายสำหรับช่วงเวลานี้
+            </p>
+          ) : (
+            <div className="grid grid-cols-6 gap-2 sm:gap-6 pt-4 h-64 items-end">
+              {monthlyFlow.map((m, idx) => {
+                const incomeHeight = (m.income / maxVal) * 100;
+                const expenseHeight = (m.expense / maxVal) * 100;
 
-              return (
-                <div key={idx} className="flex flex-col items-center h-full justify-end group">
-                  <div className="flex items-end gap-1 sm:gap-2 w-full justify-center h-48">
-                    {/* Income Bar */}
-                    <div
-                      style={{ height: `${incomeHeight}%` }}
-                      className="w-4 sm:w-8 bg-[#A8C978] rounded-t-lg transition-all duration-500 group-hover:brightness-95 relative"
-                      title={`รายรับ: ฿${m.income.toLocaleString()}`}
-                    />
-                    {/* Expense Bar */}
-                    <div
-                      style={{ height: `${expenseHeight}%` }}
-                      className="w-4 sm:w-8 bg-[#F7B6A6] rounded-t-lg transition-all duration-500 group-hover:brightness-95 relative"
-                      title={`รายจ่าย: ฿${m.expense.toLocaleString()}`}
-                    />
+                return (
+                  <div
+                    key={idx}
+                    className="flex flex-col items-center h-full justify-end group"
+                  >
+                    <div className="flex items-end gap-1 sm:gap-2 w-full justify-center h-48">
+                      {/* Income Bar */}
+                      <div
+                        style={{ height: `${incomeHeight}%` }}
+                        className="w-4 sm:w-8 bg-[#A8C978] rounded-t-lg transition-all duration-500 group-hover:brightness-95 relative"
+                        title={`รายรับ: ฿${m.income.toLocaleString()}`}
+                      />
+                      {/* Expense Bar */}
+                      <div
+                        style={{ height: `${expenseHeight}%` }}
+                        className="w-4 sm:w-8 bg-[#F7B6A6] rounded-t-lg transition-all duration-500 group-hover:brightness-95 relative"
+                        title={`รายจ่าย: ฿${m.expense.toLocaleString()}`}
+                      />
+                    </div>
+                    <span className="text-[11px] font-semibold text-[#70452E] mt-3 whitespace-nowrap">
+                      {m.month}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-[#70452E] mt-3 whitespace-nowrap">
-                    {m.month}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Financial Summary Table */}
@@ -199,54 +253,98 @@ export default function Reports() {
             </thead>
             <tbody className="divide-y divide-[#E9D9BF]/40 text-xs">
               <tr className="bg-[#FFF4DF]/20 font-bold text-[#38251B]">
-                <td className="py-3 px-6" colSpan={4}>รายรับ (Inflows)</td>
+                <td className="py-3 px-6" colSpan={4}>
+                  รายรับ (Inflows)
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">เงินถวายสิบลด (Tithes)</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  เงินถวายสิบลด (Tithes)
+                </td>
                 <td className="py-2.5 px-6 text-right">฿180,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">฿195,400</td>
-                <td className="py-2.5 px-6 text-right text-emerald-700">+฿15,400</td>
+                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">
+                  ฿195,400
+                </td>
+                <td className="py-2.5 px-6 text-right text-emerald-700">
+                  +฿15,400
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">เงินถวายทั่วไปประจำสัปดาห์</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  เงินถวายทั่วไปประจำสัปดาห์
+                </td>
                 <td className="py-2.5 px-6 text-right">฿60,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">฿64,200</td>
-                <td className="py-2.5 px-6 text-right text-emerald-700">+฿4,200</td>
+                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">
+                  ฿64,200
+                </td>
+                <td className="py-2.5 px-6 text-right text-emerald-700">
+                  +฿4,200
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">เงินถวายพันธกิจและมิชชัน</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  เงินถวายพันธกิจและมิชชัน
+                </td>
                 <td className="py-2.5 px-6 text-right">฿40,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">฿38,700</td>
-                <td className="py-2.5 px-6 text-right text-rose-600">-฿1,300</td>
+                <td className="py-2.5 px-6 text-right font-medium text-emerald-700">
+                  ฿38,700
+                </td>
+                <td className="py-2.5 px-6 text-right text-rose-600">
+                  -฿1,300
+                </td>
               </tr>
 
               <tr className="bg-[#FFF4DF]/20 font-bold text-[#38251B]">
-                <td className="py-3 px-6" colSpan={4}>รายจ่าย (Outflows)</td>
+                <td className="py-3 px-6" colSpan={4}>
+                  รายจ่าย (Outflows)
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">ค่าสาธารณูปโภค (น้ำ ไฟ อินเทอร์เน็ต)</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  ค่าสาธารณูปโภค (น้ำ ไฟ อินเทอร์เน็ต)
+                </td>
                 <td className="py-2.5 px-6 text-right">฿30,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-amber-800">฿28,500</td>
-                <td className="py-2.5 px-6 text-right text-emerald-700">+฿1,500</td>
+                <td className="py-2.5 px-6 text-right font-medium text-amber-800">
+                  ฿28,500
+                </td>
+                <td className="py-2.5 px-6 text-right text-emerald-700">
+                  +฿1,500
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">พันธกิจและการประกาศ</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  พันธกิจและการประกาศ
+                </td>
                 <td className="py-2.5 px-6 text-right">฿80,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-amber-800">฿74,000</td>
-                <td className="py-2.5 px-6 text-right text-emerald-700">+฿6,000</td>
+                <td className="py-2.5 px-6 text-right font-medium text-amber-800">
+                  ฿74,000
+                </td>
+                <td className="py-2.5 px-6 text-right text-emerald-700">
+                  +฿6,000
+                </td>
               </tr>
               <tr>
-                <td className="py-2.5 px-6 pl-8 text-[#70452E]">สงเคราะห์และสวัสดิการ</td>
+                <td className="py-2.5 px-6 pl-8 text-[#70452E]">
+                  สงเคราะห์และสวัสดิการ
+                </td>
                 <td className="py-2.5 px-6 text-right">฿25,000</td>
-                <td className="py-2.5 px-6 text-right font-medium text-amber-800">฿22,400</td>
-                <td className="py-2.5 px-6 text-right text-emerald-700">+฿2,600</td>
+                <td className="py-2.5 px-6 text-right font-medium text-amber-800">
+                  ฿22,400
+                </td>
+                <td className="py-2.5 px-6 text-right text-emerald-700">
+                  +฿2,600
+                </td>
               </tr>
 
               <tr className="bg-[#DCECC5]/30 font-bold text-sm text-[#38251B]">
                 <td className="py-3.5 px-6">ยอดรายรับสุทธิ (Net Surplus)</td>
                 <td className="py-3.5 px-6 text-right">฿145,000</td>
-                <td className="py-3.5 px-6 text-right text-emerald-800">฿173,400</td>
-                <td className="py-3.5 px-6 text-right text-emerald-800">+฿28,400</td>
+                <td className="py-3.5 px-6 text-right text-emerald-800">
+                  ฿173,400
+                </td>
+                <td className="py-3.5 px-6 text-right text-emerald-800">
+                  +฿28,400
+                </td>
               </tr>
             </tbody>
           </table>

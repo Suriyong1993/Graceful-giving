@@ -45,113 +45,25 @@ export default function Funds() {
       setNewFundDesc("");
       refetch();
     },
-    onError: () => {
-      // simulate success
-      toast.success("สร้างกองทุนใหม่สำเร็จ (บันทึกตัวอย่าง)");
-      setShowNewFundModal(false);
+    onError: error => {
+      toast.error("สร้างกองทุนไม่สำเร็จ", { description: error.message });
     },
   });
 
   const fundsList = useMemo(() => {
-    return [
-      {
-        id: 1,
-        code: "FD-001",
-        name: "บัญชีทั่วไป (General Operating Fund)",
-        type: "general",
-        icon: Wallet,
-        color: "bg-emerald-500",
-        balance: 285400,
-        target: 300000,
-        inflowMonth: 48200,
-        outflowMonth: 32500,
-        description:
-          "ค่าใช้จ่ายดำเนินงานประจำวัน ค่าน้ำ ค่าไฟ และค่าบำรุงรักษาทั่วไป",
-      },
-      {
-        id: 2,
-        code: "FD-002",
-        name: "กองทุนพันธกิจและประกาศ (Mission Fund)",
-        type: "mission",
-        icon: Cross,
-        color: "bg-sky-500",
-        balance: 120500,
-        target: 150000,
-        inflowMonth: 18500,
-        outflowMonth: 14000,
-        description:
-          "สนับสนุนผู้ประกาศ งานมิชชันทั้งในและต่างประเทศ และคริสตจักรลูก",
-      },
-      {
-        id: 3,
-        code: "FD-003",
-        name: "กองทุนก่อสร้างและพัฒนาอาคาร (Building Fund)",
-        type: "building",
-        icon: Building,
-        color: "bg-amber-500",
-        balance: 850000,
-        target: 1200000,
-        inflowMonth: 35000,
-        outflowMonth: 5500,
-        description: "โครงการปรับปรุงอาคารเรียนรวีและระบบระบายอากาศห้องนมัสการ",
-      },
-      {
-        id: 4,
-        code: "FD-004",
-        name: "กองทุนสงเคราะห์และชุมชน (Benevolence Fund)",
-        type: "welfare",
-        icon: HeartHandshake,
-        color: "bg-rose-500",
-        balance: 45000,
-        target: 50000,
-        inflowMonth: 8200,
-        outflowMonth: 6000,
-        description:
-          "ให้การช่วยเหลือสมาชิกที่ประสบวิกฤต เจ็บป่วย และการสงเคราะห์ผู้ยากไร้ในชุมชน",
-      },
-      {
-        id: 5,
-        code: "FD-005",
-        name: "กองทุนเยาวชนและเด็ก (Youth & Children Fund)",
-        type: "special",
-        icon: Users,
-        color: "bg-purple-500",
-        balance: 68200,
-        target: 80000,
-        inflowMonth: 12000,
-        outflowMonth: 7850,
-        description:
-          "ค่ายเยาวชนประจำปี กิจกรรมรวีวารศึกษา และการพัฒนาผู้นำรุ่นใหม่",
-      },
-      {
-        id: 6,
-        code: "FD-006",
-        name: "กองทุนดนตรีและสื่อมัลติมีเดีย (Worship & Media Fund)",
-        type: "special",
-        icon: Music,
-        color: "bg-indigo-500",
-        balance: 52400,
-        target: 60000,
-        inflowMonth: 6500,
-        outflowMonth: 14200,
-        description: "อุปกรณ์ระบบเสียง เครื่องดนตรี และการถ่ายทอดสดพิธีนมัสการ",
-      },
-      {
-        id: 7,
-        code: "FD-007",
-        name: "กองทุนการศึกษาพระคัมภีร์ (Discipleship & Education)",
-        type: "special",
-        icon: GraduationCap,
-        color: "bg-teal-500",
-        balance: 38900,
-        target: 50000,
-        inflowMonth: 4500,
-        outflowMonth: 2850,
-        description:
-          "หลักสูตรสร้างสาวก หนังสือคู่มือเฝ้าเดี่ยว และการอบรมผู้นำกลุ่มแคร์",
-      },
-    ];
-  }, []);
+    return (accountsData ?? []).map((account: any) => ({
+      ...account,
+      code: `FD-${String(account.id).padStart(3, "0")}`,
+      icon:
+        account.type === "building"
+          ? Building
+          : account.type === "mission"
+            ? Cross
+            : Wallet,
+      description: account.description || "รายละเอียดกองทุนยังไม่มีในระบบ",
+      balance: Number(account.balance),
+    }));
+  }, [accountsData]);
 
   const totalFundsBalance = useMemo(() => {
     return fundsList.reduce((acc, curr) => acc + curr.balance, 0);
@@ -226,12 +138,14 @@ export default function Funds() {
 
         {/* Funds Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {fundsList.length === 0 && (
+            <p className="md:col-span-2 lg:col-span-3 py-12 text-center text-sm text-[#927D6D] bg-white rounded-3xl border border-dashed border-[#E9D9BF]">
+              ยังไม่มีข้อมูลกองทุนจากระบบ
+            </p>
+          )}
           {fundsList.map(f => {
             const Icon = f.icon;
-            const percentage = Math.min(
-              100,
-              Math.round((f.balance / f.target) * 100)
-            );
+            const percentage = null;
 
             return (
               <div
@@ -272,31 +186,13 @@ export default function Funds() {
                   </div>
 
                   {/* Progress towards target */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex justify-between text-xs text-[#70452E]/70">
-                      <span>สำรองเป้าหมาย (฿{f.target.toLocaleString()})</span>
-                      <span className="font-semibold text-[#38251B]">
-                        {percentage}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-[#FFF4DF] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#A8C978] rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
+                  <div className="pt-1 text-xs text-[#927D6D]">
+                    ยังไม่มีข้อมูลเป้าหมายสำรองสำหรับกองทุนนี้
                   </div>
 
                   {/* Monthly Inflow/Outflow */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E9D9BF]/40 text-xs">
-                    <div className="flex items-center gap-1.5 text-emerald-700">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      <span>+฿{f.inflowMonth.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-rose-600 justify-end">
-                      <TrendingDown className="w-3.5 h-3.5" />
-                      <span>-฿{f.outflowMonth.toLocaleString()}</span>
-                    </div>
+                  <div className="pt-2 border-t border-[#E9D9BF]/40 text-xs text-[#927D6D]">
+                    กิจกรรมล่าสุดจะแสดงเมื่อมีข้อมูลจากระบบ
                   </div>
                 </div>
 

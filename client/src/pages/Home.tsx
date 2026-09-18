@@ -58,6 +58,15 @@ import {
 import { Illustration } from "@/components/Illustration";
 import { AppMenu } from "@/components/layout/AppNavigation";
 
+export const quickActions = [
+  { label: "บันทึกถวาย", icon: HandCoins, tone: "income" },
+  { label: "บันทึกรายจ่าย", icon: ReceiptText, tone: "expense" },
+  { label: "รายงาน", icon: BarChart3, tone: "report" },
+  { label: "สมาชิก", icon: UsersRound, tone: "members" },
+  { label: "กิจกรรม", icon: CalendarDays, tone: "events" },
+  { label: "เพิ่มเติม", icon: MoreHorizontal, tone: "more" },
+];
+
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
 function fmtBaht(n: number) {
@@ -125,136 +134,6 @@ function useCountUp(target: number, durationMs = 900): number {
   return value;
 }
 
-// ─── Static Mock Fallbacks ───────────────────────────────────────────────────
-
-export const statCards = [
-  { label: "รายรับ", value: "฿12,450" },
-  { label: "รายจ่าย", value: "฿7,213" },
-  { label: "คงเหลือ", value: "฿5,237" },
-];
-
-export const quickActions = [
-  { label: "บันทึกถวาย", icon: HandCoins, tone: "income" },
-  { label: "บันทึกรายจ่าย", icon: ReceiptText, tone: "expense" },
-  { label: "รายงาน", icon: BarChart3, tone: "report" },
-  { label: "สมาชิก", icon: UsersRound, tone: "members" },
-  { label: "กิจกรรม", icon: CalendarDays, tone: "events" },
-  { label: "เพิ่มเติม", icon: MoreHorizontal, tone: "more" },
-];
-
-const MOCK_CHART = [
-  { name: "พ.ค.", รายรับ: 42000, รายจ่าย: 21000 },
-  { name: "มิ.ย.", รายรับ: 46500, รายจ่าย: 24300 },
-  { name: "ก.ค.", รายรับ: 48900, รายจ่าย: 22800 },
-  { name: "ส.ค.", รายรับ: 46800, รายจ่าย: 25100 },
-  { name: "ก.ย.", รายรับ: 52450, รายจ่าย: 27213 },
-];
-
-const MOCK_RECENT = [
-  {
-    id: "tx-1",
-    title: "ถวายประจำสัปดาห์",
-    date: "12 ก.ย. 2026 · 10:30",
-    type: "income",
-    category: "ถวายทั่วไป",
-    subCategory: "อาคารคริสตจักร",
-    amount: 1000,
-    tone: "bg-[#FFEBE5] text-[#E06250]",
-    icon: Heart,
-  },
-  {
-    id: "tx-2",
-    title: "ค่าอุปกรณ์นมัสการ",
-    date: "12 ก.ย. 2026 · 09:15",
-    type: "expense",
-    category: "อุปกรณ์นมัสการ",
-    subCategory: "พันธกิจนมัสการ",
-    amount: 2450,
-    tone: "bg-[#FDF0E2] text-[#B3702A]",
-    icon: Landmark,
-  },
-  {
-    id: "tx-3",
-    title: "ค่าไฟฟ้าและสาธารณูปโภค",
-    date: "08 ก.ย. 2026 · 14:00",
-    type: "expense",
-    category: "สาธารณูปโภค",
-    subCategory: "ดำเนินงาน",
-    amount: 3200,
-    tone: "bg-[#FFF0ED] text-[#D45945]",
-    icon: ReceiptText,
-  },
-  {
-    id: "tx-4",
-    title: "ถวายสิบลด (โอน)",
-    date: "07 ก.ย. 2026 · 09:15",
-    type: "income",
-    category: "สิบลด",
-    subCategory: "ทั่วไป",
-    amount: 5000,
-    tone: "bg-[#EAF5E4] text-[#4F8B33]",
-    icon: HandCoins,
-  },
-  {
-    id: "tx-5",
-    title: "ถวายพันธกิจเพื่อชุมชน",
-    date: "05 ก.ย. 2026 · 11:45",
-    type: "income",
-    category: "พันธกิจ",
-    subCategory: "ชุมชน",
-    amount: 3500,
-    tone: "bg-[#FFEBE5] text-[#E06250]",
-    icon: HeartHandshake,
-  },
-];
-
-const MOCK_BUDGETS = [
-  {
-    label: "พันธกิจ",
-    period: "เดือนนี้",
-    amount: 8500,
-    total: 20000,
-    percent: 42,
-    barColor: "bg-[#A8C978]",
-    badgeBg: "bg-[#EAF5E4]",
-    iconColor: "text-[#4F8B33]",
-    icon: Sprout,
-  },
-  {
-    label: "การดูแลสมาชิก",
-    period: "เดือนนี้",
-    amount: 2300,
-    total: 5000,
-    percent: 46,
-    barColor: "bg-[#85C1E9]",
-    badgeBg: "bg-[#E3F2FD]",
-    iconColor: "text-[#2B78A8]",
-    icon: UsersRound,
-  },
-  {
-    label: "อาคารคริสตจักร",
-    period: "ปีนี้",
-    amount: 12000,
-    total: 50000,
-    percent: 24,
-    barColor: "bg-[#E99A4A]",
-    badgeBg: "bg-[#FFF3DF]",
-    iconColor: "text-[#C26B1E]",
-    icon: Landmark,
-  },
-  {
-    label: "เยาวชนและรวี",
-    period: "เดือนนี้",
-    amount: 3200,
-    total: 10000,
-    percent: 32,
-    barColor: "bg-[#C39BD3]",
-    badgeBg: "bg-[#F0EAF8]",
-    iconColor: "text-[#7D3C98]",
-    icon: Heart,
-  },
-];
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -285,7 +164,7 @@ export default function Home() {
   // Multi-step offering form state
   const [offeringStep, setOfferingStep] = useState<1 | 2 | 3>(1);
   const [offeringType, setOfferingType] = useState("ถวายประจำสัปดาห์");
-  const [offeringAmount, setOfferingAmount] = useState("1000");
+  const [offeringAmount, setOfferingAmount] = useState("");
   const [offeringFund, setOfferingFund] = useState("บัญชีทั่วไป");
   const [offeringMethod, setOfferingMethod] = useState("เงินสด");
   const [offeringNotes, setOfferingNotes] = useState("");
@@ -296,7 +175,7 @@ export default function Home() {
     title: "",
     amount: "",
     category: "อุปกรณ์นมัสการ",
-    fundId: "1",
+    fundId: "",
     paymentMethod: "โอนธนาคาร",
     notes: "",
   });
@@ -305,7 +184,7 @@ export default function Home() {
   const [withdrawalForm, setWithdrawalForm] = useState({
     purpose: "",
     amount: "",
-    fundId: "1",
+    fundId: "",
     urgency: "normal",
     notes: "",
   });
@@ -359,16 +238,8 @@ export default function Home() {
         description: `ยอดเงิน ฿${Number(offeringAmount).toLocaleString()} เข้า${offeringFund}`,
       });
     },
-    onError: () => {
-      setSubmittedOffering({
-        type: offeringType,
-        amount: Number(offeringAmount),
-        fund: offeringFund,
-        method: offeringMethod,
-      });
-      setOfferingSuccess(true);
-      setOfferingOpen(false);
-      toast.success("บันทึกการถวายเรียบร้อยแล้ว (โหมดจำลอง)");
+    onError: error => {
+      toast.error("บันทึกการถวายไม่สำเร็จ", { description: error.message });
     },
   });
 
@@ -381,14 +252,13 @@ export default function Home() {
         title: "",
         amount: "",
         category: "อุปกรณ์นมัสการ",
-        fundId: "1",
+        fundId: "",
         paymentMethod: "โอนธนาคาร",
         notes: "",
       });
     },
-    onError: () => {
-      setExpenseOpen(false);
-      toast.success("บันทึกรายจ่ายเรียบร้อยแล้ว (โหมดจำลอง)");
+    onError: error => {
+      toast.error("บันทึกรายจ่ายไม่สำเร็จ", { description: error.message });
     },
   });
 
@@ -399,79 +269,36 @@ export default function Home() {
       setWithdrawalForm({
         purpose: "",
         amount: "",
-        fundId: "1",
+        fundId: "",
         urgency: "normal",
         notes: "",
       });
     },
-    onError: () => {
-      setWithdrawalOpen(false);
-      toast.success("ยื่นคำขอเบิกเงินเรียบร้อยแล้ว (โหมดจำลอง)");
+    onError: error => {
+      toast.error("ยื่นคำขอเบิกเงินไม่สำเร็จ", { description: error.message });
     },
   });
 
-  // Derived financial values
-  // Reference image displays: ฿5,237.00 total balance, ฿12,450 income, ฿7,213 expense, ฿5,237 net balance
-  const totalBalance = summaryData?.totalBalance ?? 5237;
-  const monthlyIncome = summaryData?.monthlyIncome ?? 12450;
-  const monthlyExpense = summaryData?.monthlyExpense ?? 7213;
+  // Derived values always come from the current API response.
+  const totalBalance = summaryData?.totalBalance;
+  const monthlyIncome = summaryData?.monthlyIncome;
+  const monthlyExpense = summaryData?.monthlyExpense;
   const netMonthly = summaryData
     ? summaryData.monthlyIncome - summaryData.monthlyExpense
-    : 5237;
+    : undefined;
   const incomeTrend = summaryData
     ? pctChange(summaryData.monthlyIncome, summaryData.prevMonthIncome)
-    : "↑ 12%";
+    : "";
   const expenseTrend = summaryData
     ? pctChange(summaryData.monthlyExpense, summaryData.prevMonthExpense)
-    : "↑ 8%";
-  // Data-source status: distinguishes "still loading", "backend unavailable
-  // so showing bundled sample figures", and "real figures loaded" so the
-  // dashboard never lets a fallback number pass as a real balance.
+    : "";
   const isBalanceLoading = summaryLoading;
-  const isSampleData = !summaryLoading && (summaryError || !summaryData);
-  const isPositiveBalance = totalBalance >= 0;
-  const isPositiveNet = netMonthly >= 0;
-  const animatedBalance = useCountUp(totalBalance);
-
-  const chartData =
-    monthlyStatsData && monthlyStatsData.length > 0
-      ? monthlyStatsData
-      : MOCK_CHART;
-  const fundAccounts =
-    accountsData && accountsData.length > 0
-      ? accountsData
-      : [
-          {
-            id: 1,
-            name: "บัญชีทั่วไป (ดำเนินงาน)",
-            balance: "65400.00",
-            color: "#A8C978",
-          },
-          {
-            id: 2,
-            name: "กองทุนพันธกิจและประกาศ",
-            balance: "28500.00",
-            color: "#E99A4A",
-          },
-          {
-            id: 3,
-            name: "กองทุนอาคารและสถานที่",
-            balance: "21337.00",
-            color: "#A9D4ED",
-          },
-          {
-            id: 4,
-            name: "กองทุนการสงเคราะห์สมาชิก",
-            balance: "6800.00",
-            color: "#F7B6A6",
-          },
-          {
-            id: 5,
-            name: "กองทุนอนุชนและรวีวารศึกษา",
-            balance: "3200.00",
-            color: "#C39BD3",
-          },
-        ];
+  const isDataUnavailable = !summaryLoading && (summaryError || !summaryData);
+  const isPositiveBalance = (totalBalance ?? 0) >= 0;
+  const isPositiveNet = (netMonthly ?? 0) >= 0;
+  const animatedBalance = useCountUp(totalBalance ?? 0);
+  const chartData = monthlyStatsData ?? [];
+  const fundAccounts = accountsData ?? [];
 
   // Category & payment method mappers
   const mapOfferingCategory = (
@@ -571,9 +398,6 @@ export default function Home() {
           icon: Landmark,
         });
       });
-    }
-    if (list.length === 0) {
-      return MOCK_RECENT;
     }
     return list.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -961,12 +785,12 @@ export default function Home() {
                           กำลังโหลดข้อมูล
                         </span>
                       )}
-                      {isSampleData && (
+                      {isDataUnavailable && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF3DF] border border-dashed border-[#E9C179] text-[#946A1E] text-[10px] font-bold">
                           <Info className="w-3 h-3" />
                           {summaryError
-                            ? "เชื่อมต่อไม่สำเร็จ · แสดงข้อมูลตัวอย่าง"
-                            : "ข้อมูลตัวอย่าง"}
+                            ? "เชื่อมต่อข้อมูลไม่สำเร็จ"
+                            : "ยังไม่มีข้อมูลการเงิน"}
                         </span>
                       )}
                     </div>
@@ -980,9 +804,9 @@ export default function Home() {
                       <div
                         className={`break-words text-3xl sm:text-4xl md:text-5xl font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#1b5e3a]" : "text-[#B3261E]"}`}
                       >
-                        {showBalance
+                        {showBalance && summaryData
                           ? fmtBaht(animatedBalance)
-                          : "฿ ••••••••"}
+                          : "—"}
                       </div>
                     )}
 
@@ -1056,7 +880,9 @@ export default function Home() {
                       <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
                     ) : (
                       <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                        {showBalance ? fmtShortBaht(monthlyIncome) : "฿••••"}
+                        {showBalance && monthlyIncome !== undefined
+                          ? fmtShortBaht(monthlyIncome)
+                          : "—"}
                       </div>
                     )}
                     <span className="text-xs font-bold text-[#4F8B33] flex flex-wrap items-center gap-x-1 gap-y-0.5">
@@ -1091,7 +917,9 @@ export default function Home() {
                       <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
                     ) : (
                       <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                        {showBalance ? fmtShortBaht(monthlyExpense) : "฿••••"}
+                        {showBalance && monthlyExpense !== undefined
+                          ? fmtShortBaht(monthlyExpense)
+                          : "—"}
                       </div>
                     )}
                     <span className="text-xs font-bold text-[#B3541E] flex flex-wrap items-center gap-x-1 gap-y-0.5">
@@ -1130,7 +958,9 @@ export default function Home() {
                       <div className="h-7 md:h-8 w-24 my-0.5 rounded-lg bg-white/70 animate-pulse" />
                     ) : (
                       <div className="text-2xl md:text-3xl font-black text-[#38251B] break-words tabular-nums">
-                        {showBalance ? fmtShortBaht(netMonthly) : "฿••••"}
+                        {showBalance && netMonthly !== undefined
+                          ? fmtShortBaht(netMonthly)
+                          : "—"}
                       </div>
                     )}
                     <span
@@ -1275,9 +1105,7 @@ export default function Home() {
                 </div>
               </section>
 
-              {/* ─── 6. BUDGET SECTION ("แผนการใช้จ่าย") ──────────────────── */}
-              {/* Lighter shadow than the balance card above — this is
-                  reference info, not the primary figure. */}
+              {/* ─── 6. BUDGET SECTION (real data only) ─────────────────────── */}
               <section
                 aria-label="แผนการใช้จ่ายงบประมาณ"
                 className="bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF]/80 shadow-xs space-y-4"
@@ -1290,55 +1118,14 @@ export default function Home() {
                     onClick={() => setActiveTab("reports")}
                     className="text-xs md:text-sm font-bold text-[#E99A4A] hover:underline flex items-center gap-0.5 focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
                   >
-                    <span>จัดการ</span>
+                    <span>ดูรายงาน</span>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-
-                <div className="space-y-4">
-                  {MOCK_BUDGETS.map((b, i) => {
-                    const IconComponent = b.icon;
-                    return (
-                      <div key={i} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs md:text-sm">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-8 h-8 rounded-full ${b.badgeBg} flex items-center justify-center ${b.iconColor} shrink-0`}
-                            >
-                              <IconComponent className="w-4 h-4 stroke-[2.2]" />
-                            </div>
-                            <span className="font-bold text-[#38251B]">
-                              {b.label}
-                            </span>
-                            <span className="text-[11px] text-[#7A6656] font-medium">
-                              · {b.period}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="font-bold text-[#38251B]">
-                              {fmtShortBaht(b.amount)}
-                            </span>
-                            <span className="text-[11px] text-[#7A6656] font-medium">
-                              {" "}
-                              / {fmtShortBaht(b.total)}
-                            </span>
-                            <span className="ml-2 font-bold text-[#4F8B33]">
-                              {b.percent}%
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Progress Bar with rounded subtle clay style */}
-                        <div className="w-full h-2.5 bg-[#F4EDE0] rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${b.barColor} rounded-full transition-all duration-500`}
-                            style={{ width: `${b.percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <p className="py-5 text-sm text-[#927D6D]">
+                  ยังไม่มีข้อมูลแผนการใช้จ่ายจากระบบ
+                  จึงยังไม่แสดงตัวเลขประมาณการ
+                </p>
               </section>
 
               {/* ─── 7. RECENT TRANSACTIONS SECTION ("รายการล่าสุด") ─────── */}
@@ -1362,6 +1149,11 @@ export default function Home() {
                 </div>
 
                 <div className="divide-y divide-[#F0E6D8]/60">
+                  {allTransactions.length === 0 && (
+                    <p className="py-8 text-center text-sm text-[#927D6D]">
+                      ยังไม่มีรายการธุรกรรมล่าสุดจากระบบ
+                    </p>
+                  )}
                   {allTransactions.slice(0, 4).map(tx => {
                     const IconComponent = tx.icon || Heart;
                     const isIncome = tx.type === "income";
@@ -1611,46 +1403,52 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="h-64 w-full pt-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <XAxis
-                        dataKey="name"
-                        stroke="#927D6D"
-                        fontSize={12}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        stroke="#927D6D"
-                        fontSize={11}
-                        tickLine={false}
-                        tickFormatter={v => `฿${v / 1000}k`}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#FFFFFF",
-                          borderRadius: 16,
-                          border: "1px solid #E9D9BF",
-                          boxShadow: "0 4px 12px rgba(112,69,46,0.08)",
-                        }}
-                        formatter={(val: any) => [fmtBaht(val), ""]}
-                      />
-                      <Bar
-                        dataKey="รายรับ"
-                        fill="#A8C978"
-                        radius={[8, 8, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="รายจ่าย"
-                        fill="#E99A4A"
-                        radius={[8, 8, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {chartData.length === 0 ? (
+                  <p className="py-16 text-center text-sm text-[#927D6D]">
+                    ยังไม่มีข้อมูลแนวโน้มการเงินสำหรับช่วงเวลานี้
+                  </p>
+                ) : (
+                  <div className="h-64 w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                      >
+                        <XAxis
+                          dataKey="name"
+                          stroke="#927D6D"
+                          fontSize={12}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          stroke="#927D6D"
+                          fontSize={11}
+                          tickLine={false}
+                          tickFormatter={v => `฿${v / 1000}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#FFFFFF",
+                            borderRadius: 16,
+                            border: "1px solid #E9D9BF",
+                            boxShadow: "0 4px 12px rgba(112,69,46,0.08)",
+                          }}
+                          formatter={(val: any) => [fmtBaht(val), ""]}
+                        />
+                        <Bar
+                          dataKey="รายรับ"
+                          fill="#A8C978"
+                          radius={[8, 8, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="รายจ่าย"
+                          fill="#E99A4A"
+                          radius={[8, 8, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
 
               {/* Fund Balances Breakdown */}
@@ -1659,6 +1457,11 @@ export default function Home() {
                   ยอดเงินในแต่ละกองทุน (Fund Accounts)
                 </h3>
                 <div className="divide-y divide-[#F0E6D8]/60">
+                  {fundAccounts.length === 0 && (
+                    <p className="py-8 text-center text-sm text-[#927D6D]">
+                      ยังไม่มีข้อมูลกองทุนจากระบบ
+                    </p>
+                  )}
                   {fundAccounts.map((fa: any) => (
                     <div
                       key={fa.id}
@@ -1667,7 +1470,7 @@ export default function Home() {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-3.5 h-3.5 rounded-full"
-                          style={{ backgroundColor: fa.color || "#A8C978" }}
+                          style={{ backgroundColor: "#A8C978" }}
                         />
                         <span className="text-sm font-bold text-[#38251B]">
                           {fa.name}
