@@ -50,6 +50,12 @@
 }
 
 :root {
+  /* Height of the fixed mobile bottom navigation (AppLayout.tsx), used to
+     keep page content clear of it below the lg: breakpoint. Any page that
+     adds its own fixed/sticky bottom bar on mobile must clear this same
+     value plus its own height, instead of guessing a pixel offset. */
+  --mobile-nav-clearance: 8.5rem;
+
   --primary: #e99a4a;
   --primary-foreground: #ffffff;
   --background: #fff9ee;

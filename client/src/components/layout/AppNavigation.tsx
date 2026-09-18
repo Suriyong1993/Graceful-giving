@@ -1,13 +1,7 @@
 import { type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import {
-  isSuperAdmin,
-  canManageFinance,
-  canCountOfferings,
-  canViewReports,
-  canManageChurchSettings,
-} from "@shared/roles";
+import { canAccessRoute } from "@/lib/routeAccess";
 import { GuardedLink } from "./GuardedLink";
 import {
   CalendarDays,
@@ -121,30 +115,7 @@ export const navItems = [
 export function getAuthorizedNavItems(
   user?: { role?: string; churchRole?: string | null } | null
 ) {
-  return navItems.filter(item => {
-    switch (item.path) {
-      case "/settings":
-        return isSuperAdmin(user);
-      case "/counting":
-        return canCountOfferings(user);
-      case "/expenses":
-      case "/funds":
-      case "/budgets":
-        return canManageFinance(user) || canManageChurchSettings(user);
-      case "/reports":
-        return canViewReports(user);
-      case "/approvals":
-        return canManageFinance(user) || canManageChurchSettings(user);
-      case "/members":
-        return (
-          canManageChurchSettings(user) ||
-          canManageFinance(user) ||
-          user?.churchRole === "DEACON"
-        );
-      default:
-        return true;
-    }
-  });
+  return navItems.filter(item => canAccessRoute(item.path, user));
 }
 
 export function isActiveRoute(currentPath: string, path: string) {

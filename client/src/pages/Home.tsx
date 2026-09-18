@@ -3,6 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import {
   BarChart3,
+  Banknote,
   Bell,
   BookOpen,
   CalendarDays,
@@ -165,7 +166,6 @@ export default function Home() {
   // Dialog states
   const [offeringOpen, setOfferingOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
-  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
   const [offeringSuccess, setOfferingSuccess] = useState(false);
   const [submittedOffering, setSubmittedOffering] = useState<any>(null);
@@ -193,15 +193,6 @@ export default function Home() {
     category: "worship" as ExpenseCategory,
     fundId: "",
     paymentMethod: "โอนธนาคาร",
-    notes: "",
-  });
-
-  // Withdrawal form state
-  const [withdrawalForm, setWithdrawalForm] = useState({
-    purpose: "",
-    amount: "",
-    fundId: "",
-    urgency: "normal",
     notes: "",
   });
 
@@ -278,23 +269,6 @@ export default function Home() {
     },
     onError: error => {
       toast.error("บันทึกรายจ่ายไม่สำเร็จ", { description: error.message });
-    },
-  });
-
-  const createWithdrawalMutation = trpc.withdrawals.create.useMutation({
-    onSuccess: () => {
-      setWithdrawalOpen(false);
-      toast.success("ยื่นคำขอเบิกเงินเรียบร้อยแล้ว รอการอนุมัติ");
-      setWithdrawalForm({
-        purpose: "",
-        amount: "",
-        fundId: "",
-        urgency: "normal",
-        notes: "",
-      });
-    },
-    onError: error => {
-      toast.error("ยื่นคำขอเบิกเงินไม่สำเร็จ", { description: error.message });
     },
   });
 
@@ -962,7 +936,7 @@ export default function Home() {
               {/* ─── 4b. SECONDARY MENU (รายงาน / สมาชิก / กิจกรรม / เพิ่มเติม) ── */}
               <section
                 aria-label="เมนูลัดอื่น ๆ"
-                className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 md:gap-5 w-full"
+                className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 md:gap-5 w-full"
               >
                 {/* รายงาน */}
                 <button
@@ -997,6 +971,18 @@ export default function Home() {
                   <CalendarDays className="w-7 h-7 stroke-[2.4] text-[#C9503B] mb-1.5" />
                   <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
                     กิจกรรม
+                  </span>
+                </button>
+
+                {/* ขอเบิกเงิน */}
+                <button
+                  onClick={() => setLocation("/withdrawals/new")}
+                  className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-4 px-3 rounded-2xl sm:rounded-3xl bg-white border-2 border-[#E9D9BF] hover:border-[#E99A4A] transition-all hover:scale-102 focus-visible:ring-2 focus-visible:ring-[#E99A4A] shadow-xs"
+                  aria-label="ยื่นคำขอเบิกเงิน"
+                >
+                  <Banknote className="w-7 h-7 stroke-[2.4] text-[#E99A4A] mb-1.5" />
+                  <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
+                    ขอเบิกเงิน
                   </span>
                 </button>
 
@@ -1452,7 +1438,9 @@ export default function Home() {
                       "คริสตจักรพระคุณสมบูรณ์ ประเทศไทย"}
                   </p>
                 </div>
-                <div className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold ${getChurchRoleInfo(user?.churchRole).badgeColor}`}>
+                <div
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold ${getChurchRoleInfo(user?.churchRole).badgeColor}`}
+                >
                   <span>{getChurchRoleInfo(user?.churchRole).badgeLabel}</span>
                 </div>
                 <p className="text-xs text-[#70452E]/75 max-w-sm mx-auto">
@@ -1476,8 +1464,12 @@ export default function Home() {
                         <Coins className="w-5 h-5" />
                       </div>
                       <div className="text-left">
-                        <div className="text-sm font-bold text-[#38251B]">ห้องนับเงินถวาย (Counting Room)</div>
-                        <div className="text-[11px] text-[#927D6D] font-normal">บันทึกยอดเงินสด สแกนจ่าย และนับธนบัตรตามรอบนมัสการ</div>
+                        <div className="text-sm font-bold text-[#38251B]">
+                          ห้องนับเงินถวาย (Counting Room)
+                        </div>
+                        <div className="text-[11px] text-[#927D6D] font-normal">
+                          บันทึกยอดเงินสด สแกนจ่าย และนับธนบัตรตามรอบนมัสการ
+                        </div>
                       </div>
                     </span>
                     <ChevronRight className="w-4 h-4 text-[#927D6D] shrink-0" />
@@ -1576,7 +1568,9 @@ export default function Home() {
             aria-label="ไปที่หน้าแรก"
           >
             <HomeIcon className="w-6 h-6 stroke-[2.5] text-[#D47012]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-black">หน้าแรก</span>
+            <span className="text-xs sm:text-sm mt-0.5 font-black">
+              หน้าแรก
+            </span>
           </button>
 
           {/* 2. รายการ */}
@@ -1850,7 +1844,10 @@ export default function Home() {
                   onChange={e => setOfferingAnon(e.target.checked)}
                   className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg text-[#E99A4A] focus:ring-[#E99A4A] border-2 border-[#E9D9BF]"
                 />
-                <label htmlFor="anon" className="text-sm sm:text-base font-bold text-[#70452E] cursor-pointer">
+                <label
+                  htmlFor="anon"
+                  className="text-sm sm:text-base font-bold text-[#70452E] cursor-pointer"
+                >
                   ไม่ระบุชื่อผู้ถวาย (ถวายโดยไม่เปิดเผยนาม)
                 </label>
               </div>
@@ -2041,130 +2038,6 @@ export default function Home() {
               {createExpenseMutation.isPending
                 ? "กำลังบันทึก..."
                 : "บันทึกรายจ่าย ✓"}
-            </button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL 4: WITHDRAWAL REQUEST DIALOG ─────────────────────────────── */}
-      <Dialog open={withdrawalOpen} onOpenChange={setWithdrawalOpen}>
-        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-[#38251B] max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E]">
-              ยื่นคำขอเบิกเงิน (Withdrawal Request)
-            </DialogTitle>
-            <DialogDescription className="text-sm sm:text-base text-[#927D6D] mt-1 font-medium">
-              ส่งคำขอเบิกเงินเพื่อให้ศิษยาภิบาลหรือเหรัญญิกพิจารณาอนุมัติ
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              createWithdrawalMutation.mutate({
-                purpose: withdrawalForm.purpose,
-                amount: Number(withdrawalForm.amount),
-                fundId: Number(withdrawalForm.fundId),
-                details: withdrawalForm.notes || undefined,
-              });
-            }}
-            className="space-y-4 sm:space-y-6 pt-2"
-          >
-            <div>
-              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                วัตถุประสงค์การเบิก <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={withdrawalForm.purpose}
-                onChange={e =>
-                  setWithdrawalForm({
-                    ...withdrawalForm,
-                    purpose: e.target.value,
-                  })
-                }
-                placeholder="เช่น ค่าจัดค่ายอนุชน, ค่าซ่อมแซมห้องน้ำ"
-                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-medium focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  จำนวนเงิน (บาท) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={withdrawalForm.amount}
-                  onChange={e =>
-                    setWithdrawalForm({
-                      ...withdrawalForm,
-                      amount: e.target.value,
-                    })
-                  }
-                  placeholder="0.00"
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-xl sm:text-2xl font-black text-[#70452E] focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-                />
-              </div>
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  ความเร่งด่วน
-                </label>
-                <select
-                  value={withdrawalForm.urgency}
-                  onChange={e =>
-                    setWithdrawalForm({
-                      ...withdrawalForm,
-                      urgency: e.target.value,
-                    })
-                  }
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-                >
-                  <option value="normal">ปกติ (ตามรอบ)</option>
-                  <option value="urgent">เร่งด่วน</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                เบิกจากกองทุน <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={withdrawalForm.fundId}
-                onChange={e =>
-                  setWithdrawalForm({
-                    ...withdrawalForm,
-                    fundId: e.target.value,
-                  })
-                }
-                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-              >
-                <option value="" disabled>
-                  -- เลือกกองทุน --
-                </option>
-                {fundAccounts.map((fa: any) => (
-                  <option key={fa.id} value={fa.id}>
-                    {fa.name}
-                  </option>
-                ))}
-              </select>
-              {fundAccounts.length === 0 && (
-                <p className="text-sm font-bold text-[#D45945] mt-2">
-                  ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนยื่นคำขอเบิกเงิน
-                </p>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={
-                createWithdrawalMutation.isPending || !withdrawalForm.fundId
-              }
-              className="w-full py-4 sm:py-5 mt-2 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px] transition-transform active:scale-95"
-            >
-              {createWithdrawalMutation.isPending
-                ? "กำลังส่งคำขอ..."
-                : "ยื่นคำขอเบิกเงิน ✓"}
             </button>
           </form>
         </DialogContent>

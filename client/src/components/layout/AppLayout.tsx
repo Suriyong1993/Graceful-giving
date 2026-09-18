@@ -105,7 +105,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                       : "border-transparent text-[#4A2E1B] hover:bg-white/80 hover:text-[#2C1810]"
                   }`}
                 >
-                  <Icon className={`w-5 h-5 xl:w-6 xl:h-6 shrink-0 ${item.iconColor}`} />
+                  <Icon
+                    className={`w-5 h-5 xl:w-6 xl:h-6 shrink-0 ${item.iconColor}`}
+                  />
                   <span className="truncate">{item.label}</span>
                 </GuardedLink>
               );
@@ -135,7 +137,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </aside>
 
         {/* MAIN CONTAINER (Auto-filling 100% available space across all screens) */}
-        <main className="flex-1 w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 flex flex-col pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+        <main className="flex-1 w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 flex flex-col pb-[calc(var(--mobile-nav-clearance)+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
           {/* Top Bar for Desktop and Mobile */}
           <header className="flex flex-wrap items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-[#E9D9BF]/60">
             <div className="flex w-full items-center justify-between lg:hidden">
@@ -222,7 +224,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             aria-current={currentPath === "/" ? "page" : undefined}
           >
             <HomeIcon className="w-6 h-6 stroke-[2.5] text-[#D47012]" />
-            <span className="text-xs sm:text-sm mt-0.5 font-black">หน้าแรก</span>
+            <span className="text-xs sm:text-sm mt-0.5 font-black">
+              หน้าแรก
+            </span>
           </button>
 
           {/* 2. รายการ */}

@@ -3,13 +3,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import {
-  isSuperAdmin,
-  canManageFinance,
-  canCountOfferings,
-  canViewReports,
-  canManageChurchSettings,
-} from "@shared/roles";
+import { canManageChurchSettings } from "@shared/roles";
+import { canAccessRoute } from "@/lib/routeAccess";
 import { trpc } from "@/lib/trpc";
 import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -30,6 +25,7 @@ const Offerings = lazy(() => import("./pages/Offerings"));
 const NewOffering = lazy(() => import("./pages/NewOffering"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const NewExpense = lazy(() => import("./pages/NewExpense"));
+const NewWithdrawal = lazy(() => import("./pages/NewWithdrawal"));
 const Funds = lazy(() => import("./pages/Funds"));
 const FundDetail = lazy(() => import("./pages/FundDetail"));
 const Budgets = lazy(() => import("./pages/Budgets"));
@@ -110,7 +106,10 @@ function SetupGate() {
     if (hasSkippedSetup()) return;
     if (profileQuery.isLoading || profileQuery.isError) return;
     const profile = profileQuery.data;
-    if (canManageChurchSettings(user) && (!profile || !profile.setupCompleted)) {
+    if (
+      canManageChurchSettings(user) &&
+      (!profile || !profile.setupCompleted)
+    ) {
       setLocation("/setup");
     }
   }, [
@@ -208,7 +207,7 @@ function Router() {
       {/* Weekly offering count */}
       <Route path="/counting">
         <RoleGuard
-          canAccess={canCountOfferings}
+          canAccess={u => canAccessRoute("/counting", u)}
           message="ส่วนการนับเงินถวายสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการนับเงินเท่านั้น"
         >
           <Counting />
@@ -216,7 +215,7 @@ function Router() {
       </Route>
       <Route path="/counting/:id">
         <RoleGuard
-          canAccess={canCountOfferings}
+          canAccess={u => canAccessRoute("/counting", u)}
           message="ส่วนการนับเงินถวายสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการนับเงินเท่านั้น"
         >
           <CountingDetail />
@@ -229,7 +228,7 @@ function Router() {
       {/* Expenses */}
       <Route path="/expenses">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/expenses", u)}
           message="ส่วนการจัดการรายจ่ายสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
         >
           <Expenses />
@@ -237,7 +236,7 @@ function Router() {
       </Route>
       <Route path="/expenses/new">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/expenses", u)}
           message="ส่วนการบันทึกรายจ่ายสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
         >
           <NewExpense />
@@ -247,7 +246,7 @@ function Router() {
       {/* Funds & Accounts */}
       <Route path="/funds">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/funds", u)}
           message="ส่วนกองทุนสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการเท่านั้น"
         >
           <Funds />
@@ -255,7 +254,7 @@ function Router() {
       </Route>
       <Route path="/funds/:id">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/funds", u)}
           message="ส่วนกองทุนสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการเท่านั้น"
         >
           <FundDetail />
@@ -265,7 +264,7 @@ function Router() {
       {/* Budgets */}
       <Route path="/budgets">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/budgets", u)}
           message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
         >
           <Budgets />
@@ -273,7 +272,7 @@ function Router() {
       </Route>
       <Route path="/budgets/:id">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/budgets", u)}
           message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
         >
           <BudgetDetail />
@@ -287,11 +286,7 @@ function Router() {
       {/* Members Directory */}
       <Route path="/members">
         <RoleGuard
-          canAccess={u =>
-            canManageChurchSettings(u) ||
-            canManageFinance(u) ||
-            u?.churchRole === "DEACON"
-          }
+          canAccess={u => canAccessRoute("/members", u)}
           message="ส่วนทะเบียนสมาชิกสงวนไว้สำหรับคณะกรรมการคริสตจักรเท่านั้น"
         >
           <Members />
@@ -299,11 +294,7 @@ function Router() {
       </Route>
       <Route path="/members/:id">
         <RoleGuard
-          canAccess={u =>
-            canManageChurchSettings(u) ||
-            canManageFinance(u) ||
-            u?.churchRole === "DEACON"
-          }
+          canAccess={u => canAccessRoute("/members", u)}
           message="ส่วนทะเบียนสมาชิกสงวนไว้สำหรับคณะกรรมการคริสตจักรเท่านั้น"
         >
           <MemberDetail />
@@ -313,7 +304,7 @@ function Router() {
       {/* Reports & Analytics */}
       <Route path="/reports">
         <RoleGuard
-          canAccess={canViewReports}
+          canAccess={u => canAccessRoute("/reports", u)}
           message="รายงานทางการเงินและสถิติคริสตจักรสงวนไว้สำหรับผู้ได้รับอนุญาตเท่านั้น"
         >
           <Reports />
@@ -323,12 +314,16 @@ function Router() {
       {/* Approvals & Workflows */}
       <Route path="/approvals">
         <RoleGuard
-          canAccess={u => canManageFinance(u) || canManageChurchSettings(u)}
+          canAccess={u => canAccessRoute("/approvals", u)}
           message="ส่วนการอนุมัติโครงการและการเงินสงวนไว้สำหรับผู้อนุมัติเท่านั้น"
         >
           <Approvals />
         </RoleGuard>
       </Route>
+
+      {/* Withdrawal requests — any signed-in member can ask for one;
+          approval/disbursement stays gated on the Approvals page. */}
+      <Route path="/withdrawals/new" component={NewWithdrawal} />
 
       {/* Notifications */}
       <Route path="/notifications" component={Notifications} />
@@ -336,7 +331,7 @@ function Router() {
       {/* Church & System Settings */}
       <Route path="/settings">
         <RoleGuard
-          canAccess={isSuperAdmin}
+          canAccess={u => canAccessRoute("/settings", u)}
           message="หน้านี้สงวนไว้สำหรับผู้ดูแลระบบสูงสุด (SUPER_ADMIN) เท่านั้น เพื่อความปลอดภัยของข้อมูลคริสตจักรและการกำหนดสิทธิ์ผู้ใช้งาน"
         >
           <Settings />
