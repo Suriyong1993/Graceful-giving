@@ -18,11 +18,9 @@ import {
   FileBarChart,
   HandCoins,
   Heart,
-  HeartHandshake,
   Home as HomeIcon,
   Info,
   Landmark,
-  Layers,
   Loader2,
   LogOut,
   MoreHorizontal,
@@ -46,13 +44,6 @@ import {
   YAxis,
 } from "recharts";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -61,13 +52,7 @@ import {
 } from "@/components/ui/sheet";
 import { Illustration } from "@/components/Illustration";
 import { AppMenu } from "@/components/layout/AppNavigation";
-import {
-  EXPENSE_CATEGORIES,
-  OFFERING_CATEGORIES,
-  offeringCategoryLabel,
-  type ExpenseCategory,
-  type OfferingCategory,
-} from "@shared/categories";
+import { offeringCategoryLabel } from "@shared/categories";
 import {
   getChurchRoleInfo,
   isSuperAdmin,
@@ -164,11 +149,7 @@ export default function Home() {
   const [showBalance, setShowBalance] = useState(true);
 
   // Dialog states
-  const [offeringOpen, setOfferingOpen] = useState(false);
-  const [expenseOpen, setExpenseOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
-  const [offeringSuccess, setOfferingSuccess] = useState(false);
-  const [submittedOffering, setSubmittedOffering] = useState<any>(null);
 
   // Filter states
   const [ledgerTab, setLedgerTab] = useState<
@@ -176,25 +157,6 @@ export default function Home() {
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-
-  // Multi-step offering form state
-  const [offeringStep, setOfferingStep] = useState<1 | 2 | 3>(1);
-  const [offeringType, setOfferingType] = useState<OfferingCategory>("general");
-  const [offeringAmount, setOfferingAmount] = useState("");
-  const [offeringFund, setOfferingFund] = useState("");
-  const [offeringMethod, setOfferingMethod] = useState("เงินสด");
-  const [offeringNotes, setOfferingNotes] = useState("");
-  const [offeringAnon, setOfferingAnon] = useState(false);
-
-  // Expense form state
-  const [expenseForm, setExpenseForm] = useState({
-    title: "",
-    amount: "",
-    category: "worship" as ExpenseCategory,
-    fundId: "",
-    paymentMethod: "โอนธนาคาร",
-    notes: "",
-  });
 
   // tRPC Queries with resilient fallback
   const {
@@ -219,57 +181,18 @@ export default function Home() {
     staleTime: 60_000,
   });
 
-  const { data: offeringsData, refetch: refetchOfferings } =
-    trpc.offerings.list.useQuery({ limit: 30 }, { retry: false });
+  const { data: offeringsData } = trpc.offerings.list.useQuery(
+    { limit: 30 },
+    { retry: false }
+  );
 
-  const { data: expensesData, refetch: refetchExpenses } =
-    trpc.expenses.list.useQuery({ limit: 30 }, { retry: false });
+  const { data: expensesData } = trpc.expenses.list.useQuery(
+    { limit: 30 },
+    { retry: false }
+  );
 
   const { data: churchProfile } = trpc.church.getProfile.useQuery(undefined, {
     retry: false,
-  });
-
-  // Mutations
-  const createOfferingMutation = trpc.offerings.create.useMutation({
-    onSuccess: () => {
-      refetchOfferings();
-      const fundName =
-        (accountsData ?? []).find((fa: any) => String(fa.id) === offeringFund)
-          ?.name ?? "กองทุนที่เลือก";
-      setSubmittedOffering({
-        type: offeringType,
-        amount: Number(offeringAmount),
-        fund: fundName,
-        method: offeringMethod,
-      });
-      setOfferingSuccess(true);
-      setOfferingOpen(false);
-      toast.success("บันทึกการถวายเรียบร้อยแล้ว", {
-        description: `${offeringCategoryLabel(offeringType)} ฿${Number(offeringAmount).toLocaleString()} เข้า${fundName}`,
-      });
-    },
-    onError: error => {
-      toast.error("บันทึกการถวายไม่สำเร็จ", { description: error.message });
-    },
-  });
-
-  const createExpenseMutation = trpc.expenses.create.useMutation({
-    onSuccess: () => {
-      refetchExpenses();
-      setExpenseOpen(false);
-      toast.success("บันทึกรายจ่ายเรียบร้อยแล้ว");
-      setExpenseForm({
-        title: "",
-        amount: "",
-        category: "worship" as ExpenseCategory,
-        fundId: "",
-        paymentMethod: "โอนธนาคาร",
-        notes: "",
-      });
-    },
-    onError: error => {
-      toast.error("บันทึกรายจ่ายไม่สำเร็จ", { description: error.message });
-    },
   });
 
   // Derived values always come from the current API response.
@@ -292,19 +215,6 @@ export default function Home() {
   const animatedBalance = useCountUp(totalBalance ?? 0);
   const chartData = monthlyStatsData ?? [];
   const fundAccounts = accountsData ?? [];
-
-  // Payment method mapper (Thai button labels -> API values)
-  const mapPaymentMethod = (m: string): "cash" | "transfer" | "check" => {
-    switch (m) {
-      case "โอนธนาคาร":
-      case "พร้อมเพย์ / QR":
-        return "transfer";
-      case "เช็ค":
-        return "check";
-      default:
-        return "cash";
-    }
-  };
 
   // Combined transactions
   const allTransactions = useMemo(() => {
@@ -393,21 +303,6 @@ export default function Home() {
     toast.success("ดาวน์โหลดรายงาน CSV สำเร็จ");
   };
 
-  const handleQuickOfferingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!offeringFund) {
-      toast.error("กรุณาเลือกกองทุนก่อนบันทึกการถวาย");
-      return;
-    }
-    createOfferingMutation.mutate({
-      category: offeringType,
-      amount: Number(offeringAmount),
-      fundId: Number(offeringFund),
-      method: mapPaymentMethod(offeringMethod),
-      notes: offeringNotes || undefined,
-    });
-  };
-
   return (
     <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
       {/* ─── DESKTOP WRAPPER (Persistent Sidebar + Responsive Full-Width Main Content) ─── */}
@@ -439,10 +334,7 @@ export default function Home() {
 
           {/* Quick Offering Action Button on Sidebar */}
           <button
-            onClick={() => {
-              setOfferingStep(1);
-              setOfferingOpen(true);
-            }}
+            onClick={() => setLocation("/offerings/new")}
             className="w-full mb-6 py-3.5 px-5 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-base xl:text-lg flex items-center justify-center gap-2.5 clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#D47012] min-h-[54px]"
             aria-label="บันทึกการถวายใหม่"
           >
@@ -912,10 +804,7 @@ export default function Home() {
                 className="animate-fade-up grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full"
               >
                 <button
-                  onClick={() => {
-                    setOfferingStep(1);
-                    setOfferingOpen(true);
-                  }}
+                  onClick={() => setLocation("/offerings/new")}
                   className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-3xl bg-[#2D6A2E] hover:bg-[#235324] text-white font-black text-lg sm:text-2xl clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#2D6A2E] focus-visible:ring-offset-2 shadow-md"
                   aria-label="บันทึกการถวาย"
                 >
@@ -924,7 +813,7 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={() => setExpenseOpen(true)}
+                  onClick={() => setLocation("/expenses/new")}
                   className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-3xl bg-[#B54A1E] hover:bg-[#963C15] text-white font-black text-lg sm:text-2xl clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#B54A1E] focus-visible:ring-offset-2 shadow-md"
                   aria-label="บันทึกรายจ่าย"
                 >
@@ -1157,10 +1046,7 @@ export default function Home() {
                       <span>ส่งออก CSV</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setOfferingStep(1);
-                        setOfferingOpen(true);
-                      }}
+                      onClick={() => setLocation("/offerings/new")}
                       className="px-4 py-2 rounded-xl bg-[#E99A4A] text-white text-xs font-bold flex items-center gap-1.5 clay-button-shadow hover:bg-[#DE8640] transition-all"
                     >
                       <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -1237,10 +1123,7 @@ export default function Home() {
                       </p>
                     </div>
                     <button
-                      onClick={() => {
-                        setOfferingStep(1);
-                        setOfferingOpen(true);
-                      }}
+                      onClick={() => setLocation("/offerings/new")}
                       className="px-5 py-2.5 rounded-full bg-[#E99A4A] text-white text-xs font-bold clay-button-shadow hover:bg-[#DE8640] transition-all flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" />
@@ -1590,10 +1473,7 @@ export default function Home() {
           {/* 3. CENTER PRIMARY FAB: WARM ORANGE '+' ELEVATED BUTTON */}
           <div className="relative -top-6 flex flex-col items-center">
             <button
-              onClick={() => {
-                setOfferingStep(1);
-                setOfferingOpen(true);
-              }}
+              onClick={() => setLocation("/offerings/new")}
               className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
               aria-label="บันทึกการถวายใหม่ (เพิ่มรายการ)"
             >
@@ -1640,408 +1520,6 @@ export default function Home() {
           </p>
         </div>
       </nav>
-
-      {/* ─── MODAL 1: MULTI-STEP OFFERING SUBMISSION WORKFLOW ───────────────── */}
-      {/* ─── MODAL 1: MULTI-STEP OFFERING SUBMISSION WORKFLOW ───────────────── */}
-      <Dialog open={offeringOpen} onOpenChange={setOfferingOpen}>
-        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl bg-[#FFFDF8] border-2 sm:border-3 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 md:p-10 text-[#38251B] shadow-2xl overflow-y-auto max-h-[92vh]">
-          <DialogHeader>
-            <div className="flex items-center gap-3.5 sm:gap-5">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl overflow-hidden bg-[#EAF5E4] p-1.5 border-2 border-[#D2EAC7] shrink-0 shadow-xs">
-                <Illustration
-                  src="/illustrations/offering_box.jpg"
-                  alt="กล่องถวาย"
-                  className="w-full h-full object-cover rounded-xl sm:rounded-2xl"
-                  width={80}
-                  height={80}
-                />
-              </div>
-              <div className="space-y-1">
-                <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E] tracking-tight">
-                  บันทึกการถวายทรัพย์
-                </DialogTitle>
-                <DialogDescription className="text-sm sm:text-base md:text-lg font-bold text-[#927D6D]">
-                  ขั้นตอนที่ {offeringStep} จาก 3:{" "}
-                  {offeringStep === 1
-                    ? "เลือกประเภทการถวาย"
-                    : offeringStep === 2
-                      ? "ระบุจำนวนเงินถวาย"
-                      : "เลือกกองทุนและช่องทางบันทึก"}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {/* Step 1: Category */}
-          {offeringStep === 1 && (
-            <div className="space-y-6 pt-3 sm:pt-4">
-              <label className="text-base sm:text-xl font-black text-[#70452E] block">
-                เลือกประเภทการถวาย (แตะเพื่อเลือก):
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                {OFFERING_CATEGORIES.map(cat => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setOfferingType(cat.id)}
-                    className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 sm:border-3 text-base sm:text-xl font-black text-left transition-all min-h-[64px] sm:min-h-[80px] flex items-center justify-between gap-3 ${
-                      offeringType === cat.id
-                        ? "bg-[#FFF4DF] border-[#E99A4A] text-[#70452E] shadow-md scale-[1.01]"
-                        : "bg-white border-[#E9D9BF] text-[#70452E]/90 hover:bg-[#FFF9EE] hover:border-[#E99A4A]/50"
-                    }`}
-                  >
-                    <span>{cat.label}</span>
-                    {offeringType === cat.id && (
-                      <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E99A4A] text-white flex items-center justify-center text-sm sm:text-base font-black shrink-0">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setOfferingStep(2)}
-                className="w-full mt-4 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-lg sm:text-xl md:text-2xl clay-button-shadow transition-all min-h-[58px] sm:min-h-[64px]"
-              >
-                ถัดไป: ระบุจำนวนเงิน →
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Amount with quick chips */}
-          {offeringStep === 2 && (
-            <div className="space-y-6 pt-3 sm:pt-4">
-              <label className="text-base sm:text-xl font-black text-[#70452E] block">
-                ระบุจำนวนเงินถวาย (บาท):
-              </label>
-              <div className="relative">
-                <span className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-3xl sm:text-5xl font-black text-[#1b5e3a]">
-                  ฿
-                </span>
-                <input
-                  type="number"
-                  value={offeringAmount}
-                  onChange={e => setOfferingAmount(e.target.value)}
-                  className="w-full pl-16 sm:pl-22 pr-6 py-5 sm:py-6 rounded-2xl sm:rounded-3xl bg-white border-2 sm:border-3 border-[#E9D9BF] focus:border-[#E99A4A] text-3xl sm:text-5xl md:text-6xl font-black text-[#1b5e3a] focus:outline-none"
-                  placeholder="0.00"
-                  autoFocus
-                />
-              </div>
-
-              {/* Quick Amount Chips */}
-              <div className="space-y-2.5">
-                <span className="text-sm sm:text-base font-bold text-[#927D6D]">
-                  เลือกยอดเงินด่วน:
-                </span>
-                <div className="flex flex-wrap gap-2.5 sm:gap-3.5">
-                  {[100, 300, 500, 1000, 2000, 5000].map(amt => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setOfferingAmount(String(amt))}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-[#FFF4DF] hover:bg-[#FBE9CD] border-2 border-[#E9D9BF] text-base sm:text-xl font-black text-[#70452E] transition-all"
-                    >
-                      +฿{amt.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 sm:gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setOfferingStep(1)}
-                  className="flex-1 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] text-[#70452E] font-black text-base sm:text-xl border-2 border-[#E9D9BF] min-h-[58px]"
-                >
-                  ← ย้อนกลับ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOfferingStep(3)}
-                  disabled={!offeringAmount || Number(offeringAmount) <= 0}
-                  className="flex-2 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px]"
-                >
-                  ถัดไป: ช่องทางถวาย →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Fund, Payment Method & Final Submit */}
-          {offeringStep === 3 && (
-            <form
-              onSubmit={handleQuickOfferingSubmit}
-              className="space-y-5 sm:space-y-6 pt-3"
-            >
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  เข้ากองทุน / บัญชีคริสตจักร:
-                </label>
-                <select
-                  required
-                  value={offeringFund}
-                  onChange={e => setOfferingFund(e.target.value)}
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold text-[#38251B] focus:border-[#E99A4A] min-h-[56px]"
-                >
-                  <option value="" disabled>
-                    -- แตะเพื่อเลือกกองทุน --
-                  </option>
-                  {fundAccounts.map((fa: any) => (
-                    <option key={fa.id} value={fa.id}>
-                      {fa.name}
-                    </option>
-                  ))}
-                </select>
-                {fundAccounts.length === 0 && (
-                  <p className="text-sm text-[#D45945] font-bold mt-1.5">
-                    ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกการถวาย
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  วิธีการชำระเงิน:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                  {["เงินสด", "โอนธนาคาร", "พร้อมเพย์ / QR", "เช็ค"].map(m => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setOfferingMethod(m)}
-                      className={`p-3.5 sm:p-4 rounded-2xl border-2 text-sm sm:text-base font-black text-center transition-all min-h-[54px] sm:min-h-[60px] ${
-                        offeringMethod === m
-                          ? "bg-[#EAF5E4] border-[#A8C978] text-[#4F8B33] shadow-xs"
-                          : "bg-white border-[#E9D9BF] text-[#70452E]/90 hover:bg-[#FFF9EE]"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  บันทึกเพิ่มเติม (ถ้ามี):
-                </label>
-                <input
-                  type="text"
-                  value={offeringNotes}
-                  onChange={e => setOfferingNotes(e.target.value)}
-                  placeholder="เช่น ขอบพระคุณสำหรับสุขภาพ, วันเกิด"
-                  className="w-full p-3.5 sm:p-4 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg focus:border-[#E99A4A]"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 pt-1">
-                <input
-                  type="checkbox"
-                  id="anon"
-                  checked={offeringAnon}
-                  onChange={e => setOfferingAnon(e.target.checked)}
-                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg text-[#E99A4A] focus:ring-[#E99A4A] border-2 border-[#E9D9BF]"
-                />
-                <label
-                  htmlFor="anon"
-                  className="text-sm sm:text-base font-bold text-[#70452E] cursor-pointer"
-                >
-                  ไม่ระบุชื่อผู้ถวาย (ถวายโดยไม่เปิดเผยนาม)
-                </label>
-              </div>
-
-              <div className="flex gap-3 sm:gap-4 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setOfferingStep(2)}
-                  className="flex-1 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] text-[#70452E] font-black text-base sm:text-xl border-2 border-[#E9D9BF] min-h-[58px]"
-                >
-                  ← ย้อนกลับ
-                </button>
-                <button
-                  type="submit"
-                  disabled={createOfferingMutation.isPending || !offeringFund}
-                  className="flex-2 py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px]"
-                >
-                  {createOfferingMutation.isPending
-                    ? "กำลังบันทึก..."
-                    : "ยืนยันการบันทึกถวาย ✓"}
-                </button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL 2: OFFERING SUCCESS CELEBRATION ──────────────────────────── */}
-      <Dialog open={offeringSuccess} onOpenChange={setOfferingSuccess}>
-        <DialogContent className="w-[95vw] max-w-lg sm:max-w-xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-center text-[#38251B] space-y-6">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto rounded-3xl overflow-hidden border-2 border-[#E9D9BF] shadow-sm p-1.5 bg-[#EAF5E4]">
-            <Illustration
-              src="/illustrations/income_hand_heart.jpg"
-              alt="ถวายสำเร็จ"
-              className="w-full h-full object-cover rounded-2xl"
-              width={128}
-              height={128}
-            />
-          </div>
-          <div>
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E] tracking-tight">
-              บันทึกการถวายเรียบร้อยแล้ว
-            </h3>
-            <p className="text-sm sm:text-base md:text-lg text-[#927D6D] mt-2 leading-relaxed font-medium">
-              "ขอพระเจ้าทรงอวยพระพรและตอบแทนทุกน้ำใจที่ท่านได้มอบให้เพื่อพันธกิจของพระองค์"
-            </p>
-          </div>
-          {submittedOffering && (
-            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#FFF4DF] border-2 border-[#E9D9BF] text-base sm:text-lg text-left space-y-2.5">
-              <div className="flex justify-between items-center border-b border-[#E9D9BF]/60 pb-2">
-                <span className="text-[#927D6D] font-bold">รายการถวาย:</span>
-                <span className="font-black text-[#70452E] text-lg sm:text-xl">
-                  {offeringCategoryLabel(submittedOffering.type)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-b border-[#E9D9BF]/60 pb-2">
-                <span className="text-[#927D6D] font-bold">จำนวนเงิน:</span>
-                <span className="font-black text-[#1b5e3a] text-2xl sm:text-3xl">
-                  {fmtBaht(submittedOffering.amount)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[#927D6D] font-bold">เข้ากองทุน:</span>
-                <span className="font-black text-[#70452E] text-base sm:text-lg">
-                  {submittedOffering.fund}
-                </span>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => setOfferingSuccess(false)}
-            className="w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl bg-[#A8C978] hover:bg-[#96C764] text-white font-black text-base sm:text-xl min-h-[58px] clay-button-shadow transition-transform active:scale-95"
-          >
-            เรียบร้อย (สรรเสริญพระเจ้า) ✓
-          </button>
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── MODAL 3: EXPENSE ENTRY DIALOG ──────────────────────────────────── */}
-      <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
-        <DialogContent className="w-[95vw] max-w-xl sm:max-w-2xl md:max-w-3xl bg-[#FFFDF8] border-2 border-[#E9D9BF] rounded-[32px] sm:rounded-[40px] p-6 sm:p-10 text-[#38251B] max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-2xl sm:text-3xl md:text-4xl font-black text-[#70452E]">
-              บันทึกรายจ่ายคริสตจักร
-            </DialogTitle>
-            <DialogDescription className="text-sm sm:text-base text-[#927D6D] mt-1 font-medium">
-              บันทึกค่าใช้จ่ายพร้อมหักยอดจากกองทุนที่เกี่ยวข้อง
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              createExpenseMutation.mutate({
-                description: expenseForm.title,
-                amount: Number(expenseForm.amount),
-                category: expenseForm.category,
-                fundId: Number(expenseForm.fundId),
-                details: expenseForm.notes || undefined,
-              });
-            }}
-            className="space-y-4 sm:space-y-6 pt-2"
-          >
-            <div>
-              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                ชื่อรายการรายจ่าย <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={expenseForm.title}
-                onChange={e =>
-                  setExpenseForm({ ...expenseForm, title: e.target.value })
-                }
-                placeholder="เช่น ค่าอุปกรณ์นมัสการ, ค่าไฟฟ้า"
-                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-medium focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  จำนวนเงิน (บาท) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={expenseForm.amount}
-                  onChange={e =>
-                    setExpenseForm({ ...expenseForm, amount: e.target.value })
-                  }
-                  placeholder="0.00"
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-xl sm:text-2xl font-black text-[#c7382d] focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-                />
-              </div>
-              <div>
-                <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                  หมวดหมู่
-                </label>
-                <select
-                  value={expenseForm.category}
-                  onChange={e =>
-                    setExpenseForm({
-                      ...expenseForm,
-                      category: e.target.value as ExpenseCategory,
-                    })
-                  }
-                  className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-                >
-                  {EXPENSE_CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-base sm:text-lg font-black text-[#70452E] mb-2 block">
-                หักจากกองทุน <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={expenseForm.fundId}
-                onChange={e =>
-                  setExpenseForm({ ...expenseForm, fundId: e.target.value })
-                }
-                className="w-full p-4 sm:p-5 rounded-2xl bg-white border-2 border-[#E9D9BF] text-base sm:text-lg font-bold focus:border-[#E99A4A] focus:outline-none min-h-[56px]"
-              >
-                <option value="" disabled>
-                  -- เลือกกองทุน --
-                </option>
-                {fundAccounts.map((fa: any) => (
-                  <option key={fa.id} value={fa.id}>
-                    {fa.name}
-                  </option>
-                ))}
-              </select>
-              {fundAccounts.length === 0 && (
-                <p className="text-sm font-bold text-[#D45945] mt-2">
-                  ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนบันทึกรายจ่าย
-                </p>
-              )}
-            </div>
-            <button
-              type="submit"
-              disabled={createExpenseMutation.isPending || !expenseForm.fundId}
-              className="w-full py-4 sm:py-5 mt-2 rounded-2xl sm:rounded-3xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-black text-base sm:text-xl clay-button-shadow disabled:opacity-50 min-h-[58px] transition-transform active:scale-95"
-            >
-              {createExpenseMutation.isPending
-                ? "กำลังบันทึก..."
-                : "บันทึกรายจ่าย ✓"}
-            </button>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* ─── SHEET: CHURCH NEWS & ANNOUNCEMENTS ─────────────────────────────── */}
       <Sheet open={newsOpen} onOpenChange={setNewsOpen}>
