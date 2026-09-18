@@ -258,49 +258,49 @@ export default function Settings() {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-2 border-b border-[#E9D9BF] pb-1 overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-2 border-b border-[#E9D9BF] pb-1 overflow-x-auto no-scrollbar -mx-1 px-1 touch-pan-x">
           <button
             onClick={() => setActiveTab("church")}
-            className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "church"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
+                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
             }`}
           >
-            <Building className="w-4 h-4 text-[#E99A4A]" />
+            <Building className="w-4 h-4 text-[#E99A4A] shrink-0" />
             <span>ข้อมูลคริสตจักร</span>
           </button>
           <button
             onClick={() => setActiveTab("roles")}
-            className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "roles"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
+                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
             }`}
           >
-            <Shield className="w-4 h-4 text-emerald-600" />
+            <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>บทบาทและสิทธิ์</span>
           </button>
           <button
             onClick={() => setActiveTab("categories")}
-            className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "categories"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
+                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
             }`}
           >
-            <Banknote className="w-4 h-4 text-amber-600" />
+            <Banknote className="w-4 h-4 text-amber-600 shrink-0" />
             <span>หมวดหมู่บัญชี</span>
           </button>
           <button
             onClick={() => setActiveTab("payment")}
-            className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 whitespace-nowrap ${
+            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "payment"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
+                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
             }`}
           >
-            <QrCode className="w-4 h-4 text-sky-600" />
+            <QrCode className="w-4 h-4 text-sky-600 shrink-0" />
             <span>บัญชีธนาคาร & พร้อมเพย์</span>
           </button>
         </div>

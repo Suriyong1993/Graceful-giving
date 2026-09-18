@@ -138,9 +138,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </aside>
 
         {/* MAIN CONTAINER */}
-        <main className="w-full max-w-[560px] md:max-w-4xl xl:max-w-5xl px-4 py-4 md:px-8 md:py-6 flex flex-col pb-[calc(9rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+        <main className="w-full max-w-full sm:max-w-2xl md:max-w-4xl xl:max-w-5xl px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-6 flex flex-col pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
           {/* Top Bar for Desktop and Mobile */}
-          <header className="flex flex-wrap items-start justify-between gap-4 mb-6 pb-4 border-b border-[#E9D9BF]/60">
+          <header className="flex flex-wrap items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-[#E9D9BF]/60">
             <div className="flex w-full items-center justify-between lg:hidden">
               <AppMenu />
               <GuardedLink
@@ -210,13 +210,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* MOBILE FIXED BOTTOM NAVIGATION BAR */}
       <nav
         aria-label="เมนูนำทางหลักบนมือถือ"
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-2 sm:px-4 pt-1.5 sm:pt-2 pb-[max(1.15rem,env(safe-area-inset-bottom))] shadow-lg"
       >
-        <div className="max-w-md mx-auto flex items-center justify-between relative">
+        <div className="max-w-md sm:max-w-lg mx-auto flex items-center justify-around sm:justify-between relative">
           {/* 1. หน้าแรก */}
           <button
             onClick={() => navigate("/")}
-            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] min-h-[48px] py-1 px-1.5 sm:px-2.5 rounded-2xl transition-all ${
               currentPath === "/"
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
                 : "text-[#927D6D] hover:text-[#70452E]"
@@ -225,13 +225,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             aria-current={currentPath === "/" ? "page" : undefined}
           >
             <HomeIcon className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[11px] mt-0.5 font-bold">หน้าแรก</span>
+            <span className="text-[10px] sm:text-[11px] mt-0.5 font-bold">หน้าแรก</span>
           </button>
 
           {/* 2. รายการ */}
           <button
             onClick={() => navigate("/transactions")}
-            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] min-h-[48px] py-1 px-1.5 sm:px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/transactions")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
                 : "text-[#927D6D] hover:text-[#70452E]"
@@ -242,19 +242,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             }
           >
             <ReceiptText className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[11px] mt-0.5 font-bold">รายการ</span>
+            <span className="text-[10px] sm:text-[11px] mt-0.5 font-bold">รายการ</span>
           </button>
 
           {/* 3. CENTER PRIMARY FAB: WARM ORANGE '+' BUTTON */}
           <div className="relative -top-5 flex flex-col items-center">
             <button
               onClick={() => navigate("/offerings/new")}
-              className="w-14 h-14 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-3 border-white focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+              className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-3 border-white focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
               aria-label="บันทึกการถวายใหม่"
             >
-              <Plus className="w-7 h-7 stroke-[2.8]" />
+              <Plus className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.8]" />
             </button>
-            <span className="text-[11px] font-extrabold text-[#70452E] mt-0.5">
+            <span className="text-[10px] sm:text-[11px] font-extrabold text-[#70452E] mt-0.5">
               เพิ่ม
             </span>
           </div>
@@ -262,7 +262,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* 4. รายงาน */}
           <button
             onClick={() => navigate("/reports")}
-            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] min-h-[48px] py-1 px-1.5 sm:px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/reports")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
                 : "text-[#927D6D] hover:text-[#70452E]"
@@ -273,13 +273,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             }
           >
             <FileBarChart className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[11px] mt-0.5 font-bold">รายงาน</span>
+            <span className="text-[10px] sm:text-[11px] mt-0.5 font-bold">รายงาน</span>
           </button>
 
           {/* 5. ฉัน (Profile) */}
           <button
             onClick={() => navigate("/profile")}
-            className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+            className={`flex flex-col items-center justify-center min-w-[50px] sm:min-w-[56px] min-h-[48px] py-1 px-1.5 sm:px-2.5 rounded-2xl transition-all ${
               currentPath.startsWith("/profile") ||
               currentPath.startsWith("/settings")
                 ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
@@ -291,7 +291,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             }
           >
             <CircleUserRound className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[11px] mt-0.5 font-bold">ฉัน</span>
+            <span className="text-[10px] sm:text-[11px] mt-0.5 font-bold">ฉัน</span>
           </button>
         </div>
 
