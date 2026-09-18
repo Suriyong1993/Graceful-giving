@@ -734,9 +734,10 @@ function isEditable(status) {
 var _db = null;
 var DEFAULT_CHURCH_ID = "demo-church";
 async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
+  if (!_db && dbUrl) {
     try {
-      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      const client = postgres(dbUrl, { prepare: false });
       await client`SELECT 1`;
       _db = drizzle(client);
     } catch (error) {

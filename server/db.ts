@@ -58,10 +58,14 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export const DEFAULT_CHURCH_ID = "demo-church";
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  const dbUrl =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL;
+  if (!_db && dbUrl) {
     try {
-      // Supabase transaction pooler (:6543) requires prepared statements off.
-      const client = postgres(process.env.DATABASE_URL, { prepare: false });
+      // Supabase / Neon transaction pooler requires prepared statements off.
+      const client = postgres(dbUrl, { prepare: false });
       // Eager health-check: `postgres` connects lazily, so verify now to preserve
       // the getDb()-returns-null (never throws) contract on unreachable URLs.
       await client`SELECT 1`;
