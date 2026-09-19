@@ -34,15 +34,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { canAccessRoute } from "@/lib/routeAccess";
 import { offeringCategoryLabel } from "@shared/categories";
 
-export const quickActions = [
-  { label: "บันทึกถวาย", icon: HandCoins, tone: "income" },
-  { label: "บันทึกรายจ่าย", icon: ReceiptText, tone: "expense" },
-  { label: "รายงาน", icon: BarChart3, tone: "report" },
-  { label: "สมาชิก", icon: UsersRound, tone: "members" },
-  { label: "กิจกรรม", icon: CalendarDays, tone: "events" },
-  { label: "เพิ่มเติม", icon: MoreHorizontal, tone: "more" },
-];
-
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
 function fmtBaht(n: number) {
