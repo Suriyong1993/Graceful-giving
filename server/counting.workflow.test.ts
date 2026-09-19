@@ -1,22 +1,33 @@
 /**
  * End-to-end workflow against a real Postgres database.
  *
- * Skipped unless DATABASE_URL points at a throwaway database. To run it:
+ * Skipped unless DATABASE_URL is set. To run it:
  *   DATABASE_URL=postgresql://user@host:port/db pnpm exec vitest run \
  *     server/counting.workflow.test.ts
  *
- * It writes and deletes its own rows, so never point it at production.
+ * Every row it writes belongs to a throwaway tenant generated for this file
+ * (see server/test/tenant.ts), and the whole tenant is dropped afterwards, so
+ * a run cannot reach the application's data.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import { getDb } from "./db";
 import type { TrpcContext } from "./_core/context";
 import { sql } from "drizzle-orm";
+import { TEST_CHURCH_ID, purgeTenant } from "./test/tenant";
 
 type User = NonNullable<TrpcContext["user"]>;
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const describeDb = hasDb ? describe : describe.skip;
+
+// Safety net. The per-describe teardown below tracks ids and does not run when
+// a test fails early, so drop the whole tenant once the file is done.
+afterAll(async () => {
+  if (!hasDb) return;
+  const db = await getDb();
+  if (db) await purgeTenant(db);
+});
 
 function createContext(user: User | null): TrpcContext {
   return {
@@ -75,7 +86,7 @@ describeDb("counting workflow against a real database", () => {
       throw new Error("DATABASE_URL set but the database is unreachable");
     const inserted = await db.execute(
       sql`INSERT INTO finance_accounts ("churchId", name, type, balance, "isActive")
-          VALUES ('demo-church', 'กองทุนทดสอบ', 'general', 0, true)
+          VALUES (${TEST_CHURCH_ID}, 'กองทุนทดสอบ', 'general', 0, true)
           RETURNING id`
     );
     fundId = (inserted as unknown as Array<{ id: number }>)[0].id;
@@ -409,7 +420,7 @@ describeDb(
       const db = await getDb();
       const inserted = await db!.execute(
         sql`INSERT INTO finance_accounts ("churchId", name, type, balance, "isActive")
-          VALUES ('demo-church', 'กองทุนทดสอบยอด', 'general', 0, true)
+          VALUES (${TEST_CHURCH_ID}, 'กองทุนทดสอบยอด', 'general', 0, true)
           RETURNING id`
       );
       localFundId = (inserted as unknown as Array<{ id: number }>)[0].id;

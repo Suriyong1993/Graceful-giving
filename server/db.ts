@@ -64,7 +64,12 @@ import { createHash } from "crypto";
 let _db: ReturnType<typeof drizzle> | null = null;
 let _schemaInitialized = false;
 
-export const DEFAULT_CHURCH_ID = "demo-church";
+/**
+ * The tenant every query defaults to. The app is single-tenant, but the tests
+ * point this at a throwaway tenant so a run against a real database can never
+ * read or delete the application's rows.
+ */
+export const DEFAULT_CHURCH_ID = process.env.CHURCH_ID || "demo-church";
 
 export async function getDb() {
   const dbUrl =

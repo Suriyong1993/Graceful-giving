@@ -2,8 +2,10 @@
  * Proves against a real Postgres database that the report screen, the expense
  * detail route and the category enum all read the same real data.
  *
- * Skipped unless DATABASE_URL is set. Never point it at production: it writes
- * and removes its own rows.
+ * Skipped unless DATABASE_URL is set. Every row it writes belongs to a
+ * throwaway tenant generated for this file (see server/test/tenant.ts), and the
+ * whole tenant is dropped afterwards, so a run cannot reach the application's
+ * data.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
@@ -14,6 +16,7 @@ import {
   EXPENSE_CATEGORY_IDS,
   OFFERING_CATEGORY_IDS,
 } from "@shared/categories";
+import { TEST_CHURCH_ID, purgeTenant } from "./test/tenant";
 
 type User = NonNullable<TrpcContext["user"]>;
 
@@ -66,22 +69,27 @@ beforeAll(async () => {
   const db = await getDb();
   if (!db) throw new Error("DATABASE_URL set but the database is unreachable");
   // The window below is reserved for this suite. Clearing it first makes the
-  // assertions independent of run order and of any leftover rows.
+  // assertions independent of run order and of any leftover rows. Scoped to
+  // this file's tenant: without that the delete would span every church's rows
+  // in the window, and rely on the window being far enough in the future to
+  // hold none of them.
   await db.execute(
     sql`DELETE FROM offerings
-        WHERE "receiptDate"
+        WHERE "churchId" = ${TEST_CHURCH_ID}
+        AND "receiptDate"
         BETWEEN ${fromDate.toISOString()}::timestamp
         AND ${toDate.toISOString()}::timestamp`
   );
   await db.execute(
     sql`DELETE FROM expenses
-        WHERE "expenseDate"
+        WHERE "churchId" = ${TEST_CHURCH_ID}
+        AND "expenseDate"
         BETWEEN ${fromDate.toISOString()}::timestamp
         AND ${toDate.toISOString()}::timestamp`
   );
   const inserted = await db.execute(
     sql`INSERT INTO finance_accounts ("churchId", name, type, balance, "isActive")
-        VALUES ('demo-church', 'กองทุนรายงาน', 'general', 0, true)
+        VALUES (${TEST_CHURCH_ID}, 'กองทุนรายงาน', 'general', 0, true)
         RETURNING id`
   );
   fundId = (inserted as unknown as Array<{ id: number }>)[0].id;
@@ -100,6 +108,8 @@ afterAll(async () => {
   if (fundId) {
     await db.execute(sql`DELETE FROM finance_accounts WHERE id = ${fundId}`);
   }
+  // Safety net: the id lists above stay incomplete when a test fails early.
+  await purgeTenant(db);
 });
 
 describeDb("expense category enum is one value set everywhere", () => {
