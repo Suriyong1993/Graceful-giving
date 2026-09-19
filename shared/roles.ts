@@ -24,7 +24,8 @@ export const CHURCH_ROLES: Record<ChurchRole, ChurchRoleInfo> = {
     badgeLabel: "👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)",
     badgeColor: "bg-amber-100 text-amber-900 border-amber-300",
     icon: "👑",
-    description: "มีสิทธิ์สูงสุดในการดูแลระบบ ตั้งค่าคริสตจักร และกำหนดสิทธิ์ผู้ใช้งาน",
+    description:
+      "มีสิทธิ์สูงสุดในการดูแลระบบ ตั้งค่าคริสตจักร และกำหนดสิทธิ์ผู้ใช้งาน",
   },
   PASTOR: {
     role: "PASTOR",
@@ -33,7 +34,8 @@ export const CHURCH_ROLES: Record<ChurchRole, ChurchRoleInfo> = {
     badgeLabel: "✝️ ศิษยาภิบาล (PASTOR)",
     badgeColor: "bg-blue-100 text-blue-900 border-blue-300",
     icon: "✝️",
-    description: "ผู้นำฝ่ายจิตวิญญาณและพันธกิจคริสตจักร ดูแลภาพรวมและรายงานการเงิน",
+    description:
+      "ผู้นำฝ่ายจิตวิญญาณและพันธกิจคริสตจักร ดูแลภาพรวมและรายงานการเงิน",
   },
   TREASURER: {
     role: "TREASURER",
@@ -42,7 +44,8 @@ export const CHURCH_ROLES: Record<ChurchRole, ChurchRoleInfo> = {
     badgeLabel: "💰 เหรัญญิกคริสตจักร (TREASURER)",
     badgeColor: "bg-emerald-100 text-emerald-900 border-emerald-300",
     icon: "💰",
-    description: "ผู้รับผิดชอบการเงิน บัญชี ตรวจสอบเงินถวาย และอนุมัติการเบิกจ่าย",
+    description:
+      "ผู้รับผิดชอบการเงิน บัญชี ตรวจสอบเงินถวาย และอนุมัติการเบิกจ่าย",
   },
   DEACON: {
     role: "DEACON",
@@ -80,19 +83,39 @@ export function getChurchRoleInfo(role?: string | null): ChurchRoleInfo {
   return CHURCH_ROLES.MEMBER;
 }
 
-export function isSuperAdmin(user?: { role?: string; churchRole?: string | null } | null): boolean {
-  return Boolean(user && (user.churchRole === "SUPER_ADMIN" || user.role === "admin"));
+export function isSuperAdmin(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
+  return Boolean(
+    user && (user.churchRole === "SUPER_ADMIN" || user.role === "admin")
+  );
 }
 
-export function canManageChurchSettings(user?: { role?: string; churchRole?: string | null } | null): boolean {
-  return Boolean(user && (user.churchRole === "SUPER_ADMIN" || user.churchRole === "PASTOR" || user.role === "admin"));
+export function canManageChurchSettings(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
+  return Boolean(
+    user &&
+      (user.churchRole === "SUPER_ADMIN" ||
+        user.churchRole === "PASTOR" ||
+        user.role === "admin")
+  );
 }
 
-export function canManageFinance(user?: { role?: string; churchRole?: string | null } | null): boolean {
-  return Boolean(user && (user.churchRole === "SUPER_ADMIN" || user.churchRole === "TREASURER" || user.role === "admin"));
+export function canManageFinance(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
+  return Boolean(
+    user &&
+      (user.churchRole === "SUPER_ADMIN" ||
+        user.churchRole === "TREASURER" ||
+        user.role === "admin")
+  );
 }
 
-export function canCountOfferings(user?: { role?: string; churchRole?: string | null } | null): boolean {
+export function canCountOfferings(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
   return Boolean(
     user &&
       (user.churchRole === "SUPER_ADMIN" ||
@@ -102,12 +125,27 @@ export function canCountOfferings(user?: { role?: string; churchRole?: string | 
   );
 }
 
-export function canViewReports(user?: { role?: string; churchRole?: string | null } | null): boolean {
+export function canViewReports(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
   return Boolean(
     user &&
       (user.churchRole === "SUPER_ADMIN" ||
         user.churchRole === "PASTOR" ||
         user.churchRole === "TREASURER" ||
         user.role === "admin")
+  );
+}
+
+/**
+ * Ministry records are managed by church leadership and by deacons, whose
+ * role is defined above as overseeing ministry and service work. Reading the
+ * ministry list stays open to every signed-in member.
+ */
+export function canManageMinistries(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
+  return Boolean(
+    user && (canManageChurchSettings(user) || user.churchRole === "DEACON")
   );
 }

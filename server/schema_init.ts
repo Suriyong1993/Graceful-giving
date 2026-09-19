@@ -11,6 +11,7 @@ export const ENUM_STATEMENTS: string[] = [
   `DO $$ BEGIN CREATE TYPE "public"."user_role" AS ENUM('user', 'admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."withdrawal_status" AS ENUM('pending', 'approved', 'rejected', 'disbursed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."ministry_status" AS ENUM('active', 'inactive'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."offering_status" AS ENUM('active', 'voided'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."bank_record_type" AS ENUM('transfer_in', 'cash_deposit'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."cash_kind" AS ENUM('note', 'coin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
@@ -189,6 +190,18 @@ export const TABLE_STATEMENTS: string[] = [
     "avatarUrl" varchar(500),
     "envelopeNo" varchar(30),
     "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "ministries" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "name" varchar(180) NOT NULL,
+    "description" text,
+    "leaderName" varchar(180),
+    "meetingSchedule" varchar(180),
+    "status" "ministry_status" DEFAULT 'active' NOT NULL,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
@@ -376,6 +389,7 @@ export const TABLE_STATEMENTS: string[] = [
 
 export const INDEX_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "members_church_idx" ON "members" USING btree ("churchId");`,
+  `CREATE INDEX IF NOT EXISTS "ministries_church_idx" ON "ministries" USING btree ("churchId");`,
   `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");`,
   `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`,
 

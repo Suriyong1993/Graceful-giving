@@ -82,6 +82,10 @@ export const memberStatusEnum = pgEnum("member_status", [
   "inactive",
   "pending",
 ]);
+export const ministryStatusEnum = pgEnum("ministry_status", [
+  "active",
+  "inactive",
+]);
 export const countingSessionStatusEnum = pgEnum("counting_session_status", [
   "counting",
   "counted",
@@ -220,6 +224,31 @@ export const members = pgTable("members", {
 
 export type Member = typeof members.$inferSelect;
 export type InsertMember = typeof members.$inferInsert;
+
+// ─── Ministries (teams and service departments) ──────────────────────────────
+export const ministries = pgTable("ministries", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: text("description"),
+  /**
+   * Free text rather than a reference to members: a ministry leader is not
+   * always on the member roll, and the roster is optional in this app. Swap
+   * for a members FK if leaders must become registered members.
+   */
+  leaderName: varchar("leaderName", { length: 180 }),
+  /** Human-readable meeting time, e.g. "ทุกวันอาทิตย์ 09:00". */
+  meetingSchedule: varchar("meetingSchedule", { length: 180 }),
+  status: ministryStatusEnum("status").default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export type Ministry = typeof ministries.$inferSelect;
+export type InsertMinistry = typeof ministries.$inferInsert;
 
 // ─── Persistent Notifications ────────────────────────────────────────────────
 export const notifications = pgTable("notifications", {

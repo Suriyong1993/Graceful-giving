@@ -38,6 +38,7 @@ import {
   InsertUser,
   InsertWithdrawalRequest,
   InsertMember,
+  InsertMinistry,
   InsertNotification,
   auditLogs,
   lineSlips,
@@ -45,6 +46,7 @@ import {
   InsertLineSlip,
   LineSlip,
   members,
+  ministries,
   notifications,
   offeringEnvelopes,
   offerings,
@@ -237,7 +239,9 @@ export async function updateUserProfile(
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl } : {}),
       ...(input.phone !== undefined ? { phone: input.phone } : {}),
-      ...(input.department !== undefined ? { department: input.department } : {}),
+      ...(input.department !== undefined
+        ? { department: input.department }
+        : {}),
       ...(input.bio !== undefined ? { bio: input.bio } : {}),
       updatedAt: new Date(),
     })
@@ -1050,6 +1054,71 @@ export async function deactivateMember(
   return updateMember(id, { status: "inactive" }, churchId);
 }
 
+// ─── Ministries ──────────────────────────────────────────────────────────────
+
+export async function listMinistries(
+  churchId = DEFAULT_CHURCH_ID,
+  limit = 100
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(ministries)
+    .where(eq(ministries.churchId, churchId))
+    .orderBy(asc(ministries.name))
+    .limit(limit);
+}
+
+export async function getMinistryById(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(ministries)
+    .where(and(eq(ministries.id, id), eq(ministries.churchId, churchId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function createMinistry(
+  input: Omit<InsertMinistry, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(ministries)
+    .values({ ...input, churchId })
+    .returning({ id: ministries.id });
+  return rows[0].id;
+}
+
+export async function updateMinistry(
+  id: number,
+  input: Partial<Omit<InsertMinistry, "churchId">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(ministries)
+    .set(input)
+    .where(and(eq(ministries.id, id), eq(ministries.churchId, churchId)))
+    .returning({ id: ministries.id });
+  return rows[0]?.id ?? null;
+}
+
+export async function archiveMinistry(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  return updateMinistry(id, { status: "inactive" }, churchId);
+}
+
 export async function listNotifications(
   userId: number,
   churchId = DEFAULT_CHURCH_ID,
@@ -1852,7 +1921,10 @@ export async function deleteCountingSession(
       .select({ id: countingSessions.id, status: countingSessions.status })
       .from(countingSessions)
       .where(
-        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+        and(
+          eq(countingSessions.id, id),
+          eq(countingSessions.churchId, churchId)
+        )
       )
       .limit(1);
 
@@ -1867,14 +1939,21 @@ export async function deleteCountingSession(
     // Cascade delete related records in reverse dependency order:
     await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
     await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
-    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx
+      .delete(sessionDeductions)
+      .where(eq(sessionDeductions.sessionId, id));
     await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
-    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+    await tx
+      .delete(offeringEnvelopes)
+      .where(eq(offeringEnvelopes.sessionId, id));
 
     const deleted = await tx
       .delete(countingSessions)
       .where(
-        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+        and(
+          eq(countingSessions.id, id),
+          eq(countingSessions.churchId, churchId)
+        )
       )
       .returning({ id: countingSessions.id });
 
@@ -1894,7 +1973,10 @@ export async function resetCountingSession(
       .select({ id: countingSessions.id, status: countingSessions.status })
       .from(countingSessions)
       .where(
-        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+        and(
+          eq(countingSessions.id, id),
+          eq(countingSessions.churchId, churchId)
+        )
       )
       .limit(1);
 
@@ -1909,9 +1991,13 @@ export async function resetCountingSession(
     // Clear child data for fresh recount
     await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
     await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
-    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx
+      .delete(sessionDeductions)
+      .where(eq(sessionDeductions.sessionId, id));
     await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
-    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
+    await tx
+      .delete(offeringEnvelopes)
+      .where(eq(offeringEnvelopes.sessionId, id));
 
     // Reset session back to "counting" status and clear workflow timestamps
     await tx
@@ -1926,7 +2012,10 @@ export async function resetCountingSession(
         updatedAt: new Date(),
       })
       .where(
-        and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+        and(
+          eq(countingSessions.id, id),
+          eq(countingSessions.churchId, churchId)
+        )
       );
 
     return { success: true, reason: null };
