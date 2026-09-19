@@ -71,6 +71,20 @@ let _schemaInitialized = false;
  */
 export const DEFAULT_CHURCH_ID = process.env.CHURCH_ID || "demo-church";
 
+// A test tenant reaching production would point every read and write at an
+// empty tenant: the app would serve a church with no members, no funds and no
+// history, and would record real offerings where nobody looks for them. Refuse
+// to start instead. Every path that touches data imports this module, so the
+// check covers the server and the serverless handler alike.
+if (ENV.isProduction && DEFAULT_CHURCH_ID.startsWith("test-")) {
+  throw new Error(
+    `CHURCH_ID is set to the test tenant "${DEFAULT_CHURCH_ID}" in production. ` +
+      `That tenant holds no real data. Unset CHURCH_ID so the app uses its ` +
+      `default tenant, and check the deployment's environment variables — ` +
+      `CHURCH_ID exists for the test suite and should never be set in production.`
+  );
+}
+
 export async function getDb() {
   const dbUrl =
     process.env.DATABASE_URL ||
