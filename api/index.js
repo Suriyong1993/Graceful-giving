@@ -75,7 +75,7 @@ function registerStorageProxy(app2) {
 }
 
 // server/line/webhook.ts
-import { createHmac, createHash } from "crypto";
+import { createHmac, createHash as createHash2 } from "crypto";
 
 // server/storage.ts
 var SUPABASE_URL = process.env.SUPABASE_URL ?? "";
@@ -1156,6 +1156,7 @@ async function runSchemaInit(client) {
 }
 
 // server/db.ts
+import { createHash } from "crypto";
 var _db = null;
 var _schemaInitialized = false;
 var DEFAULT_CHURCH_ID = "demo-church";
@@ -2565,6 +2566,32 @@ async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
     total: Object.values(stats).reduce((a, b) => a + b, 0)
   };
 }
+async function createManualSlip(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  const hash = createHash("sha256").update(input.imageBuffer).digest("hex");
+  const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const storageKey = `manual/${churchId}/${input.userId}/${dateStr}/${hash.slice(0, 16)}.jpg`;
+  const { key } = await storagePutPrivate(storageKey, input.imageBuffer, "image/jpeg");
+  const [slip] = await db.insert(lineSlips).values({
+    churchId,
+    lineUserId: `manual-${input.userId}`,
+    lineDisplayName: input.donorName || `\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E42\u0E14\u0E22 ${input.userName || "\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48"}`,
+    lineEventId: `manual-${Date.now()}-${hash.slice(0, 8)}`,
+    slipImageKey: key,
+    slipHash: hash,
+    status: "pending",
+    processingAttempts: 0
+  }).returning();
+  await db.insert(lineProcessingJobs).values({
+    slipId: slip.id,
+    churchId,
+    status: "queued",
+    attempts: 0
+  });
+  return slip;
+}
 
 // server/line/processWorker.ts
 import { and as and4, eq as eq4, lte as lte3 } from "drizzle-orm";
@@ -3318,7 +3345,7 @@ async function replyToLine(replyToken, text2) {
   );
 }
 function sha256Hex(data) {
-  return createHash("sha256").update(data).digest("hex");
+  return createHash2("sha256").update(data).digest("hex");
 }
 async function processImageEvent(event, churchId) {
   const lineUserId = event.source?.userId;
@@ -5172,6 +5199,36 @@ var appRouter = router({
         throw new TRPCError3({
           code: "BAD_REQUEST",
           message: err?.message || "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E42\u0E22\u0E07\u0E2A\u0E21\u0E32\u0E0A\u0E34\u0E01\u0E01\u0E31\u0E1A LINE"
+        });
+      }
+    }),
+    /**
+     * Manual upload of slip image (e.g. from staff PC or test slip).
+     */
+    uploadSlip: financeProcedure.input(
+      z2.object({
+        base64Data: z2.string().min(1, "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E44\u0E1F\u0E25\u0E4C\u0E20\u0E32\u0E1E\u0E2A\u0E25\u0E34\u0E1B"),
+        donorName: z2.string().optional()
+      })
+    ).mutation(async ({ ctx, input }) => {
+      try {
+        const rawBase64 = input.base64Data.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(rawBase64, "base64");
+        const slip = await createManualSlip({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? void 0,
+          donorName: input.donorName,
+          imageBuffer: buffer
+        });
+        await runWorkerBatch().catch(
+          (err) => console.warn("[Manual upload] Worker error:", err)
+        );
+        return { success: true, slipId: slip.id };
+      } catch (err) {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: err?.message || "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E2A\u0E25\u0E34\u0E1B\u0E44\u0E14\u0E49"
         });
       }
     })

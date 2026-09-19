@@ -82,6 +82,7 @@ import {
   updateLineSlipReview,
   linkLineUserToMember,
   getLineInboxStats,
+  createManualSlip,
 } from "./db";
 import { runWorkerBatch } from "./line/processWorker";
 import { TRPCError } from "@trpc/server";
@@ -1852,6 +1853,43 @@ export const appRouter = router({
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
+          });
+        }
+      }),
+
+    /**
+     * Manual upload of slip image (e.g. from staff PC or test slip).
+     */
+    uploadSlip: financeProcedure
+      .input(
+        z.object({
+          base64Data: z.string().min(1, "กรุณาเลือกไฟล์ภาพสลิป"),
+          donorName: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const rawBase64 = input.base64Data.replace(/^data:image\/\w+;base64,/, "");
+          const buffer = Buffer.from(rawBase64, "base64");
+
+          const slip = await createManualSlip({
+            churchId: DEFAULT_CHURCH_ID,
+            userId: ctx.user.id,
+            userName: ctx.user.name ?? undefined,
+            donorName: input.donorName,
+            imageBuffer: buffer,
+          });
+
+          // Run worker batch immediately to extract data with AI
+          await runWorkerBatch().catch(err =>
+            console.warn("[Manual upload] Worker error:", err)
+          );
+
+          return { success: true, slipId: slip.id };
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err?.message || "ไม่สามารถอัปโหลดสลิปได้",
           });
         }
       }),

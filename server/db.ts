@@ -58,7 +58,8 @@ import { reconcile } from "@shared/counting";
 import { ENV } from "./_core/env";
 
 import { runSchemaInit } from "./schema_init";
-import { getSlipSignedUrl } from "./storage";
+import { getSlipSignedUrl, storagePutPrivate } from "./storage";
+import { createHash } from "crypto";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _schemaInitialized = false;
@@ -2466,4 +2467,45 @@ export async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
     reviewRequired,
     total: Object.values(stats).reduce((a, b) => a + b, 0),
   };
+}
+
+export async function createManualSlip(input: {
+  churchId?: string;
+  userId: number;
+  userName?: string | null;
+  donorName?: string;
+  imageBuffer: Buffer;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+
+  const hash = createHash("sha256").update(input.imageBuffer).digest("hex");
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const storageKey = `manual/${churchId}/${input.userId}/${dateStr}/${hash.slice(0, 16)}.jpg`;
+
+  const { key } = await storagePutPrivate(storageKey, input.imageBuffer, "image/jpeg");
+
+  const [slip] = await db
+    .insert(lineSlips)
+    .values({
+      churchId,
+      lineUserId: `manual-${input.userId}`,
+      lineDisplayName: input.donorName || `อัปโหลดโดย ${input.userName || "เจ้าหน้าที่"}`,
+      lineEventId: `manual-${Date.now()}-${hash.slice(0, 8)}`,
+      slipImageKey: key,
+      slipHash: hash,
+      status: "pending",
+      processingAttempts: 0,
+    })
+    .returning();
+
+  await db.insert(lineProcessingJobs).values({
+    slipId: slip.id,
+    churchId,
+    status: "queued",
+    attempts: 0,
+  });
+
+  return slip;
 }
