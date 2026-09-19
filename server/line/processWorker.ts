@@ -36,6 +36,8 @@ import { matchMember } from "./memberMatcher";
 
 const MAX_ATTEMPTS = 3;
 const BATCH_SIZE = 10;
+/** Retry delay grows as 1min, 5min between attempts, to outlast a provider rate limit. */
+const RETRY_BACKOFF_FACTOR = 5;
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
@@ -198,14 +200,21 @@ export async function runWorkerBatch(): Promise<{ processed: number; errors: num
   const db = await getDb();
   if (!db) return { processed: 0, errors: 0 };
 
-  // Fetch queued jobs (not exceeded max attempts)
+  // Fetch queued jobs that have exceeded neither max attempts nor their backoff delay.
+  // Without the backoff gate, a provider rate limit burns all MAX_ATTEMPTS within
+  // seconds, because every drain trigger (webhook, upload, rescan, refresh) re-picks
+  // the job the instant it returns to "queued".
   const jobs = await db
     .select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts })
     .from(lineProcessingJobs)
     .where(
       and(
         eq(lineProcessingJobs.status, "queued"),
-        lte(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
+        lte(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1),
+        sql`(
+          ${lineProcessingJobs.lastAttemptAt} IS NULL
+          OR ${lineProcessingJobs.lastAttemptAt} < now() - (interval '1 minute' * power(${RETRY_BACKOFF_FACTOR}, ${lineProcessingJobs.attempts} - 1))
+        )`
       )
     )
     .orderBy(lineProcessingJobs.createdAt)

@@ -121,20 +121,27 @@ export class TransientOcrError extends Error {
   }
 }
 
+/** HTTP statuses worth retrying: rate limit plus server-side faults. */
+const TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+/** Network-level failures, which carry no HTTP status. */
+const TRANSIENT_NETWORK_PATTERNS =
+  /(econnreset|etimedout|econnrefused|enotfound|socket hang up|network error|fetch failed|timeout)/i;
+
 export function isTransientError(err: unknown): boolean {
   if (err instanceof TransientOcrError) return true;
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return (
-    msg.includes("429") ||
-    msg.includes("503") ||
-    msg.includes("500") ||
-    msg.includes("502") ||
-    msg.includes("504") ||
-    msg.includes("timeout") ||
-    msg.includes("econnreset") ||
-    msg.includes("etimedout") ||
-    msg.includes("fetch failed")
-  );
+
+  const msg = err instanceof Error ? err.message : String(err);
+
+  // Read the status from the known thrown-message shapes only. Scanning the whole
+  // message would match digits inside a provider's error body — e.g. a permanent
+  // 400 quoting "maxOutputTokens: 500" would be retried as if it were transient.
+  const statusMatch = msg.match(/LLM invoke failed:\s*(\d{3})\b/i);
+  if (statusMatch) {
+    return TRANSIENT_STATUSES.has(Number(statusMatch[1]));
+  }
+
+  return TRANSIENT_NETWORK_PATTERNS.test(msg);
 }
 
 // ─── Date Normalization & Plausibility ────────────────────────────────────────
