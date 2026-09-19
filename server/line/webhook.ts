@@ -18,13 +18,12 @@ import type { Request, Response, Express } from "express";
 import { createHmac, createHash, timingSafeEqual } from "crypto";
 import { ENV } from "../_core/env";
 import { storagePutPrivate } from "../storage";
-import { getDb } from "../db";
+import { getDb, DEFAULT_CHURCH_ID } from "../db";
 import { lineSlips, lineProcessingJobs } from "../../drizzle/schema";
 import { runWorkerBatch } from "./processWorker";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
-const DEFAULT_CHURCH_ID = "demo-church";
 const LINE_API_BASE = "https://api.line.me/v2/bot";
 const LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
 const MAX_RETRIES = 3;

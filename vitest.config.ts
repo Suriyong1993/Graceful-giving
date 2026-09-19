@@ -15,5 +15,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    // Must run before each test file's modules load: it assigns the throwaway
+    // CHURCH_ID that server/db.ts reads at module scope.
+    setupFiles: ["server/test/setupTenant.ts"],
   },
 });
