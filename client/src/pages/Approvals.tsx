@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/components/common/CommonUI";
 import {
   AlertCircle,
+  Banknote,
   CheckCircle2,
   Clock,
   DollarSign,
@@ -21,6 +23,7 @@ import {
 import { toast } from "sonner";
 
 export default function Approvals() {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<
     "pending" | "approved" | "rejected"
   >("pending");
@@ -103,6 +106,13 @@ export default function Approvals() {
               โดยศิษยาภิบาลและเหรัญญิกตามธรรมนูญคริสตจักร
             </p>
           </div>
+          <button
+            onClick={() => setLocation("/withdrawals/new")}
+            className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-sm transition-colors"
+          >
+            <Banknote className="w-4 h-4" />
+            <span>ยื่นคำขอเบิกเงินใหม่</span>
+          </button>
         </div>
 
         {/* Navigation Tabs */}
