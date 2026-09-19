@@ -394,6 +394,42 @@ export const INDEX_STATEMENTS: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`,
 ];
 
+/**
+ * Indexes that enforce a financial rule the application code relies on.
+ * `CREATE UNIQUE INDEX` fails when the table already holds rows that violate it.
+ * Each entry carries a query that names those rows.
+ */
+const INTEGRITY_INDEXES: Record<
+  string,
+  { guards: string; findBlockingRows: string }
+> = {
+  offerings_ref_active_uniq: {
+    guards: "two active offerings must not share one bank reference",
+    findBlockingRows: `SELECT "churchId", "reference", count(*) AS copies
+      FROM "offerings"
+      WHERE "reference" IS NOT NULL AND "status" = 'active'
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  line_slips_ref_uniq: {
+    guards: "two live LINE slips must not share one bank reference",
+    findBlockingRows: `SELECT "churchId", "extractedRef", count(*) AS copies
+      FROM "line_slips"
+      WHERE "extractedRef" IS NOT NULL
+        AND "status" NOT IN ('rejected', 'duplicate', 'failed')
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  line_slips_event_uniq: {
+    guards: "one LINE event must not create two slips",
+    findBlockingRows: `SELECT "churchId", "lineEventId", count(*) AS copies
+      FROM "line_slips"
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+};
+
+function indexNameOf(stmt: string): string | null {
+  return stmt.match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i)?.[1] ?? null;
+}
+
 export async function runSchemaInit(client: any) {
   for (const stmt of ENUM_STATEMENTS) {
     try {
@@ -413,7 +449,36 @@ export async function runSchemaInit(client: any) {
     try {
       await client.unsafe(stmt);
     } catch (err: any) {
-      console.warn("[Index Init]", err.message);
+      const indexName = indexNameOf(stmt);
+      const diagnostic = indexName ? INTEGRITY_INDEXES[indexName] : undefined;
+
+      if (!diagnostic) {
+        console.warn("[Index Init]", err.message);
+        continue;
+      }
+
+      // A failed integrity index leaves the application believing a database-level
+      // backstop exists when it does not. Report it loudly and name the rows that
+      // block it, so the operator can clean them up and restart.
+      console.error(
+        `[Index Init] INTEGRITY INDEX "${indexName}" WAS NOT CREATED — ${diagnostic.guards}. ` +
+          `The database cannot enforce this rule until the index exists. Cause: ${err.message}`
+      );
+
+      try {
+        const blocking = await client.unsafe(diagnostic.findBlockingRows);
+        if (blocking?.length) {
+          console.error(
+            `[Index Init] "${indexName}" is blocked by ${blocking.length} duplicate group(s):`,
+            JSON.stringify(blocking.slice(0, 20))
+          );
+        }
+      } catch (diagErr: any) {
+        console.error(
+          `[Index Init] Could not diagnose "${indexName}":`,
+          diagErr.message
+        );
+      }
     }
   }
 }
