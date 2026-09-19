@@ -2542,9 +2542,26 @@ export async function rescanLineSlip(slipId: number, churchId = DEFAULT_CHURCH_I
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
 
+  const [slip] = await db
+    .select({ id: lineSlips.id, status: lineSlips.status, approvedOfferingId: lineSlips.approvedOfferingId })
+    .from(lineSlips)
+    .where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)))
+    .limit(1);
+
+  if (!slip) throw new Error(`ไม่พบสลิป #${slipId}`);
+
+  // Resetting a booked slip to "pending" would show an offering that is already in
+  // the ledger as unapproved in the inbox.
+  if (slip.status === "approved" || slip.approvedOfferingId) {
+    throw new Error(`ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากอนุมัติและบันทึกลงบัญชีแล้ว`);
+  }
+  if (slip.status === "rejected") {
+    throw new Error(`ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากถูกปฏิเสธไปแล้ว`);
+  }
+
   await db
     .update(lineSlips)
-    .set({ status: "pending", lastErrorMessage: null })
+    .set({ status: "pending", lastErrorMessage: null, updatedAt: new Date() })
     .where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
 
   await db.insert(lineProcessingJobs).values({
