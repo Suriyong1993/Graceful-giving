@@ -2166,6 +2166,34 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
       throw new Error(`สลิป #${input.slipId} ถูกปฏิเสธไปแล้ว`);
     }
 
+    if (slip.status === "duplicate") {
+      throw new Error(
+        `ไม่สามารถอนุมัติสลิป #${input.slipId} ได้ เนื่องจากระบบตรวจสอบพบว่าเป็นสลิปซ้ำ (Duplicate)`
+      );
+    }
+
+    // Re-verify bank reference against active offerings at approval time
+    const refToCheck = slip.extractedRef?.trim();
+    if (refToCheck) {
+      const [existingOffering] = await tx
+        .select({ id: offerings.id })
+        .from(offerings)
+        .where(
+          and(
+            eq(offerings.churchId, churchId),
+            eq(offerings.reference, refToCheck),
+            eq(offerings.status, "active")
+          )
+        )
+        .limit(1);
+
+      if (existingOffering) {
+        throw new Error(
+          `ไม่สามารถอนุมัติได้: หมายเลขอ้างอิงธนาคาร ${refToCheck} ซ้ำกับรายการถวาย #${existingOffering.id} ในสมุดบัญชีแล้ว`
+        );
+      }
+    }
+
     // 2. Validate fund
     const [fund] = await tx
       .select()
@@ -2508,4 +2536,23 @@ export async function createManualSlip(input: {
   });
 
   return slip;
+}
+
+export async function rescanLineSlip(slipId: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  await db
+    .update(lineSlips)
+    .set({ status: "pending", lastErrorMessage: null })
+    .where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
+
+  await db.insert(lineProcessingJobs).values({
+    slipId,
+    churchId,
+    status: "queued",
+    attempts: 0,
+  });
+
+  return true;
 }

@@ -390,6 +390,8 @@ export const INDEX_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "line_jobs_status_idx" ON "line_processing_jobs" ("status", "createdAt");`,
   /** Status dashboard: count pending slips per church */
   `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`,
+  /** Financial integrity backstop: prevent duplicate active offerings with the same bank reference */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`,
 ];
 
 export async function runSchemaInit(client: any) {

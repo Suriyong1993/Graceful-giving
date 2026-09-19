@@ -75,7 +75,7 @@ function registerStorageProxy(app2) {
 }
 
 // server/line/webhook.ts
-import { createHmac, createHash as createHash2 } from "crypto";
+import { createHmac, createHash as createHash2, timingSafeEqual } from "crypto";
 
 // server/storage.ts
 var SUPABASE_URL = process.env.SUPABASE_URL ?? "";
@@ -168,7 +168,7 @@ import {
   between,
   count,
   desc,
-  eq as eq2,
+  eq,
   gte,
   lte,
   ne,
@@ -612,7 +612,7 @@ var sessionDocuments = pgTable("session_documents", {
   uploadedBy: integer("uploadedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var lineSlips2 = pgTable("line_slips", {
+var lineSlips = pgTable("line_slips", {
   id: serial("id").primaryKey(),
   churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
   // ─── LINE sender info ───
@@ -683,7 +683,7 @@ var lineSlips2 = pgTable("line_slips", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
 });
-var lineProcessingJobs2 = pgTable("line_processing_jobs", {
+var lineProcessingJobs = pgTable("line_processing_jobs", {
   id: serial("id").primaryKey(),
   slipId: integer("slipId").notNull(),
   churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
@@ -1130,7 +1130,9 @@ var INDEX_STATEMENTS = [
   /** Worker polling: fast lookup of queued jobs ordered by age */
   `CREATE INDEX IF NOT EXISTS "line_jobs_status_idx" ON "line_processing_jobs" ("status", "createdAt");`,
   /** Status dashboard: count pending slips per church */
-  `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`
+  `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`,
+  /** Financial integrity backstop: prevent duplicate active offerings with the same bank reference */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`
 ];
 async function runSchemaInit(client) {
   for (const stmt of ENUM_STATEMENTS) {
@@ -1161,7 +1163,7 @@ import { createHash } from "crypto";
 var _db = null;
 var _schemaInitialized = false;
 var DEFAULT_CHURCH_ID = "demo-church";
-async function getDb2() {
+async function getDb() {
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
   if (!_db && dbUrl) {
     try {
@@ -1187,7 +1189,7 @@ async function getDb2() {
 }
 async function upsertUser(user) {
   if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot upsert user: database not available");
     return;
@@ -1223,13 +1225,13 @@ async function upsertUser(user) {
   await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 async function getUserByOpenId(openId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return void 0;
-  const result = await db.select().from(users).where(eq2(users.openId, openId)).limit(1);
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : void 0;
 }
 async function getAllUsers() {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return await db.select({
     id: users.id,
@@ -1245,7 +1247,7 @@ async function getAllUsers() {
   }).from(users).orderBy(desc(users.lastSignedIn));
 }
 async function updateUserChurchRole(userId, churchRole, churchRoles) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rolesString = churchRoles ? churchRoles.join(",") : churchRole;
   const isSuperAdmin = churchRole === "SUPER_ADMIN" || Boolean(churchRoles && churchRoles.includes("SUPER_ADMIN"));
@@ -1255,10 +1257,10 @@ async function updateUserChurchRole(userId, churchRole, churchRoles) {
     churchRoles: rolesString,
     role,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq2(users.id, userId));
+  }).where(eq(users.id, userId));
 }
 async function updateUserProfile(userId, input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(users).set({
     ...input.name !== void 0 ? { name: input.name } : {},
@@ -1267,16 +1269,16 @@ async function updateUserProfile(userId, input) {
     ...input.department !== void 0 ? { department: input.department } : {},
     ...input.bio !== void 0 ? { bio: input.bio } : {},
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq2(users.id, userId));
+  }).where(eq(users.id, userId));
 }
 async function getChurchProfile(churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(churchProfiles).where(eq2(churchProfiles.churchId, churchId)).limit(1);
+  const result = await db.select().from(churchProfiles).where(eq(churchProfiles.churchId, churchId)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 async function upsertChurchProfile(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
   const { id, createdAt, churchId: _c, ...updateFields } = input;
@@ -1286,28 +1288,28 @@ async function upsertChurchProfile(input) {
   });
 }
 async function markSetupCompleted(churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(churchProfiles).set({ setupCompleted: true }).where(eq2(churchProfiles.churchId, churchId));
+  await db.update(churchProfiles).set({ setupCompleted: true }).where(eq(churchProfiles.churchId, churchId));
 }
 async function listFinanceAccounts(churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return db.select().from(financeAccounts).where(
     and(
-      eq2(financeAccounts.churchId, churchId),
-      eq2(financeAccounts.isActive, true)
+      eq(financeAccounts.churchId, churchId),
+      eq(financeAccounts.isActive, true)
     )
   ).orderBy(asc(financeAccounts.sortOrder), asc(financeAccounts.name));
 }
 async function createFinanceAccount(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db.insert(financeAccounts).values({ ...input, churchId: input.churchId ?? DEFAULT_CHURCH_ID }).returning({ id: financeAccounts.id });
   return result[0].id;
 }
 async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
   const now = /* @__PURE__ */ new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1332,34 +1334,34 @@ async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID) {
     const [accounts, thisOfferings, prevOfferings, thisExpenses, prevExpenses] = await Promise.all([
       db.select().from(financeAccounts).where(
         and(
-          eq2(financeAccounts.churchId, churchId),
-          eq2(financeAccounts.isActive, true)
+          eq(financeAccounts.churchId, churchId),
+          eq(financeAccounts.isActive, true)
         )
       ),
       db.select({ total: sum(offerings.amount) }).from(offerings).where(
         and(
-          eq2(offerings.churchId, churchId),
+          eq(offerings.churchId, churchId),
           ne(offerings.status, "voided"),
           between(offerings.receiptDate, thisMonthStart, thisMonthEnd)
         )
       ),
       db.select({ total: sum(offerings.amount) }).from(offerings).where(
         and(
-          eq2(offerings.churchId, churchId),
+          eq(offerings.churchId, churchId),
           ne(offerings.status, "voided"),
           between(offerings.receiptDate, prevMonthStart, prevMonthEnd)
         )
       ),
       db.select({ total: sum(expenses.amount) }).from(expenses).where(
         and(
-          eq2(expenses.churchId, churchId),
+          eq(expenses.churchId, churchId),
           ne(expenses.status, "voided"),
           between(expenses.expenseDate, thisMonthStart, thisMonthEnd)
         )
       ),
       db.select({ total: sum(expenses.amount) }).from(expenses).where(
         and(
-          eq2(expenses.churchId, churchId),
+          eq(expenses.churchId, churchId),
           ne(expenses.status, "voided"),
           between(expenses.expenseDate, prevMonthStart, prevMonthEnd)
         )
@@ -1391,7 +1393,7 @@ async function getFinancialSummary(churchId = DEFAULT_CHURCH_ID) {
   }
 }
 async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   const result = [];
   const now = /* @__PURE__ */ new Date();
@@ -1416,14 +1418,14 @@ async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6) {
     const [inc, exp] = await Promise.all([
       db.select({ total: sum(offerings.amount) }).from(offerings).where(
         and(
-          eq2(offerings.churchId, churchId),
+          eq(offerings.churchId, churchId),
           ne(offerings.status, "voided"),
           between(offerings.receiptDate, start, end)
         )
       ),
       db.select({ total: sum(expenses.amount) }).from(expenses).where(
         and(
-          eq2(expenses.churchId, churchId),
+          eq(expenses.churchId, churchId),
           ne(expenses.status, "voided"),
           between(expenses.expenseDate, start, end)
         )
@@ -1438,11 +1440,11 @@ async function getMonthlyStats(churchId = DEFAULT_CHURCH_ID, months = 6) {
   return result;
 }
 async function listOfferings(churchId = DEFAULT_CHURCH_ID, opts = {}) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   const { limit = 50, showDonorNames = false, fromDate, toDate } = opts;
   const conditions = [
-    eq2(offerings.churchId, churchId),
+    eq(offerings.churchId, churchId),
     ne(offerings.status, "voided")
   ];
   if (fromDate) conditions.push(gte(offerings.receiptDate, fromDate));
@@ -1460,12 +1462,12 @@ async function listOfferings(churchId = DEFAULT_CHURCH_ID, opts = {}) {
   }));
 }
 async function getOfferingById(id, churchId = DEFAULT_CHURCH_ID, showDonorNames = false) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
   const rows = await db.select().from(offerings).where(
     and(
-      eq2(offerings.id, id),
-      eq2(offerings.churchId, churchId),
+      eq(offerings.id, id),
+      eq(offerings.churchId, churchId),
       ne(offerings.status, "voided")
     )
   ).limit(1);
@@ -1483,7 +1485,7 @@ async function getOfferingById(id, churchId = DEFAULT_CHURCH_ID, showDonorNames 
   };
 }
 async function createOffering(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const result = await tx.insert(offerings).values({ ...input, churchId }).returning({ id: offerings.id });
@@ -1496,21 +1498,21 @@ async function createOffering(input, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function updateOffering(id, input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const existing = await tx.select({ amount: offerings.amount, fundId: offerings.fundId }).from(offerings).where(
       and(
-        eq2(offerings.id, id),
-        eq2(offerings.churchId, churchId),
+        eq(offerings.id, id),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided")
       )
     ).limit(1);
     if (!existing[0]) return null;
     const updatedRows = await tx.update(offerings).set(input).where(
       and(
-        eq2(offerings.id, id),
-        eq2(offerings.churchId, churchId),
+        eq(offerings.id, id),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided")
       )
     ).returning({ id: offerings.id });
@@ -1533,11 +1535,11 @@ async function updateOffering(id, input, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function listExpenses(churchId = DEFAULT_CHURCH_ID, opts = {}) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   const { limit = 50, fromDate, toDate } = opts;
   const conditions = [
-    eq2(expenses.churchId, churchId),
+    eq(expenses.churchId, churchId),
     ne(expenses.status, "voided")
   ];
   if (fromDate) conditions.push(gte(expenses.expenseDate, fromDate));
@@ -1557,12 +1559,12 @@ async function listExpenses(churchId = DEFAULT_CHURCH_ID, opts = {}) {
   }));
 }
 async function getExpenseById(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
   const rows = await db.select().from(expenses).where(
     and(
-      eq2(expenses.id, id),
-      eq2(expenses.churchId, churchId),
+      eq(expenses.id, id),
+      eq(expenses.churchId, churchId),
       ne(expenses.status, "voided")
     )
   ).limit(1);
@@ -1582,7 +1584,7 @@ async function getExpenseById(id, churchId = DEFAULT_CHURCH_ID) {
   };
 }
 async function createExpense(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const result = await tx.insert(expenses).values({ ...input, churchId }).returning({ id: expenses.id });
@@ -1595,21 +1597,21 @@ async function createExpense(input, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function updateExpense(id, input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const existing = await tx.select({ amount: expenses.amount, fundId: expenses.fundId }).from(expenses).where(
       and(
-        eq2(expenses.id, id),
-        eq2(expenses.churchId, churchId),
+        eq(expenses.id, id),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided")
       )
     ).limit(1);
     if (!existing[0]) return null;
     const updatedRows = await tx.update(expenses).set(input).where(
       and(
-        eq2(expenses.id, id),
-        eq2(expenses.churchId, churchId),
+        eq(expenses.id, id),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided")
       )
     ).returning({ id: expenses.id });
@@ -1632,7 +1634,7 @@ async function updateExpense(id, input, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function voidOffering(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const existing = await tx.select({
@@ -1641,16 +1643,16 @@ async function voidOffering(id, churchId = DEFAULT_CHURCH_ID) {
       status: offerings.status
     }).from(offerings).where(
       and(
-        eq2(offerings.id, id),
-        eq2(offerings.churchId, churchId),
+        eq(offerings.id, id),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided")
       )
     ).limit(1);
     if (!existing[0] || existing[0].status === "voided") return false;
     const updatedRows = await tx.update(offerings).set({ status: "voided", voidedAt: /* @__PURE__ */ new Date() }).where(
       and(
-        eq2(offerings.id, id),
-        eq2(offerings.churchId, churchId),
+        eq(offerings.id, id),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided")
       )
     ).returning({ id: offerings.id });
@@ -1663,7 +1665,7 @@ async function voidOffering(id, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function voidExpense(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const existing = await tx.select({
@@ -1672,16 +1674,16 @@ async function voidExpense(id, churchId = DEFAULT_CHURCH_ID) {
       status: expenses.status
     }).from(expenses).where(
       and(
-        eq2(expenses.id, id),
-        eq2(expenses.churchId, churchId),
+        eq(expenses.id, id),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided")
       )
     ).limit(1);
     if (!existing[0] || existing[0].status === "voided") return false;
     const updatedRows = await tx.update(expenses).set({ status: "voided" }).where(
       and(
-        eq2(expenses.id, id),
-        eq2(expenses.churchId, churchId),
+        eq(expenses.id, id),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided")
       )
     ).returning({ id: expenses.id });
@@ -1694,11 +1696,11 @@ async function voidExpense(id, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function listWithdrawalRequests(churchId = DEFAULT_CHURCH_ID, opts = {}) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
-  const conditions = [eq2(withdrawalRequests.churchId, churchId)];
+  const conditions = [eq(withdrawalRequests.churchId, churchId)];
   if (opts.userId)
-    conditions.push(eq2(withdrawalRequests.requestedBy, opts.userId));
+    conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
   const rows = await db.select().from(withdrawalRequests).where(and(...conditions)).orderBy(desc(withdrawalRequests.createdAt)).limit(50);
   return rows.map((r) => ({
     ...r,
@@ -1706,13 +1708,13 @@ async function listWithdrawalRequests(churchId = DEFAULT_CHURCH_ID, opts = {}) {
   }));
 }
 async function createWithdrawalRequest(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db.insert(withdrawalRequests).values({ ...input, churchId }).returning({ id: withdrawalRequests.id });
   return result[0].id;
 }
 async function approveWithdrawal(id, approverId, action, note, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.update(withdrawalRequests).set({
     status: action,
@@ -1722,90 +1724,90 @@ async function approveWithdrawal(id, approverId, action, note, churchId = DEFAUL
     rejectionReason: action === "rejected" ? note : null
   }).where(
     and(
-      eq2(withdrawalRequests.id, id),
-      eq2(withdrawalRequests.churchId, churchId),
-      eq2(withdrawalRequests.status, "pending")
+      eq(withdrawalRequests.id, id),
+      eq(withdrawalRequests.churchId, churchId),
+      eq(withdrawalRequests.status, "pending")
     )
   ).returning({ id: withdrawalRequests.id });
   return rows.length > 0;
 }
 async function disburseWithdrawal(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.update(withdrawalRequests).set({ status: "disbursed" }).where(
     and(
-      eq2(withdrawalRequests.id, id),
-      eq2(withdrawalRequests.churchId, churchId),
-      eq2(withdrawalRequests.status, "approved")
+      eq(withdrawalRequests.id, id),
+      eq(withdrawalRequests.churchId, churchId),
+      eq(withdrawalRequests.status, "approved")
     )
   ).returning({ id: withdrawalRequests.id });
   return rows.length > 0;
 }
 async function listMembers(churchId = DEFAULT_CHURCH_ID, limit = 100) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
-  return db.select().from(members).where(eq2(members.churchId, churchId)).orderBy(asc(members.name)).limit(limit);
+  return db.select().from(members).where(eq(members.churchId, churchId)).orderBy(asc(members.name)).limit(limit);
 }
 async function getMemberById(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
-  const rows = await db.select().from(members).where(and(eq2(members.id, id), eq2(members.churchId, churchId))).limit(1);
+  const rows = await db.select().from(members).where(and(eq(members.id, id), eq(members.churchId, churchId))).limit(1);
   return rows[0] ?? null;
 }
 async function createMember(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(members).values({ ...input, churchId }).returning({ id: members.id });
   return rows[0].id;
 }
 async function updateMember(id, input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.update(members).set(input).where(and(eq2(members.id, id), eq2(members.churchId, churchId))).returning({ id: members.id });
+  const rows = await db.update(members).set(input).where(and(eq(members.id, id), eq(members.churchId, churchId))).returning({ id: members.id });
   return rows[0]?.id ?? null;
 }
 async function deactivateMember(id, churchId = DEFAULT_CHURCH_ID) {
   return updateMember(id, { status: "inactive" }, churchId);
 }
 async function listNotifications(userId, churchId = DEFAULT_CHURCH_ID, limit = 50) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return db.select().from(notifications).where(
     and(
-      eq2(notifications.userId, userId),
-      eq2(notifications.churchId, churchId)
+      eq(notifications.userId, userId),
+      eq(notifications.churchId, churchId)
     )
   ).orderBy(desc(notifications.createdAt)).limit(limit);
 }
 async function createNotification(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(notifications).values({ ...input, churchId }).returning({ id: notifications.id });
   return rows[0].id;
 }
 async function markNotificationRead(id, userId, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(
     and(
-      eq2(notifications.id, id),
-      eq2(notifications.userId, userId),
-      eq2(notifications.churchId, churchId)
+      eq(notifications.id, id),
+      eq(notifications.userId, userId),
+      eq(notifications.churchId, churchId)
     )
   );
 }
 async function markAllNotificationsRead(userId, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(notifications).set({ readAt: /* @__PURE__ */ new Date() }).where(
     and(
-      eq2(notifications.userId, userId),
-      eq2(notifications.churchId, churchId)
+      eq(notifications.userId, userId),
+      eq(notifications.churchId, churchId)
     )
   );
 }
 async function createAuditLog(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.insert(auditLogs).values({
     churchId: input.churchId,
@@ -1817,7 +1819,7 @@ async function createAuditLog(input) {
   });
 }
 async function listAuditLogs(limit = 100) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return await db.select({
     id: auditLogs.id,
@@ -1830,22 +1832,22 @@ async function listAuditLogs(limit = 100) {
     entityId: auditLogs.entityId,
     metadata: auditLogs.metadata,
     createdAt: auditLogs.createdAt
-  }).from(auditLogs).leftJoin(users, eq2(auditLogs.userId, users.id)).orderBy(desc(auditLogs.createdAt)).limit(limit);
+  }).from(auditLogs).leftJoin(users, eq(auditLogs.userId, users.id)).orderBy(desc(auditLogs.createdAt)).limit(limit);
 }
 async function getFinancialReportData(churchId = DEFAULT_CHURCH_ID, fromDate, toDate) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   const [offeringsRows, expensesRows] = await Promise.all([
     db.select().from(offerings).where(
       and(
-        eq2(offerings.churchId, churchId),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided"),
         between(offerings.receiptDate, fromDate, toDate)
       )
     ).orderBy(asc(offerings.receiptDate)),
     db.select().from(expenses).where(
       and(
-        eq2(expenses.churchId, churchId),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided"),
         between(expenses.expenseDate, fromDate, toDate)
       )
@@ -1871,118 +1873,118 @@ async function getFinancialReportData(churchId = DEFAULT_CHURCH_ID, fromDate, to
   return rows.sort((a, b) => a.date.localeCompare(b.date));
 }
 async function listPublishedChurchNews(limit = 12) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return db.select().from(churchNews).where(
     and(
-      eq2(churchNews.churchId, DEFAULT_CHURCH_ID),
-      eq2(churchNews.status, "published")
+      eq(churchNews.churchId, DEFAULT_CHURCH_ID),
+      eq(churchNews.status, "published")
     )
   ).orderBy(desc(churchNews.publishedAt), desc(churchNews.createdAt)).limit(limit);
 }
 async function listPublishedChurchEvents(limit = 12) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
   return db.select().from(churchEvents).where(
     and(
-      eq2(churchEvents.churchId, DEFAULT_CHURCH_ID),
-      eq2(churchEvents.status, "published")
+      eq(churchEvents.churchId, DEFAULT_CHURCH_ID),
+      eq(churchEvents.status, "published")
     )
   ).orderBy(asc(churchEvents.startsAt)).limit(limit);
 }
 async function listAllChurchNews(limit = 50) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
-  return db.select().from(churchNews).where(eq2(churchNews.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchNews.updatedAt)).limit(limit);
+  return db.select().from(churchNews).where(eq(churchNews.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchNews.updatedAt)).limit(limit);
 }
 async function listAllChurchEvents(limit = 50) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
-  return db.select().from(churchEvents).where(eq2(churchEvents.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchEvents.updatedAt)).limit(limit);
+  return db.select().from(churchEvents).where(eq(churchEvents.churchId, DEFAULT_CHURCH_ID)).orderBy(desc(churchEvents.updatedAt)).limit(limit);
 }
 async function createChurchNews(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db.insert(churchNews).values({ ...input, churchId: DEFAULT_CHURCH_ID }).returning({ id: churchNews.id });
   return result[0].id;
 }
 async function createChurchEvent(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const result = await db.insert(churchEvents).values({ ...input, churchId: DEFAULT_CHURCH_ID }).returning({ id: churchEvents.id });
   return result[0].id;
 }
 async function updateChurchNews(id, input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(churchNews).set(input).where(
-    and(eq2(churchNews.id, id), eq2(churchNews.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
   );
 }
 async function updateChurchEvent(id, input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(churchEvents).set(input).where(
-    and(eq2(churchEvents.id, id), eq2(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
   );
 }
 async function updateChurchNewsStatus(id, status) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(churchNews).set({
     status,
     publishedAt: status === "published" ? /* @__PURE__ */ new Date() : void 0
   }).where(
-    and(eq2(churchNews.id, id), eq2(churchNews.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
   );
 }
 async function updateChurchEventStatus(id, status) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.update(churchEvents).set({ status }).where(
-    and(eq2(churchEvents.id, id), eq2(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
   );
 }
 async function deleteChurchNews(id) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.delete(churchNews).where(
-    and(eq2(churchNews.id, id), eq2(churchNews.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchNews.id, id), eq(churchNews.churchId, DEFAULT_CHURCH_ID))
   );
 }
 async function deleteChurchEvent(id) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   await db.delete(churchEvents).where(
-    and(eq2(churchEvents.id, id), eq2(churchEvents.churchId, DEFAULT_CHURCH_ID))
+    and(eq(churchEvents.id, id), eq(churchEvents.churchId, DEFAULT_CHURCH_ID))
   );
 }
 var num = (value) => parseFloat(value ?? "0");
 async function listCountingSessions(churchId = DEFAULT_CHURCH_ID, limit = 52) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return [];
-  const rows = await db.select().from(countingSessions).where(eq2(countingSessions.churchId, churchId)).orderBy(desc(countingSessions.serviceDate)).limit(limit);
+  const rows = await db.select().from(countingSessions).where(eq(countingSessions.churchId, churchId)).orderBy(desc(countingSessions.serviceDate)).limit(limit);
   return rows;
 }
 async function getCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
   const rows = await db.select().from(countingSessions).where(
-    and(eq2(countingSessions.id, id), eq2(countingSessions.churchId, churchId))
+    and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
   ).limit(1);
   return rows[0] ?? null;
 }
 async function getCountingSessionDetail(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
   const session = await getCountingSession(id, churchId);
   if (!session) return null;
   const [envelopeRows, cashRows, deductionRows, bankRows, documentRows] = await Promise.all([
-    db.select().from(offeringEnvelopes).where(eq2(offeringEnvelopes.sessionId, id)).orderBy(asc(offeringEnvelopes.id)),
-    db.select().from(cashCounts).where(eq2(cashCounts.sessionId, id)).orderBy(desc(cashCounts.denomination)),
-    db.select().from(sessionDeductions).where(eq2(sessionDeductions.sessionId, id)).orderBy(asc(sessionDeductions.id)),
-    db.select().from(bankRecords).where(eq2(bankRecords.sessionId, id)).orderBy(asc(bankRecords.id)),
-    db.select().from(sessionDocuments).where(eq2(sessionDocuments.sessionId, id)).orderBy(desc(sessionDocuments.createdAt))
+    db.select().from(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id)).orderBy(asc(offeringEnvelopes.id)),
+    db.select().from(cashCounts).where(eq(cashCounts.sessionId, id)).orderBy(desc(cashCounts.denomination)),
+    db.select().from(sessionDeductions).where(eq(sessionDeductions.sessionId, id)).orderBy(asc(sessionDeductions.id)),
+    db.select().from(bankRecords).where(eq(bankRecords.sessionId, id)).orderBy(asc(bankRecords.id)),
+    db.select().from(sessionDocuments).where(eq(sessionDocuments.sessionId, id)).orderBy(desc(sessionDocuments.createdAt))
   ]);
   const envelopes = envelopeRows.map((r) => ({ ...r, amount: num(r.amount) }));
   const cash = cashRows.map((r) => ({
@@ -2007,64 +2009,64 @@ async function getCountingSessionDetail(id, churchId = DEFAULT_CHURCH_ID) {
   };
 }
 async function createCountingSession(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(countingSessions).values({ ...input, churchId }).returning({ id: countingSessions.id });
   return rows[0].id;
 }
 async function setCountingSessionStatus(id, from, to, patch = {}, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.update(countingSessions).set({ ...patch, status: to }).where(
     and(
-      eq2(countingSessions.id, id),
-      eq2(countingSessions.churchId, churchId),
-      eq2(countingSessions.status, from)
+      eq(countingSessions.id, id),
+      eq(countingSessions.churchId, churchId),
+      eq(countingSessions.status, from)
     )
   ).returning({ id: countingSessions.id });
   return rows.length > 0;
 }
 async function addOfferingEnvelope(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(offeringEnvelopes).values({ ...input, churchId }).returning({ id: offeringEnvelopes.id });
   return rows[0].id;
 }
 async function updateOfferingEnvelope(id, sessionId, input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.update(offeringEnvelopes).set(input).where(
     and(
-      eq2(offeringEnvelopes.id, id),
-      eq2(offeringEnvelopes.sessionId, sessionId)
+      eq(offeringEnvelopes.id, id),
+      eq(offeringEnvelopes.sessionId, sessionId)
     )
   ).returning({ id: offeringEnvelopes.id });
   return rows[0]?.id ?? null;
 }
 async function deleteOfferingEnvelope(id, sessionId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.delete(offeringEnvelopes).where(
     and(
-      eq2(offeringEnvelopes.id, id),
-      eq2(offeringEnvelopes.sessionId, sessionId)
+      eq(offeringEnvelopes.id, id),
+      eq(offeringEnvelopes.sessionId, sessionId)
     )
   ).returning({ id: offeringEnvelopes.id });
   return rows.length > 0;
 }
 async function setCashCount(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const existing = await tx.select({ id: cashCounts.id }).from(cashCounts).where(
       and(
-        eq2(cashCounts.sessionId, input.sessionId),
-        eq2(cashCounts.denomination, input.denomination),
-        eq2(cashCounts.kind, input.kind)
+        eq(cashCounts.sessionId, input.sessionId),
+        eq(cashCounts.denomination, input.denomination),
+        eq(cashCounts.kind, input.kind)
       )
     ).limit(1);
     if (existing[0]) {
-      await tx.update(cashCounts).set({ quantity: input.quantity }).where(eq2(cashCounts.id, existing[0].id));
+      await tx.update(cashCounts).set({ quantity: input.quantity }).where(eq(cashCounts.id, existing[0].id));
       return existing[0].id;
     }
     const rows = await tx.insert(cashCounts).values(input).returning({ id: cashCounts.id });
@@ -2072,61 +2074,61 @@ async function setCashCount(input) {
   });
 }
 async function addSessionDeduction(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(sessionDeductions).values({ ...input, churchId }).returning({ id: sessionDeductions.id });
   return rows[0].id;
 }
 async function approveSessionDeduction(id, approverId, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.update(sessionDeductions).set({ approvedBy: approverId, approvedAt: /* @__PURE__ */ new Date() }).where(
     and(
-      eq2(sessionDeductions.id, id),
-      eq2(sessionDeductions.churchId, churchId),
+      eq(sessionDeductions.id, id),
+      eq(sessionDeductions.churchId, churchId),
       ne(sessionDeductions.requestedBy, approverId)
     )
   ).returning({ id: sessionDeductions.id });
   return rows.length > 0;
 }
 async function deleteSessionDeduction(id, sessionId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.delete(sessionDeductions).where(
     and(
-      eq2(sessionDeductions.id, id),
-      eq2(sessionDeductions.sessionId, sessionId)
+      eq(sessionDeductions.id, id),
+      eq(sessionDeductions.sessionId, sessionId)
     )
   ).returning({ id: sessionDeductions.id });
   return rows.length > 0;
 }
 async function addBankRecord(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(bankRecords).values({ ...input, churchId }).returning({ id: bankRecords.id });
   return rows[0].id;
 }
 async function matchBankRecordToPassbook(id, matchedBy, passbookDate, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.update(bankRecords).set({ passbookMatched: true, passbookDate, matchedBy }).where(and(eq2(bankRecords.id, id), eq2(bankRecords.churchId, churchId))).returning({ id: bankRecords.id });
+  const rows = await db.update(bankRecords).set({ passbookMatched: true, passbookDate, matchedBy }).where(and(eq(bankRecords.id, id), eq(bankRecords.churchId, churchId))).returning({ id: bankRecords.id });
   return rows.length > 0;
 }
 async function addSessionDocument(input, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.insert(sessionDocuments).values({ ...input, churchId }).returning({ id: sessionDocuments.id });
   return rows[0].id;
 }
 async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const claimed = await tx.update(countingSessions).set({ status: "posted", postedBy, postedAt: /* @__PURE__ */ new Date() }).where(
       and(
-        eq2(countingSessions.id, id),
-        eq2(countingSessions.churchId, churchId),
-        eq2(countingSessions.status, "verified")
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId),
+        eq(countingSessions.status, "verified")
       )
     ).returning({
       id: countingSessions.id,
@@ -2134,7 +2136,7 @@ async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
     });
     if (!claimed[0]) return null;
     const serviceDate = claimed[0].serviceDate;
-    const envelopeRows = await tx.select().from(offeringEnvelopes).where(eq2(offeringEnvelopes.sessionId, id));
+    const envelopeRows = await tx.select().from(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
     let offeringCount = 0;
     for (const envelope of envelopeRows) {
       await tx.insert(offerings).values({
@@ -2158,7 +2160,7 @@ async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
       }
       offeringCount += 1;
     }
-    const deductionRows = await tx.select().from(sessionDeductions).where(eq2(sessionDeductions.sessionId, id));
+    const deductionRows = await tx.select().from(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
     let deductionCount = 0;
     for (const deduction of deductionRows) {
       const inserted = await tx.insert(expenses).values({
@@ -2173,7 +2175,7 @@ async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
         status: "approved",
         recordedBy: deduction.requestedBy
       }).returning({ id: expenses.id });
-      await tx.update(sessionDeductions).set({ expenseId: inserted[0].id }).where(eq2(sessionDeductions.id, deduction.id));
+      await tx.update(sessionDeductions).set({ expenseId: inserted[0].id }).where(eq(sessionDeductions.id, deduction.id));
       if (deduction.fundId) {
         await tx.execute(
           sql`UPDATE finance_accounts SET balance = balance - ${deduction.amount} WHERE id = ${deduction.fundId} AND "churchId" = ${churchId}`
@@ -2185,11 +2187,11 @@ async function postCountingSession(id, postedBy, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 async function deleteCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
-      and(eq2(countingSessions.id, id), eq2(countingSessions.churchId, churchId))
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
     ).limit(1);
     if (!session[0]) {
       return { success: false, reason: "NOT_FOUND" };
@@ -2197,23 +2199,23 @@ async function deleteCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
     if (session[0].status === "posted" || session[0].status === "closed") {
       return { success: false, reason: "ALREADY_POSTED" };
     }
-    await tx.delete(sessionDocuments).where(eq2(sessionDocuments.sessionId, id));
-    await tx.delete(bankRecords).where(eq2(bankRecords.sessionId, id));
-    await tx.delete(sessionDeductions).where(eq2(sessionDeductions.sessionId, id));
-    await tx.delete(cashCounts).where(eq2(cashCounts.sessionId, id));
-    await tx.delete(offeringEnvelopes).where(eq2(offeringEnvelopes.sessionId, id));
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
     const deleted = await tx.delete(countingSessions).where(
-      and(eq2(countingSessions.id, id), eq2(countingSessions.churchId, churchId))
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
     ).returning({ id: countingSessions.id });
     return { success: deleted.length > 0, reason: null };
   });
 }
 async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
-      and(eq2(countingSessions.id, id), eq2(countingSessions.churchId, churchId))
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
     ).limit(1);
     if (!session[0]) {
       return { success: false, reason: "NOT_FOUND" };
@@ -2221,11 +2223,11 @@ async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
     if (session[0].status === "posted" || session[0].status === "closed") {
       return { success: false, reason: "ALREADY_POSTED" };
     }
-    await tx.delete(sessionDocuments).where(eq2(sessionDocuments.sessionId, id));
-    await tx.delete(bankRecords).where(eq2(bankRecords.sessionId, id));
-    await tx.delete(sessionDeductions).where(eq2(sessionDeductions.sessionId, id));
-    await tx.delete(cashCounts).where(eq2(cashCounts.sessionId, id));
-    await tx.delete(offeringEnvelopes).where(eq2(offeringEnvelopes.sessionId, id));
+    await tx.delete(sessionDocuments).where(eq(sessionDocuments.sessionId, id));
+    await tx.delete(bankRecords).where(eq(bankRecords.sessionId, id));
+    await tx.delete(sessionDeductions).where(eq(sessionDeductions.sessionId, id));
+    await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
+    await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
     await tx.update(countingSessions).set({
       status: "counting",
       countSubmittedAt: null,
@@ -2235,7 +2237,7 @@ async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
       varianceApprovedBy: null,
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
-      and(eq2(countingSessions.id, id), eq2(countingSessions.churchId, churchId))
+      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
     );
     return { success: true, reason: null };
   });
@@ -2252,7 +2254,7 @@ async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate,
     transactionCount: 0,
     funds: []
   };
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return empty;
   const [incomeRows, expenseRows, fundRows] = await Promise.all([
     db.select({
@@ -2261,7 +2263,7 @@ async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate,
       count: count(offerings.id)
     }).from(offerings).where(
       and(
-        eq2(offerings.churchId, churchId),
+        eq(offerings.churchId, churchId),
         ne(offerings.status, "voided"),
         between(offerings.receiptDate, fromDate, toDate)
       )
@@ -2272,15 +2274,15 @@ async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate,
       count: count(expenses.id)
     }).from(expenses).where(
       and(
-        eq2(expenses.churchId, churchId),
+        eq(expenses.churchId, churchId),
         ne(expenses.status, "voided"),
         between(expenses.expenseDate, fromDate, toDate)
       )
     ).groupBy(expenses.category),
     db.select().from(financeAccounts).where(
       and(
-        eq2(financeAccounts.churchId, churchId),
-        eq2(financeAccounts.isActive, true)
+        eq(financeAccounts.churchId, churchId),
+        eq(financeAccounts.isActive, true)
       )
     ).orderBy(asc(financeAccounts.sortOrder), asc(financeAccounts.name))
   ]);
@@ -2310,18 +2312,18 @@ async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate,
   };
 }
 async function listLineSlips(churchId = DEFAULT_CHURCH_ID, filters = {}) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const conditions = [eq2(lineSlips2.churchId, churchId)];
+  const conditions = [eq(lineSlips.churchId, churchId)];
   if (filters.status && filters.status !== "all") {
-    conditions.push(eq2(lineSlips2.status, filters.status));
+    conditions.push(eq(lineSlips.status, filters.status));
   }
   if (filters.memberId) {
-    conditions.push(eq2(lineSlips2.matchedMemberId, filters.memberId));
+    conditions.push(eq(lineSlips.matchedMemberId, filters.memberId));
   }
   const limit = filters.limit ?? 50;
   const offset = filters.offset ?? 0;
-  const rows = await db.select().from(lineSlips2).where(and(...conditions)).orderBy(desc(lineSlips2.createdAt)).limit(limit).offset(offset);
+  const rows = await db.select().from(lineSlips).where(and(...conditions)).orderBy(desc(lineSlips.createdAt)).limit(limit).offset(offset);
   const items = await Promise.all(
     rows.map(async (slip) => {
       let signedUrl = "";
@@ -2341,9 +2343,9 @@ async function listLineSlips(churchId = DEFAULT_CHURCH_ID, filters = {}) {
   return items;
 }
 async function getLineSlipById(id, churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db.select().from(lineSlips2).where(and(eq2(lineSlips2.id, id), eq2(lineSlips2.churchId, churchId))).limit(1);
+  const rows = await db.select().from(lineSlips).where(and(eq(lineSlips.id, id), eq(lineSlips.churchId, churchId))).limit(1);
   const slip = rows[0];
   if (!slip) return null;
   let signedImageUrl = "";
@@ -2360,14 +2362,14 @@ async function getLineSlipById(id, churchId = DEFAULT_CHURCH_ID) {
   };
 }
 async function approveLineSlip(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
   if (input.amount <= 0) {
     throw new Error("\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19\u0E16\u0E27\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E32\u0E01\u0E01\u0E27\u0E48\u0E32 0 \u0E1A\u0E32\u0E17");
   }
   return db.transaction(async (tx) => {
-    const [slip] = await tx.select().from(lineSlips2).where(and(eq2(lineSlips2.id, input.slipId), eq2(lineSlips2.churchId, churchId))).for("update").limit(1);
+    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
     if (!slip) {
       throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
     }
@@ -2377,11 +2379,31 @@ async function approveLineSlip(input) {
     if (slip.status === "rejected") {
       throw new Error(`\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`);
     }
+    if (slip.status === "duplicate") {
+      throw new Error(
+        `\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A\u0E1E\u0E1A\u0E27\u0E48\u0E32\u0E40\u0E1B\u0E47\u0E19\u0E2A\u0E25\u0E34\u0E1B\u0E0B\u0E49\u0E33 (Duplicate)`
+      );
+    }
+    const refToCheck = slip.extractedRef?.trim();
+    if (refToCheck) {
+      const [existingOffering] = await tx.select({ id: offerings.id }).from(offerings).where(
+        and(
+          eq(offerings.churchId, churchId),
+          eq(offerings.reference, refToCheck),
+          eq(offerings.status, "active")
+        )
+      ).limit(1);
+      if (existingOffering) {
+        throw new Error(
+          `\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E14\u0E49: \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23 ${refToCheck} \u0E0B\u0E49\u0E33\u0E01\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E16\u0E27\u0E32\u0E22 #${existingOffering.id} \u0E43\u0E19\u0E2A\u0E21\u0E38\u0E14\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E25\u0E49\u0E27`
+        );
+      }
+    }
     const [fund] = await tx.select().from(financeAccounts).where(
       and(
-        eq2(financeAccounts.id, input.fundId),
-        eq2(financeAccounts.churchId, churchId),
-        eq2(financeAccounts.isActive, true)
+        eq(financeAccounts.id, input.fundId),
+        eq(financeAccounts.churchId, churchId),
+        eq(financeAccounts.isActive, true)
       )
     ).limit(1);
     if (!fund) {
@@ -2389,7 +2411,7 @@ async function approveLineSlip(input) {
     }
     let donorName = input.donorName?.trim() || null;
     if (input.memberId) {
-      const [member] = await tx.select({ id: members.id, name: members.name }).from(members).where(and(eq2(members.id, input.memberId), eq2(members.churchId, churchId))).limit(1);
+      const [member] = await tx.select({ id: members.id, name: members.name }).from(members).where(and(eq(members.id, input.memberId), eq(members.churchId, churchId))).limit(1);
       if (member && !donorName) {
         donorName = member.name;
       }
@@ -2414,7 +2436,7 @@ async function approveLineSlip(input) {
     await tx.execute(
       sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
     );
-    await tx.update(lineSlips2).set({
+    await tx.update(lineSlips).set({
       status: "approved",
       fundId: input.fundId,
       approvedAmount: String(input.amount),
@@ -2425,7 +2447,7 @@ async function approveLineSlip(input) {
       reviewedAt: /* @__PURE__ */ new Date(),
       reviewNote: input.reviewNote ?? null,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq2(lineSlips2.id, input.slipId));
+    }).where(eq(lineSlips.id, input.slipId));
     await tx.insert(auditLogs).values({
       churchId,
       userId: input.approvedBy,
@@ -2450,25 +2472,25 @@ async function approveLineSlip(input) {
   });
 }
 async function rejectLineSlip(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
   if (!input.reason.trim()) {
     throw new Error("\u0E01\u0E23\u0E38\u0E13\u0E32\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B");
   }
   return db.transaction(async (tx) => {
-    const [slip] = await tx.select().from(lineSlips2).where(and(eq2(lineSlips2.id, input.slipId), eq2(lineSlips2.churchId, churchId))).for("update").limit(1);
+    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
     if (!slip) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
     if (slip.status === "approved" || slip.approvedOfferingId) {
       throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E44\u0E14\u0E49`);
     }
-    await tx.update(lineSlips2).set({
+    await tx.update(lineSlips).set({
       status: "rejected",
       reviewedBy: input.reviewedBy,
       reviewedAt: /* @__PURE__ */ new Date(),
       reviewNote: input.reason.trim(),
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq2(lineSlips2.id, input.slipId));
+    }).where(eq(lineSlips.id, input.slipId));
     await tx.insert(auditLogs).values({
       churchId,
       userId: input.reviewedBy,
@@ -2484,7 +2506,7 @@ async function rejectLineSlip(input) {
   });
 }
 async function updateLineSlipReview(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
   const updateSet = {
@@ -2498,17 +2520,17 @@ async function updateLineSlipReview(input) {
   }
   if (input.reviewNote !== void 0) updateSet.reviewNote = input.reviewNote;
   if (input.status !== void 0) updateSet.status = input.status;
-  const [updated] = await db.update(lineSlips2).set(updateSet).where(and(eq2(lineSlips2.id, input.slipId), eq2(lineSlips2.churchId, churchId))).returning();
+  const [updated] = await db.update(lineSlips).set(updateSet).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).returning();
   return updated;
 }
 async function linkLineUserToMember(churchId, lineUserId, memberId, adminUserId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
-    const [member] = await tx.select().from(members).where(and(eq2(members.id, memberId), eq2(members.churchId, churchId))).limit(1);
+    const [member] = await tx.select().from(members).where(and(eq(members.id, memberId), eq(members.churchId, churchId))).limit(1);
     if (!member) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E21\u0E32\u0E0A\u0E34\u0E01 #${memberId}`);
-    await tx.update(members).set({ lineUserId, updatedAt: /* @__PURE__ */ new Date() }).where(eq2(members.id, memberId));
-    await tx.update(lineSlips2).set({
+    await tx.update(members).set({ lineUserId, updatedAt: /* @__PURE__ */ new Date() }).where(eq(members.id, memberId));
+    await tx.update(lineSlips).set({
       matchedMemberId: member.id,
       matchedMemberName: member.name,
       matchedConfidence: "1.000",
@@ -2517,10 +2539,10 @@ async function linkLineUserToMember(churchId, lineUserId, memberId, adminUserId)
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
       and(
-        eq2(lineSlips2.churchId, churchId),
-        eq2(lineSlips2.lineUserId, lineUserId),
-        ne(lineSlips2.status, "approved"),
-        ne(lineSlips2.status, "rejected")
+        eq(lineSlips.churchId, churchId),
+        eq(lineSlips.lineUserId, lineUserId),
+        ne(lineSlips.status, "approved"),
+        ne(lineSlips.status, "rejected")
       )
     );
     await tx.insert(auditLogs).values({
@@ -2538,12 +2560,12 @@ async function linkLineUserToMember(churchId, lineUserId, memberId, adminUserId)
   });
 }
 async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const rows = await db.select({
-    status: lineSlips2.status,
+    status: lineSlips.status,
     count: sql`count(*)::int`
-  }).from(lineSlips2).where(eq2(lineSlips2.churchId, churchId)).groupBy(lineSlips2.status);
+  }).from(lineSlips).where(eq(lineSlips.churchId, churchId)).groupBy(lineSlips.status);
   const stats = {
     pending: 0,
     processing: 0,
@@ -2568,14 +2590,14 @@ async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
   };
 }
 async function createManualSlip(input) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("Database is not available");
   const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
   const hash = createHash("sha256").update(input.imageBuffer).digest("hex");
   const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   const storageKey = `manual/${churchId}/${input.userId}/${dateStr}/${hash.slice(0, 16)}.jpg`;
   const { key } = await storagePutPrivate(storageKey, input.imageBuffer, "image/jpeg");
-  const [slip] = await db.insert(lineSlips2).values({
+  const [slip] = await db.insert(lineSlips).values({
     churchId,
     lineUserId: `manual-${input.userId}`,
     lineDisplayName: input.donorName || `\u0E2D\u0E31\u0E1B\u0E42\u0E2B\u0E25\u0E14\u0E42\u0E14\u0E22 ${input.userName || "\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48"}`,
@@ -2585,7 +2607,7 @@ async function createManualSlip(input) {
     status: "pending",
     processingAttempts: 0
   }).returning();
-  await db.insert(lineProcessingJobs2).values({
+  await db.insert(lineProcessingJobs).values({
     slipId: slip.id,
     churchId,
     status: "queued",
@@ -2593,9 +2615,21 @@ async function createManualSlip(input) {
   });
   return slip;
 }
+async function rescanLineSlip(slipId, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  await db.update(lineSlips).set({ status: "pending", lastErrorMessage: null }).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
+  await db.insert(lineProcessingJobs).values({
+    slipId,
+    churchId,
+    status: "queued",
+    attempts: 0
+  });
+  return true;
+}
 
 // server/line/processWorker.ts
-import { and as and4, eq as eq5, lte as lte3 } from "drizzle-orm";
+import { and as and4, eq as eq4, lte as lte3 } from "drizzle-orm";
 
 // server/_core/llm.ts
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
@@ -2884,6 +2918,45 @@ var OUTPUT_SCHEMA = {
   },
   strict: true
 };
+var TransientOcrError = class extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+    this.name = "TransientOcrError";
+  }
+};
+function isTransientError(err) {
+  if (err instanceof TransientOcrError) return true;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return msg.includes("429") || msg.includes("503") || msg.includes("500") || msg.includes("502") || msg.includes("504") || msg.includes("timeout") || msg.includes("econnreset") || msg.includes("etimedout") || msg.includes("fetch failed");
+}
+function normalizeAndValidateDate(dateStr, timeStr, confidence) {
+  if (!dateStr) return { transferDate: null, dateConfidence: 0 };
+  const trimmed = dateStr.trim();
+  const match = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    let year = parseInt(match[1], 10);
+    const month = match[2].padStart(2, "0");
+    const day = match[3].padStart(2, "0");
+    if (year > 2400 && year < 2700) {
+      year -= 543;
+    }
+    const normalized = `${year}-${month}-${day}`;
+    const parsedDate = /* @__PURE__ */ new Date(`${normalized}T${timeStr || "12:00"}:00Z`);
+    if (isNaN(parsedDate.getTime())) {
+      return { transferDate: null, dateConfidence: 0 };
+    }
+    const now = /* @__PURE__ */ new Date();
+    const twoDaysInFuture = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1e3);
+    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1e3);
+    if (parsedDate > twoDaysInFuture || parsedDate < oneYearAgo) {
+      console.warn(`[SlipOCR] Extracted date ${normalized} failed plausibility check`);
+      return { transferDate: normalized, dateConfidence: Math.min(confidence, 0.4) };
+    }
+    return { transferDate: normalized, dateConfidence: confidence };
+  }
+  return { transferDate: null, dateConfidence: 0 };
+}
 async function extractWithGemini(signedImageUrl, apiKey) {
   const imgRes = await fetch(signedImageUrl);
   if (!imgRes.ok) {
@@ -2934,11 +3007,24 @@ ${JSON.stringify(
       });
       if (!resp.ok) {
         const errorText = await resp.text();
+        if (resp.status === 429 || resp.status === 503 || resp.status >= 500) {
+          throw new TransientOcrError(
+            `Gemini ${model} temporary error (${resp.status}): ${errorText}`,
+            resp.status
+          );
+        }
         throw new Error(`Gemini ${model} error (${resp.status}): ${errorText}`);
       }
       const data = await resp.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsed = JSON.parse(rawText);
+      const dateCheck = normalizeAndValidateDate(
+        parsed.transferDate,
+        parsed.transferTime,
+        parsed.dateConfidence
+      );
+      parsed.transferDate = dateCheck.transferDate;
+      parsed.dateConfidence = dateCheck.dateConfidence;
       return { rawText, ...parsed };
     } catch (err) {
       lastError = err;
@@ -2954,6 +3040,10 @@ async function extractSlipData(signedImageUrl) {
       console.log("[SlipOCR] Extracting slip data via Google Gemini Vision API...");
       return await extractWithGemini(signedImageUrl, geminiKey);
     } catch (geminiErr) {
+      if (isTransientError(geminiErr)) {
+        console.warn("[SlipOCR] Gemini transient error \u2014 throwing for worker retry:", geminiErr);
+        throw geminiErr;
+      }
       console.warn("[SlipOCR] Gemini extraction error, trying fallback:", geminiErr);
     }
   }
@@ -2988,9 +3078,20 @@ async function extractSlipData(signedImageUrl) {
       if (!match) throw new Error("AI returned non-JSON response");
       parsed = JSON.parse(match[0]);
     }
+    const dateCheck = normalizeAndValidateDate(
+      parsed.transferDate,
+      parsed.transferTime,
+      parsed.dateConfidence
+    );
+    parsed.transferDate = dateCheck.transferDate;
+    parsed.dateConfidence = dateCheck.dateConfidence;
     return { rawText, ...parsed };
   } catch (err) {
-    console.error("[SlipOCR] extraction failed:", err);
+    if (isTransientError(err)) {
+      console.warn("[SlipOCR] Transient error during invokeLLM \u2014 rethrowing for worker retry:", err);
+      throw err;
+    }
+    console.error("[SlipOCR] Permanent extraction failure (unreadable image):", err);
     return {
       rawText,
       amount: null,
@@ -3010,18 +3111,18 @@ async function extractSlipData(signedImageUrl) {
 }
 
 // server/line/duplicateDetector.ts
-import { and as and2, eq as eq3, gte as gte2, lte as lte2, ne as ne2 } from "drizzle-orm";
+import { and as and2, eq as eq2, gte as gte2, lte as lte2, ne as ne2 } from "drizzle-orm";
 async function checkDuplicateByReference(churchId, referenceNumber, currentSlipId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
-  const existingSlip = await db.select({ id: lineSlips2.id }).from(lineSlips2).where(
+  const existingSlip = await db.select({ id: lineSlips.id }).from(lineSlips).where(
     and2(
-      eq3(lineSlips2.churchId, churchId),
-      eq3(lineSlips2.extractedRef, referenceNumber),
-      ne2(lineSlips2.id, currentSlipId),
-      ne2(lineSlips2.status, "rejected"),
-      ne2(lineSlips2.status, "failed"),
-      ne2(lineSlips2.status, "duplicate")
+      eq2(lineSlips.churchId, churchId),
+      eq2(lineSlips.extractedRef, referenceNumber),
+      ne2(lineSlips.id, currentSlipId),
+      ne2(lineSlips.status, "rejected"),
+      ne2(lineSlips.status, "failed"),
+      ne2(lineSlips.status, "duplicate")
     )
   ).limit(1);
   if (existingSlip.length > 0 && existingSlip[0]) {
@@ -3035,8 +3136,8 @@ async function checkDuplicateByReference(churchId, referenceNumber, currentSlipI
   }
   const existingOffering = await db.select({ id: offerings.id }).from(offerings).where(
     and2(
-      eq3(offerings.churchId, churchId),
-      eq3(offerings.reference, referenceNumber),
+      eq2(offerings.churchId, churchId),
+      eq2(offerings.reference, referenceNumber),
       ne2(offerings.status, "voided")
     )
   ).limit(1);
@@ -3052,23 +3153,23 @@ async function checkDuplicateByReference(churchId, referenceNumber, currentSlipI
   return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
 }
 async function checkDuplicateByTransaction(churchId, amount, transferDate, matchedMemberId, currentSlipId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
   const dayBefore = new Date(transferDate);
   dayBefore.setDate(dayBefore.getDate() - 1);
   const dayAfter = new Date(transferDate);
   dayAfter.setDate(dayAfter.getDate() + 1);
   const amountStr = amount.toFixed(2);
-  const similarSlips = await db.select({ id: lineSlips2.id, matchedMemberId: lineSlips2.matchedMemberId }).from(lineSlips2).where(
+  const similarSlips = await db.select({ id: lineSlips.id, matchedMemberId: lineSlips.matchedMemberId }).from(lineSlips).where(
     and2(
-      eq3(lineSlips2.churchId, churchId),
-      eq3(lineSlips2.extractedAmount, amountStr),
-      gte2(lineSlips2.extractedDate, dayBefore),
-      lte2(lineSlips2.extractedDate, dayAfter),
-      ne2(lineSlips2.id, currentSlipId),
-      ne2(lineSlips2.status, "rejected"),
-      ne2(lineSlips2.status, "failed"),
-      ne2(lineSlips2.status, "duplicate")
+      eq2(lineSlips.churchId, churchId),
+      eq2(lineSlips.extractedAmount, amountStr),
+      gte2(lineSlips.extractedDate, dayBefore),
+      lte2(lineSlips.extractedDate, dayAfter),
+      ne2(lineSlips.id, currentSlipId),
+      ne2(lineSlips.status, "rejected"),
+      ne2(lineSlips.status, "failed"),
+      ne2(lineSlips.status, "duplicate")
     )
   ).limit(5);
   for (const slip of similarSlips) {
@@ -3084,8 +3185,8 @@ async function checkDuplicateByTransaction(churchId, amount, transferDate, match
   }
   const similarOfferings = await db.select({ id: offerings.id, donorMemberId: offerings.donorMemberId }).from(offerings).where(
     and2(
-      eq3(offerings.churchId, churchId),
-      eq3(offerings.amount, amountStr),
+      eq2(offerings.churchId, churchId),
+      eq2(offerings.amount, amountStr),
       gte2(offerings.receiptDate, dayBefore),
       lte2(offerings.receiptDate, dayAfter),
       ne2(offerings.status, "voided")
@@ -3106,7 +3207,7 @@ async function checkDuplicateByTransaction(churchId, amount, transferDate, match
 }
 
 // server/line/memberMatcher.ts
-import { and as and3, eq as eq4 } from "drizzle-orm";
+import { and as and3, eq as eq3 } from "drizzle-orm";
 function normalizeName(name) {
   return name.replace(/^(นาย|นาง|นางสาว|เด็กชาย|เด็กหญิง|ด\.ต\.|ร\.ต\.|Mr\.|Mrs\.|Ms\.|Miss\.?)\s*/i, "").replace(/\s+/g, "").toLowerCase().trim();
 }
@@ -3134,9 +3235,9 @@ function similarity(a, b) {
 }
 var FUZZY_THRESHOLD = 0.85;
 async function matchMember(churchId, lineUserId, extractedSenderName) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return null;
-  const activeMembers = await db.select({ id: members.id, name: members.name, lineUserId: members.lineUserId }).from(members).where(and3(eq4(members.churchId, churchId), eq4(members.status, "active")));
+  const activeMembers = await db.select({ id: members.id, name: members.name, lineUserId: members.lineUserId }).from(members).where(and3(eq3(members.churchId, churchId), eq3(members.status, "active")));
   const byLineId = activeMembers.find((m) => m.lineUserId === lineUserId);
   if (byLineId) {
     return {
@@ -3206,12 +3307,12 @@ function isAuthorizedCron(req) {
   return false;
 }
 async function processJob(jobId, slipId) {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [slip] = await db.select().from(lineSlips2).where(eq5(lineSlips2.id, slipId)).limit(1);
+  const [slip] = await db.select().from(lineSlips).where(eq4(lineSlips.id, slipId)).limit(1);
   if (!slip) throw new Error(`Slip #${slipId} not found`);
   if (slip.status !== "pending") {
-    await db.update(lineProcessingJobs2).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs2.id, jobId));
+    await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(lineProcessingJobs.id, jobId));
     return;
   }
   const signedUrl = await getSlipSignedUrl(slip.slipImageKey);
@@ -3274,7 +3375,7 @@ async function processJob(jobId, slipId) {
       finalStatus = "needs_review";
     }
   }
-  await db.update(lineSlips2).set({
+  await db.update(lineSlips).set({
     status: finalStatus,
     aiRawText: extraction.rawText,
     aiData: extraction,
@@ -3296,33 +3397,33 @@ async function processJob(jobId, slipId) {
     lastErrorMessage: duplicateReason,
     processingAttempts: (slip.processingAttempts ?? 0) + 1,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(lineSlips2.id, slipId));
-  await db.update(lineProcessingJobs2).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs2.id, jobId));
+  }).where(eq4(lineSlips.id, slipId));
+  await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(lineProcessingJobs.id, jobId));
 }
 async function runWorkerBatch() {
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) return { processed: 0, errors: 0 };
-  const jobs = await db.select({ id: lineProcessingJobs2.id, slipId: lineProcessingJobs2.slipId, attempts: lineProcessingJobs2.attempts }).from(lineProcessingJobs2).where(
+  const jobs = await db.select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts }).from(lineProcessingJobs).where(
     and4(
-      eq5(lineProcessingJobs2.status, "queued"),
-      lte3(lineProcessingJobs2.attempts, MAX_ATTEMPTS - 1)
+      eq4(lineProcessingJobs.status, "queued"),
+      lte3(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
     )
-  ).orderBy(lineProcessingJobs2.createdAt).limit(BATCH_SIZE);
+  ).orderBy(lineProcessingJobs.createdAt).limit(BATCH_SIZE);
   let processed = 0;
   let errors = 0;
   for (const job of jobs) {
-    const claimed = await db.update(lineProcessingJobs2).set({
+    const claimed = await db.update(lineProcessingJobs).set({
       status: "processing",
       attempts: (job.attempts ?? 0) + 1,
       lastAttemptAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
       and4(
-        eq5(lineProcessingJobs2.id, job.id),
-        eq5(lineProcessingJobs2.status, "queued")
+        eq4(lineProcessingJobs.id, job.id),
+        eq4(lineProcessingJobs.status, "queued")
         // Only claim if still queued
       )
-    ).returning({ id: lineProcessingJobs2.id });
+    ).returning({ id: lineProcessingJobs.id });
     if (!claimed.length) continue;
     try {
       await processJob(job.id, job.slipId);
@@ -3331,17 +3432,17 @@ async function runWorkerBatch() {
       errors++;
       console.error(`[Worker] Job #${job.id} (slip #${job.slipId}) failed:`, err);
       const nextStatus = (job.attempts ?? 0) + 1 >= MAX_ATTEMPTS ? "failed" : "queued";
-      await db.update(lineProcessingJobs2).set({
+      await db.update(lineProcessingJobs).set({
         status: nextStatus,
         errorMessage: err instanceof Error ? err.message : String(err),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq5(lineProcessingJobs2.id, job.id)).catch((e) => console.error("[Worker] Failed to update job status:", e));
+      }).where(eq4(lineProcessingJobs.id, job.id)).catch((e) => console.error("[Worker] Failed to update job status:", e));
       if (nextStatus === "failed") {
-        await db.update(lineSlips2).set({
+        await db.update(lineSlips).set({
           status: "failed",
           lastErrorMessage: err instanceof Error ? err.message : String(err),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq5(lineSlips2.id, job.slipId)).catch((e) => console.error("[Worker] Failed to mark slip failed:", e));
+        }).where(eq4(lineSlips.id, job.slipId)).catch((e) => console.error("[Worker] Failed to mark slip failed:", e));
       }
     }
   }
@@ -3365,7 +3466,7 @@ function registerLineWorker(app2) {
 }
 
 // server/line/webhook.ts
-import { eq as eq6, and as and5 } from "drizzle-orm";
+import { eq as eq5, and as and5 } from "drizzle-orm";
 var DEFAULT_CHURCH_ID2 = "demo-church";
 var LINE_API_BASE = "https://api.line.me/v2/bot";
 var LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
@@ -3376,7 +3477,10 @@ function validateSignature(rawBody, signature) {
     return true;
   }
   const expected = createHmac("sha256", ENV.lineChannelSecret).update(rawBody).digest("base64");
-  return expected === signature;
+  const expectedBuf = Buffer.from(expected, "utf-8");
+  const signatureBuf = Buffer.from(signature, "utf-8");
+  if (expectedBuf.length !== signatureBuf.length) return false;
+  return timingSafeEqual(expectedBuf, signatureBuf);
 }
 async function getLineProfile(userId) {
   try {
@@ -3424,15 +3528,15 @@ async function processImageEvent(event, churchId) {
   const messageId = event.message?.id;
   const lineEventId = event.webhookEventId;
   if (!lineUserId || !messageId || !lineEventId) return;
-  const db = await getDb2();
+  const db = await getDb();
   if (!db) {
     console.error("[LINE Webhook] DB not available");
     return;
   }
-  const existing = await db.select({ id: lineSlips2.id }).from(lineSlips2).where(
+  const existing = await db.select({ id: lineSlips.id }).from(lineSlips).where(
     and5(
-      eq6(lineSlips2.churchId, churchId),
-      eq6(lineSlips2.lineEventId, lineEventId)
+      eq5(lineSlips.churchId, churchId),
+      eq5(lineSlips.lineEventId, lineEventId)
     )
   ).limit(1);
   if (existing.length > 0) {
@@ -3453,7 +3557,7 @@ async function processImageEvent(event, churchId) {
     return;
   }
   const slipHash = sha256Hex(imageBuffer);
-  const hashDuplicate = await db.select({ id: lineSlips2.id, status: lineSlips2.status }).from(lineSlips2).where(eq6(lineSlips2.slipHash, slipHash)).limit(1);
+  const hashDuplicate = await db.select({ id: lineSlips.id, status: lineSlips.status }).from(lineSlips).where(eq5(lineSlips.slipHash, slipHash)).limit(1);
   if (hashDuplicate.length > 0) {
     console.log(`[LINE Webhook] Duplicate image hash ${slipHash} from ${lineUserId}`);
     if (event.replyToken) {
@@ -3483,7 +3587,7 @@ async function processImageEvent(event, churchId) {
   const lineDisplayName = await getLineProfile(lineUserId);
   let newSlipId;
   try {
-    const [inserted] = await db.insert(lineSlips2).values({
+    const [inserted] = await db.insert(lineSlips).values({
       churchId,
       lineUserId,
       lineDisplayName,
@@ -3492,7 +3596,7 @@ async function processImageEvent(event, churchId) {
       slipHash,
       status: "pending",
       processingAttempts: 0
-    }).onConflictDoNothing().returning({ id: lineSlips2.id });
+    }).onConflictDoNothing().returning({ id: lineSlips.id });
     if (!inserted) {
       console.log(`[LINE Webhook] Conflict on lineEventId ${lineEventId} \u2014 already inserted`);
       return;
@@ -3503,7 +3607,7 @@ async function processImageEvent(event, churchId) {
     return;
   }
   try {
-    await db.insert(lineProcessingJobs2).values({
+    await db.insert(lineProcessingJobs).values({
       slipId: newSlipId,
       churchId,
       status: "queued",
@@ -5130,15 +5234,22 @@ var appRouter = router({
         offset: z2.number().min(0).default(0)
       }).optional()
     ).query(async ({ input }) => {
-      await runWorkerBatch().catch(
-        (err) => console.warn("[GivingInbox] Auto-drain worker error:", err)
-      );
       return await listLineSlips(DEFAULT_CHURCH_ID, {
         status: input?.status,
         memberId: input?.memberId,
         limit: input?.limit,
         offset: input?.offset
       });
+    }),
+    /**
+     * Dedicated worker trigger (called by Refresh button, not on every passive read)
+     */
+    drainWorker: financeProcedure.mutation(async () => {
+      const result = await runWorkerBatch().catch((err) => {
+        console.warn("[GivingInbox] Worker error:", err);
+        return { ok: false, processed: 0, errors: 1 };
+      });
+      return result;
     }),
     /**
      * Get single slip detail with AI data and signed image URL.
@@ -5308,24 +5419,18 @@ var appRouter = router({
      * Trigger immediate AI re-scan on an existing slip.
      */
     rescan: financeProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ input }) => {
-      const db = await getDb();
-      if (!db) {
+      try {
+        await rescanLineSlip(input.id, DEFAULT_CHURCH_ID);
+        await runWorkerBatch().catch(
+          (err) => console.warn("[Rescan] Worker error:", err)
+        );
+        return { success: true };
+      } catch (err) {
         throw new TRPCError3({
           code: "INTERNAL_SERVER_ERROR",
-          message: "\u0E10\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19"
+          message: err?.message || "\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B\u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49"
         });
       }
-      await db.update(lineSlips).set({ status: "pending", errorMessage: null }).where(eq(lineSlips.id, input.id));
-      await db.insert(lineProcessingJobs).values({
-        slipId: input.id,
-        status: "queued",
-        attempts: 0,
-        maxAttempts: 3
-      });
-      await runWorkerBatch().catch(
-        (err) => console.warn("[Rescan] Worker error:", err)
-      );
-      return { success: true };
     })
   }),
   // ── Audit Logs ──────────────────────────────────────────────────────────────

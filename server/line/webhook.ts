@@ -15,7 +15,7 @@
  */
 
 import type { Request, Response, Express } from "express";
-import { createHmac, createHash } from "crypto";
+import { createHmac, createHash, timingSafeEqual } from "crypto";
 import { ENV } from "../_core/env";
 import { storagePutPrivate } from "../storage";
 import { getDb } from "../db";
@@ -66,7 +66,11 @@ function validateSignature(rawBody: Buffer, signature: string): boolean {
   const expected = createHmac("sha256", ENV.lineChannelSecret)
     .update(rawBody)
     .digest("base64");
-  return expected === signature;
+
+  const expectedBuf = Buffer.from(expected, "utf-8");
+  const signatureBuf = Buffer.from(signature, "utf-8");
+  if (expectedBuf.length !== signatureBuf.length) return false;
+  return timingSafeEqual(expectedBuf, signatureBuf);
 }
 
 // ─── LINE API Helpers ─────────────────────────────────────────────────────────

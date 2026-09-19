@@ -83,6 +83,7 @@ import {
   linkLineUserToMember,
   getLineInboxStats,
   createManualSlip,
+  rescanLineSlip,
 } from "./db";
 import { runWorkerBatch } from "./line/processWorker";
 import { TRPCError } from "@trpc/server";
@@ -1695,10 +1696,6 @@ export const appRouter = router({
           .optional()
       )
       .query(async ({ input }) => {
-        // Opportunistically drain any queued jobs before returning list
-        await runWorkerBatch().catch(err =>
-          console.warn("[GivingInbox] Auto-drain worker error:", err)
-        );
         return await listLineSlips(DEFAULT_CHURCH_ID, {
           status: input?.status,
           memberId: input?.memberId,
@@ -1706,6 +1703,17 @@ export const appRouter = router({
           offset: input?.offset,
         });
       }),
+
+    /**
+     * Dedicated worker trigger (called by Refresh button, not on every passive read)
+     */
+    drainWorker: financeProcedure.mutation(async () => {
+      const result = await runWorkerBatch().catch(err => {
+        console.warn("[GivingInbox] Worker error:", err);
+        return { ok: false, processed: 0, errors: 1 };
+      });
+      return result;
+    }),
 
     /**
      * Get single slip detail with AI data and signed image URL.
@@ -1900,34 +1908,21 @@ export const appRouter = router({
     rescan: financeProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) {
+        try {
+          await rescanLineSlip(input.id, DEFAULT_CHURCH_ID);
+
+          // Run worker batch immediately with Gemini AI
+          await runWorkerBatch().catch((err) =>
+            console.warn("[Rescan] Worker error:", err)
+          );
+
+          return { success: true };
+        } catch (err: any) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
-            message: "ฐานข้อมูลไม่พร้อมใช้งาน",
+            message: err?.message || "ไม่สามารถสแกนสลิปซ้ำได้",
           });
         }
-
-        // Reset slip status to pending
-        await db
-          .update(lineSlips)
-          .set({ status: "pending", errorMessage: null })
-          .where(eq(lineSlips.id, input.id));
-
-        // Insert a new queued job
-        await db.insert(lineProcessingJobs).values({
-          slipId: input.id,
-          status: "queued",
-          attempts: 0,
-          maxAttempts: 3,
-        });
-
-        // Run worker batch immediately with Gemini AI
-        await runWorkerBatch().catch((err) =>
-          console.warn("[Rescan] Worker error:", err)
-        );
-
-        return { success: true };
       }),
   }),
 

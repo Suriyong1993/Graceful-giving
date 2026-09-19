@@ -160,6 +160,20 @@ export default function GivingInbox() {
     },
   });
 
+  const drainWorkerMutation = trpc.givingInbox.drainWorker.useMutation({
+    onSuccess: data => {
+      utils.givingInbox.invalidate();
+      if (data && data.processed > 0) {
+        toast.success(`ประมวลผลสลิปในคิวสำเร็จ ${data.processed} รายการ`);
+      } else {
+        toast.success("รีเฟรชข้อมูลล่าสุดเรียบร้อยแล้ว");
+      }
+    },
+    onError: () => {
+      utils.givingInbox.invalidate();
+    },
+  });
+
   const handleRescan = (id: number) => {
     rescanMutation.mutate({ id });
   };
@@ -359,14 +373,12 @@ export default function GivingInbox() {
           {/* 4. Refresh Button */}
           <button
             type="button"
-            onClick={() => {
-              utils.givingInbox.invalidate();
-              toast.info("กำลังรีเฟรชข้อมูลและประมวลผลคิวสลิป...");
-            }}
-            className="p-2 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF] transition-all shadow-2xs"
-            title="รีเฟรชข้อมูล"
+            onClick={() => drainWorkerMutation.mutate()}
+            disabled={drainWorkerMutation.isPending}
+            className="p-2 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF] transition-all shadow-2xs cursor-pointer"
+            title="รีเฟรชข้อมูลและประมวลผลคิวสลิป"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${drainWorkerMutation.isPending ? "animate-spin" : ""}`} />
           </button>
         </div>
       }

@@ -112,6 +112,75 @@ const OUTPUT_SCHEMA = {
   strict: true,
 };
 
+// ─── Error Handling & Types ──────────────────────────────────────────────────
+
+export class TransientOcrError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = "TransientOcrError";
+  }
+}
+
+export function isTransientError(err: unknown): boolean {
+  if (err instanceof TransientOcrError) return true;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes("429") ||
+    msg.includes("503") ||
+    msg.includes("500") ||
+    msg.includes("502") ||
+    msg.includes("504") ||
+    msg.includes("timeout") ||
+    msg.includes("econnreset") ||
+    msg.includes("etimedout") ||
+    msg.includes("fetch failed")
+  );
+}
+
+// ─── Date Normalization & Plausibility ────────────────────────────────────────
+
+export function normalizeAndValidateDate(
+  dateStr: string | null,
+  timeStr: string | null,
+  confidence: number
+): { transferDate: string | null; dateConfidence: number } {
+  if (!dateStr) return { transferDate: null, dateConfidence: 0 };
+
+  const trimmed = dateStr.trim();
+  const match = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (match) {
+    let year = parseInt(match[1], 10);
+    const month = match[2].padStart(2, "0");
+    const day = match[3].padStart(2, "0");
+
+    // Buddhist Era conversion (e.g. 2567 -> 2024, 2569 -> 2026)
+    if (year > 2400 && year < 2700) {
+      year -= 543;
+    }
+
+    const normalized = `${year}-${month}-${day}`;
+    const parsedDate = new Date(`${normalized}T${timeStr || "12:00"}:00Z`);
+
+    if (isNaN(parsedDate.getTime())) {
+      return { transferDate: null, dateConfidence: 0 };
+    }
+
+    const now = new Date();
+    const twoDaysInFuture = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+    // Sanity check: Plausible range
+    if (parsedDate > twoDaysInFuture || parsedDate < oneYearAgo) {
+      console.warn(`[SlipOCR] Extracted date ${normalized} failed plausibility check`);
+      return { transferDate: normalized, dateConfidence: Math.min(confidence, 0.4) };
+    }
+
+    return { transferDate: normalized, dateConfidence: confidence };
+  }
+
+  return { transferDate: null, dateConfidence: 0 };
+}
+
 // ─── Gemini API direct integration (Free tier via Google AI Studio) ───────────
 
 async function extractWithGemini(
@@ -168,12 +237,28 @@ async function extractWithGemini(
 
       if (!resp.ok) {
         const errorText = await resp.text();
+        if (resp.status === 429 || resp.status === 503 || resp.status >= 500) {
+          throw new TransientOcrError(
+            `Gemini ${model} temporary error (${resp.status}): ${errorText}`,
+            resp.status
+          );
+        }
         throw new Error(`Gemini ${model} error (${resp.status}): ${errorText}`);
       }
 
       const data = await resp.json();
       const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const parsed = JSON.parse(rawText) as Omit<SlipExtraction, "rawText">;
+
+      // Sanitize and validate date
+      const dateCheck = normalizeAndValidateDate(
+        parsed.transferDate,
+        parsed.transferTime,
+        parsed.dateConfidence
+      );
+      parsed.transferDate = dateCheck.transferDate;
+      parsed.dateConfidence = dateCheck.dateConfidence;
+
       return { rawText, ...parsed };
     } catch (err) {
       lastError = err;
@@ -197,6 +282,11 @@ export async function extractSlipData(
       console.log("[SlipOCR] Extracting slip data via Google Gemini Vision API...");
       return await extractWithGemini(signedImageUrl, geminiKey);
     } catch (geminiErr) {
+      // If it's a transient rate limit or service outage, throw so the worker retries
+      if (isTransientError(geminiErr)) {
+        console.warn("[SlipOCR] Gemini transient error — throwing for worker retry:", geminiErr);
+        throw geminiErr;
+      }
       console.warn("[SlipOCR] Gemini extraction error, trying fallback:", geminiErr);
     }
   }
@@ -236,9 +326,24 @@ export async function extractSlipData(
       parsed = JSON.parse(match[0]) as Omit<SlipExtraction, "rawText">;
     }
 
+    // Sanitize and validate date
+    const dateCheck = normalizeAndValidateDate(
+      parsed.transferDate,
+      parsed.transferTime,
+      parsed.dateConfidence
+    );
+    parsed.transferDate = dateCheck.transferDate;
+    parsed.dateConfidence = dateCheck.dateConfidence;
+
     return { rawText, ...parsed };
   } catch (err) {
-    console.error("[SlipOCR] extraction failed:", err);
+    // Re-throw transient errors (e.g. rate limit, 503, connection dropped) so queue retries
+    if (isTransientError(err)) {
+      console.warn("[SlipOCR] Transient error during invokeLLM — rethrowing for worker retry:", err);
+      throw err;
+    }
+
+    console.error("[SlipOCR] Permanent extraction failure (unreadable image):", err);
     return {
       rawText,
       amount: null,
