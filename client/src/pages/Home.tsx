@@ -3,7 +3,6 @@ import { trpc } from "@/lib/trpc";
 import {
   BarChart3,
   Banknote,
-  Bell,
   BookOpen,
   CalendarDays,
   ChevronRight,
@@ -242,18 +241,6 @@ export default function Home() {
             aria-hidden="true"
             className="pointer-events-none absolute -bottom-16 -left-16 w-48 h-48 sm:w-64 sm:h-64 rounded-full bg-[#D47012]/15 blur-3xl"
           />
-
-          {/* Notification Bell (Top-Right with generous breathing room) */}
-          <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 z-20">
-            <button
-              onClick={() => setNewsOpen(true)}
-              className="w-11 h-11 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 backdrop-blur-xs border-2 border-[#E9D9BF] shadow-xs flex items-center justify-center text-[#4A2E1B] hover:bg-white hover:scale-105 transition-all relative focus-visible:ring-2 focus-visible:ring-[#D47012]"
-              aria-label="การแจ้งเตือนและข่าวสารคริสตจักร"
-            >
-              <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-[#4A2E1B]" />
-              <span className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#D9381E] ring-2 ring-white" />
-            </button>
-          </div>
 
           {/* Hero Content Grid — fluid auto-scaling across all devices */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 md:gap-10 lg:gap-12 items-center relative z-10 w-full">
