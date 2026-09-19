@@ -2566,201 +2566,8 @@ async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
   };
 }
 
-// server/line/webhook.ts
-import { eq as eq2, and as and2 } from "drizzle-orm";
-var DEFAULT_CHURCH_ID2 = "demo-church";
-var LINE_API_BASE = "https://api.line.me/v2/bot";
-var LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
-function validateSignature(rawBody, signature) {
-  if (!ENV.lineChannelSecret) {
-    if (ENV.isProduction) return false;
-    console.warn("[LINE Webhook] LINE_CHANNEL_SECRET not set \u2014 skipping validation (dev only)");
-    return true;
-  }
-  const expected = createHmac("sha256", ENV.lineChannelSecret).update(rawBody).digest("base64");
-  return expected === signature;
-}
-async function getLineProfile(userId) {
-  try {
-    const resp = await fetch(`${LINE_API_BASE}/profile/${userId}`, {
-      headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` }
-    });
-    if (!resp.ok) return userId;
-    const data = await resp.json();
-    return data.displayName ?? userId;
-  } catch {
-    return userId;
-  }
-}
-async function downloadLineImage(messageId) {
-  const resp = await fetch(
-    `${LINE_CONTENT_BASE}/message/${messageId}/content`,
-    { headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` } }
-  );
-  if (!resp.ok) {
-    throw new Error(`LINE image download failed: ${resp.status} ${resp.statusText}`);
-  }
-  return Buffer.from(await resp.arrayBuffer());
-}
-async function replyToLine(replyToken, text2) {
-  if (!ENV.lineChannelAccessToken || !replyToken) return;
-  await fetch(`${LINE_API_BASE}/message/reply`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${ENV.lineChannelAccessToken}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      replyToken,
-      messages: [{ type: "text", text: text2 }]
-    })
-  }).catch(
-    (e) => console.error("[LINE Webhook] reply failed:", e)
-  );
-}
-function sha256Hex(data) {
-  return createHash("sha256").update(data).digest("hex");
-}
-async function processImageEvent(event, churchId) {
-  const lineUserId = event.source?.userId;
-  const messageId = event.message?.id;
-  const lineEventId = event.webhookEventId;
-  if (!lineUserId || !messageId || !lineEventId) return;
-  const db = await getDb();
-  if (!db) {
-    console.error("[LINE Webhook] DB not available");
-    return;
-  }
-  const existing = await db.select({ id: lineSlips.id }).from(lineSlips).where(
-    and2(
-      eq2(lineSlips.churchId, churchId),
-      eq2(lineSlips.lineEventId, lineEventId)
-    )
-  ).limit(1);
-  if (existing.length > 0) {
-    console.log(`[LINE Webhook] Duplicate event ${lineEventId} \u2014 skipping`);
-    return;
-  }
-  let imageBuffer;
-  try {
-    imageBuffer = await downloadLineImage(messageId);
-  } catch (err) {
-    console.error("[LINE Webhook] Image download failed:", err);
-    if (event.replyToken) {
-      await replyToLine(
-        event.replyToken,
-        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E23\u0E31\u0E1A\u0E23\u0E39\u0E1B\u0E20\u0E32\u0E1E\u0E44\u0E14\u0E49\u0E43\u0E19\u0E02\u0E13\u0E30\u0E19\u0E35\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
-      );
-    }
-    return;
-  }
-  const slipHash = sha256Hex(imageBuffer);
-  const hashDuplicate = await db.select({ id: lineSlips.id, status: lineSlips.status }).from(lineSlips).where(eq2(lineSlips.slipHash, slipHash)).limit(1);
-  if (hashDuplicate.length > 0) {
-    console.log(`[LINE Webhook] Duplicate image hash ${slipHash} from ${lineUserId}`);
-    if (event.replyToken) {
-      await replyToLine(
-        event.replyToken,
-        "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A\u0E27\u0E48\u0E32\u0E2A\u0E25\u0E34\u0E1B\u0E19\u0E35\u0E49\u0E40\u0E04\u0E22\u0E2A\u0E48\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30 \u0E2B\u0E32\u0E01\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E2A\u0E07\u0E2A\u0E31\u0E22\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48 \u{1F64F}"
-      );
-    }
-    return;
-  }
-  const now = /* @__PURE__ */ new Date();
-  const dateStr = now.toISOString().slice(0, 10);
-  const storageKey = `line/${churchId}/${lineUserId}/${dateStr}/${slipHash.slice(0, 16)}.jpg`;
-  let uploadResult;
-  try {
-    uploadResult = await storagePutPrivate(storageKey, imageBuffer, "image/jpeg");
-  } catch (err) {
-    console.error("[LINE Webhook] Storage upload failed:", err);
-    if (event.replyToken) {
-      await replyToLine(
-        event.replyToken,
-        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E2A\u0E25\u0E34\u0E1B \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
-      );
-    }
-    return;
-  }
-  const lineDisplayName = await getLineProfile(lineUserId);
-  let newSlipId;
-  try {
-    const [inserted] = await db.insert(lineSlips).values({
-      churchId,
-      lineUserId,
-      lineDisplayName,
-      lineEventId,
-      slipImageKey: uploadResult.key,
-      slipHash,
-      status: "pending",
-      processingAttempts: 0
-    }).onConflictDoNothing().returning({ id: lineSlips.id });
-    if (!inserted) {
-      console.log(`[LINE Webhook] Conflict on lineEventId ${lineEventId} \u2014 already inserted`);
-      return;
-    }
-    newSlipId = inserted.id;
-  } catch (err) {
-    console.error("[LINE Webhook] DB insert failed:", err);
-    return;
-  }
-  try {
-    await db.insert(lineProcessingJobs).values({
-      slipId: newSlipId,
-      churchId,
-      status: "queued",
-      attempts: 0
-    });
-  } catch (err) {
-    console.error("[LINE Webhook] Job enqueue failed:", err);
-  }
-  if (event.replyToken) {
-    await replyToLine(
-      event.replyToken,
-      "\u2705 \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2A\u0E25\u0E34\u0E1B\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30\n\n\u0E23\u0E30\u0E1A\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A \u0E41\u0E25\u0E30\u0E08\u0E30\u0E41\u0E08\u0E49\u0E07\u0E1C\u0E25\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\n\n\u0E02\u0E2D\u0E1A\u0E04\u0E38\u0E13\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E16\u0E27\u0E32\u0E22\u0E17\u0E23\u0E31\u0E1E\u0E22\u0E4C \u{1F64F}"
-    );
-  }
-}
-function registerLineWebhook(app2) {
-  app2.post("/api/line/webhook", (req, res) => {
-    const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
-    req.on("end", () => {
-      const rawBody = Buffer.concat(chunks);
-      const signature = req.headers["x-line-signature"];
-      if (!signature || !validateSignature(rawBody, signature)) {
-        console.warn("[LINE Webhook] Invalid or missing signature");
-        res.status(401).json({ error: "Invalid signature" });
-        return;
-      }
-      let body;
-      try {
-        body = JSON.parse(rawBody.toString("utf8"));
-      } catch {
-        res.status(400).json({ error: "Invalid JSON body" });
-        return;
-      }
-      res.status(200).json({ ok: true });
-      const churchId = DEFAULT_CHURCH_ID2;
-      for (const event of body.events ?? []) {
-        if (event.type === "message" && event.message?.type === "image") {
-          processImageEvent(event, churchId).catch(
-            (err) => console.error("[LINE Webhook] processImageEvent error:", err)
-          );
-        }
-      }
-    });
-    req.on("error", (err) => {
-      console.error("[LINE Webhook] Request error:", err);
-      if (!res.headersSent) {
-        res.status(400).json({ error: "Request error" });
-      }
-    });
-  });
-}
-
 // server/line/processWorker.ts
-import { and as and5, eq as eq5, lte as lte3 } from "drizzle-orm";
+import { and as and4, eq as eq4, lte as lte3 } from "drizzle-orm";
 
 // server/_core/llm.ts
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
@@ -3104,14 +2911,14 @@ async function extractSlipData(signedImageUrl) {
 }
 
 // server/line/duplicateDetector.ts
-import { and as and3, eq as eq3, gte as gte2, lte as lte2, ne as ne2 } from "drizzle-orm";
+import { and as and2, eq as eq2, gte as gte2, lte as lte2, ne as ne2 } from "drizzle-orm";
 async function checkDuplicateByReference(churchId, referenceNumber, currentSlipId) {
   const db = await getDb();
   if (!db) return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
   const existingSlip = await db.select({ id: lineSlips.id }).from(lineSlips).where(
-    and3(
-      eq3(lineSlips.churchId, churchId),
-      eq3(lineSlips.extractedRef, referenceNumber),
+    and2(
+      eq2(lineSlips.churchId, churchId),
+      eq2(lineSlips.extractedRef, referenceNumber),
       ne2(lineSlips.id, currentSlipId),
       ne2(lineSlips.status, "rejected"),
       ne2(lineSlips.status, "failed"),
@@ -3128,9 +2935,9 @@ async function checkDuplicateByReference(churchId, referenceNumber, currentSlipI
     };
   }
   const existingOffering = await db.select({ id: offerings.id }).from(offerings).where(
-    and3(
-      eq3(offerings.churchId, churchId),
-      eq3(offerings.reference, referenceNumber),
+    and2(
+      eq2(offerings.churchId, churchId),
+      eq2(offerings.reference, referenceNumber),
       ne2(offerings.status, "voided")
     )
   ).limit(1);
@@ -3154,9 +2961,9 @@ async function checkDuplicateByTransaction(churchId, amount, transferDate, match
   dayAfter.setDate(dayAfter.getDate() + 1);
   const amountStr = amount.toFixed(2);
   const similarSlips = await db.select({ id: lineSlips.id, matchedMemberId: lineSlips.matchedMemberId }).from(lineSlips).where(
-    and3(
-      eq3(lineSlips.churchId, churchId),
-      eq3(lineSlips.extractedAmount, amountStr),
+    and2(
+      eq2(lineSlips.churchId, churchId),
+      eq2(lineSlips.extractedAmount, amountStr),
       gte2(lineSlips.extractedDate, dayBefore),
       lte2(lineSlips.extractedDate, dayAfter),
       ne2(lineSlips.id, currentSlipId),
@@ -3177,9 +2984,9 @@ async function checkDuplicateByTransaction(churchId, amount, transferDate, match
     }
   }
   const similarOfferings = await db.select({ id: offerings.id, donorMemberId: offerings.donorMemberId }).from(offerings).where(
-    and3(
-      eq3(offerings.churchId, churchId),
-      eq3(offerings.amount, amountStr),
+    and2(
+      eq2(offerings.churchId, churchId),
+      eq2(offerings.amount, amountStr),
       gte2(offerings.receiptDate, dayBefore),
       lte2(offerings.receiptDate, dayAfter),
       ne2(offerings.status, "voided")
@@ -3200,7 +3007,7 @@ async function checkDuplicateByTransaction(churchId, amount, transferDate, match
 }
 
 // server/line/memberMatcher.ts
-import { and as and4, eq as eq4 } from "drizzle-orm";
+import { and as and3, eq as eq3 } from "drizzle-orm";
 function normalizeName(name) {
   return name.replace(/^(นาย|นาง|นางสาว|เด็กชาย|เด็กหญิง|ด\.ต\.|ร\.ต\.|Mr\.|Mrs\.|Ms\.|Miss\.?)\s*/i, "").replace(/\s+/g, "").toLowerCase().trim();
 }
@@ -3230,7 +3037,7 @@ var FUZZY_THRESHOLD = 0.85;
 async function matchMember(churchId, lineUserId, extractedSenderName) {
   const db = await getDb();
   if (!db) return null;
-  const activeMembers = await db.select({ id: members.id, name: members.name, lineUserId: members.lineUserId }).from(members).where(and4(eq4(members.churchId, churchId), eq4(members.status, "active")));
+  const activeMembers = await db.select({ id: members.id, name: members.name, lineUserId: members.lineUserId }).from(members).where(and3(eq3(members.churchId, churchId), eq3(members.status, "active")));
   const byLineId = activeMembers.find((m) => m.lineUserId === lineUserId);
   if (byLineId) {
     return {
@@ -3302,10 +3109,10 @@ function isAuthorizedCron(req) {
 async function processJob(jobId, slipId) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const [slip] = await db.select().from(lineSlips).where(eq5(lineSlips.id, slipId)).limit(1);
+  const [slip] = await db.select().from(lineSlips).where(eq4(lineSlips.id, slipId)).limit(1);
   if (!slip) throw new Error(`Slip #${slipId} not found`);
   if (slip.status !== "pending") {
-    await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs.id, jobId));
+    await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(lineProcessingJobs.id, jobId));
     return;
   }
   const signedUrl = await getSlipSignedUrl(slip.slipImageKey);
@@ -3390,15 +3197,15 @@ async function processJob(jobId, slipId) {
     lastErrorMessage: duplicateReason,
     processingAttempts: (slip.processingAttempts ?? 0) + 1,
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq5(lineSlips.id, slipId));
-  await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs.id, jobId));
+  }).where(eq4(lineSlips.id, slipId));
+  await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(lineProcessingJobs.id, jobId));
 }
 async function runWorkerBatch() {
   const db = await getDb();
   if (!db) return { processed: 0, errors: 0 };
   const jobs = await db.select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts }).from(lineProcessingJobs).where(
-    and5(
-      eq5(lineProcessingJobs.status, "queued"),
+    and4(
+      eq4(lineProcessingJobs.status, "queued"),
       lte3(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
     )
   ).orderBy(lineProcessingJobs.createdAt).limit(BATCH_SIZE);
@@ -3411,9 +3218,9 @@ async function runWorkerBatch() {
       lastAttemptAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
-      and5(
-        eq5(lineProcessingJobs.id, job.id),
-        eq5(lineProcessingJobs.status, "queued")
+      and4(
+        eq4(lineProcessingJobs.id, job.id),
+        eq4(lineProcessingJobs.status, "queued")
         // Only claim if still queued
       )
     ).returning({ id: lineProcessingJobs.id });
@@ -3429,13 +3236,13 @@ async function runWorkerBatch() {
         status: nextStatus,
         errorMessage: err instanceof Error ? err.message : String(err),
         updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq5(lineProcessingJobs.id, job.id)).catch((e) => console.error("[Worker] Failed to update job status:", e));
+      }).where(eq4(lineProcessingJobs.id, job.id)).catch((e) => console.error("[Worker] Failed to update job status:", e));
       if (nextStatus === "failed") {
         await db.update(lineSlips).set({
           status: "failed",
           lastErrorMessage: err instanceof Error ? err.message : String(err),
           updatedAt: /* @__PURE__ */ new Date()
-        }).where(eq5(lineSlips.id, job.slipId)).catch((e) => console.error("[Worker] Failed to mark slip failed:", e));
+        }).where(eq4(lineSlips.id, job.slipId)).catch((e) => console.error("[Worker] Failed to mark slip failed:", e));
       }
     }
   }
@@ -3455,6 +3262,202 @@ function registerLineWorker(app2) {
       console.error("[Worker] Batch runner failed:", err);
       res.status(500).json({ error: "Worker batch failed" });
     }
+  });
+}
+
+// server/line/webhook.ts
+import { eq as eq5, and as and5 } from "drizzle-orm";
+var DEFAULT_CHURCH_ID2 = "demo-church";
+var LINE_API_BASE = "https://api.line.me/v2/bot";
+var LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
+function validateSignature(rawBody, signature) {
+  if (!ENV.lineChannelSecret) {
+    if (ENV.isProduction) return false;
+    console.warn("[LINE Webhook] LINE_CHANNEL_SECRET not set \u2014 skipping validation (dev only)");
+    return true;
+  }
+  const expected = createHmac("sha256", ENV.lineChannelSecret).update(rawBody).digest("base64");
+  return expected === signature;
+}
+async function getLineProfile(userId) {
+  try {
+    const resp = await fetch(`${LINE_API_BASE}/profile/${userId}`, {
+      headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` }
+    });
+    if (!resp.ok) return userId;
+    const data = await resp.json();
+    return data.displayName ?? userId;
+  } catch {
+    return userId;
+  }
+}
+async function downloadLineImage(messageId) {
+  const resp = await fetch(
+    `${LINE_CONTENT_BASE}/message/${messageId}/content`,
+    { headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` } }
+  );
+  if (!resp.ok) {
+    throw new Error(`LINE image download failed: ${resp.status} ${resp.statusText}`);
+  }
+  return Buffer.from(await resp.arrayBuffer());
+}
+async function replyToLine(replyToken, text2) {
+  if (!ENV.lineChannelAccessToken || !replyToken) return;
+  await fetch(`${LINE_API_BASE}/message/reply`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ENV.lineChannelAccessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: "text", text: text2 }]
+    })
+  }).catch(
+    (e) => console.error("[LINE Webhook] reply failed:", e)
+  );
+}
+function sha256Hex(data) {
+  return createHash("sha256").update(data).digest("hex");
+}
+async function processImageEvent(event, churchId) {
+  const lineUserId = event.source?.userId;
+  const messageId = event.message?.id;
+  const lineEventId = event.webhookEventId;
+  if (!lineUserId || !messageId || !lineEventId) return;
+  const db = await getDb();
+  if (!db) {
+    console.error("[LINE Webhook] DB not available");
+    return;
+  }
+  const existing = await db.select({ id: lineSlips.id }).from(lineSlips).where(
+    and5(
+      eq5(lineSlips.churchId, churchId),
+      eq5(lineSlips.lineEventId, lineEventId)
+    )
+  ).limit(1);
+  if (existing.length > 0) {
+    console.log(`[LINE Webhook] Duplicate event ${lineEventId} \u2014 skipping`);
+    return;
+  }
+  let imageBuffer;
+  try {
+    imageBuffer = await downloadLineImage(messageId);
+  } catch (err) {
+    console.error("[LINE Webhook] Image download failed:", err);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E23\u0E31\u0E1A\u0E23\u0E39\u0E1B\u0E20\u0E32\u0E1E\u0E44\u0E14\u0E49\u0E43\u0E19\u0E02\u0E13\u0E30\u0E19\u0E35\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const slipHash = sha256Hex(imageBuffer);
+  const hashDuplicate = await db.select({ id: lineSlips.id, status: lineSlips.status }).from(lineSlips).where(eq5(lineSlips.slipHash, slipHash)).limit(1);
+  if (hashDuplicate.length > 0) {
+    console.log(`[LINE Webhook] Duplicate image hash ${slipHash} from ${lineUserId}`);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A\u0E27\u0E48\u0E32\u0E2A\u0E25\u0E34\u0E1B\u0E19\u0E35\u0E49\u0E40\u0E04\u0E22\u0E2A\u0E48\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30 \u0E2B\u0E32\u0E01\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E2A\u0E07\u0E2A\u0E31\u0E22\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const now = /* @__PURE__ */ new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const storageKey = `line/${churchId}/${lineUserId}/${dateStr}/${slipHash.slice(0, 16)}.jpg`;
+  let uploadResult;
+  try {
+    uploadResult = await storagePutPrivate(storageKey, imageBuffer, "image/jpeg");
+  } catch (err) {
+    console.error("[LINE Webhook] Storage upload failed:", err);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E2A\u0E25\u0E34\u0E1B \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const lineDisplayName = await getLineProfile(lineUserId);
+  let newSlipId;
+  try {
+    const [inserted] = await db.insert(lineSlips).values({
+      churchId,
+      lineUserId,
+      lineDisplayName,
+      lineEventId,
+      slipImageKey: uploadResult.key,
+      slipHash,
+      status: "pending",
+      processingAttempts: 0
+    }).onConflictDoNothing().returning({ id: lineSlips.id });
+    if (!inserted) {
+      console.log(`[LINE Webhook] Conflict on lineEventId ${lineEventId} \u2014 already inserted`);
+      return;
+    }
+    newSlipId = inserted.id;
+  } catch (err) {
+    console.error("[LINE Webhook] DB insert failed:", err);
+    return;
+  }
+  try {
+    await db.insert(lineProcessingJobs).values({
+      slipId: newSlipId,
+      churchId,
+      status: "queued",
+      attempts: 0
+    });
+    runWorkerBatch().catch(
+      (err) => console.warn("[LINE Webhook] Trigger worker error:", err)
+    );
+  } catch (err) {
+    console.error("[LINE Webhook] Job enqueue failed:", err);
+  }
+  if (event.replyToken) {
+    await replyToLine(
+      event.replyToken,
+      "\u2705 \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2A\u0E25\u0E34\u0E1B\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30\n\n\u0E23\u0E30\u0E1A\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A \u0E41\u0E25\u0E30\u0E08\u0E30\u0E41\u0E08\u0E49\u0E07\u0E1C\u0E25\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\n\n\u0E02\u0E2D\u0E1A\u0E04\u0E38\u0E13\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E16\u0E27\u0E32\u0E22\u0E17\u0E23\u0E31\u0E1E\u0E22\u0E4C \u{1F64F}"
+    );
+  }
+}
+function registerLineWebhook(app2) {
+  app2.post("/api/line/webhook", (req, res) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      const rawBody = Buffer.concat(chunks);
+      const signature = req.headers["x-line-signature"];
+      if (!signature || !validateSignature(rawBody, signature)) {
+        console.warn("[LINE Webhook] Invalid or missing signature");
+        res.status(401).json({ error: "Invalid signature" });
+        return;
+      }
+      let body;
+      try {
+        body = JSON.parse(rawBody.toString("utf8"));
+      } catch {
+        res.status(400).json({ error: "Invalid JSON body" });
+        return;
+      }
+      res.status(200).json({ ok: true });
+      const churchId = DEFAULT_CHURCH_ID2;
+      for (const event of body.events ?? []) {
+        if (event.type === "message" && event.message?.type === "image") {
+          processImageEvent(event, churchId).catch(
+            (err) => console.error("[LINE Webhook] processImageEvent error:", err)
+          );
+        }
+      }
+    });
+    req.on("error", (err) => {
+      console.error("[LINE Webhook] Request error:", err);
+      if (!res.headersSent) {
+        res.status(400).json({ error: "Request error" });
+      }
+    });
   });
 }
 
@@ -5028,6 +5031,9 @@ var appRouter = router({
         offset: z2.number().min(0).default(0)
       }).optional()
     ).query(async ({ input }) => {
+      await runWorkerBatch().catch(
+        (err) => console.warn("[GivingInbox] Auto-drain worker error:", err)
+      );
       return await listLineSlips(DEFAULT_CHURCH_ID, {
         status: input?.status,
         memberId: input?.memberId,

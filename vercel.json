@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/line/process-worker",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [

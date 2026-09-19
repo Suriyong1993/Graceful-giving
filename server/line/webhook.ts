@@ -20,6 +20,7 @@ import { ENV } from "../_core/env";
 import { storagePutPrivate } from "../storage";
 import { getDb } from "../db";
 import { lineSlips, lineProcessingJobs } from "../../drizzle/schema";
+import { runWorkerBatch } from "./processWorker";
 import { eq, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
@@ -246,6 +247,10 @@ async function processImageEvent(
       status: "queued",
       attempts: 0,
     });
+    // Immediately attempt to process in background without blocking webhook response
+    runWorkerBatch().catch(err =>
+      console.warn("[LINE Webhook] Trigger worker error:", err)
+    );
   } catch (err) {
     console.error("[LINE Webhook] Job enqueue failed:", err);
     // Non-fatal: worker can still pick up slips with no job row by polling line_slips

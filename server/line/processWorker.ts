@@ -194,7 +194,7 @@ async function processJob(jobId: number, slipId: number): Promise<void> {
 
 // ─── Worker batch runner ──────────────────────────────────────────────────────
 
-async function runWorkerBatch(): Promise<{ processed: number; errors: number }> {
+export async function runWorkerBatch(): Promise<{ processed: number; errors: number }> {
   const db = await getDb();
   if (!db) return { processed: 0, errors: 0 };
 

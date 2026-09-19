@@ -83,6 +83,7 @@ import {
   linkLineUserToMember,
   getLineInboxStats,
 } from "./db";
+import { runWorkerBatch } from "./line/processWorker";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
 import type { CountingStatus } from "@shared/counting";
@@ -1693,6 +1694,10 @@ export const appRouter = router({
           .optional()
       )
       .query(async ({ input }) => {
+        // Opportunistically drain any queued jobs before returning list
+        await runWorkerBatch().catch(err =>
+          console.warn("[GivingInbox] Auto-drain worker error:", err)
+        );
         return await listLineSlips(DEFAULT_CHURCH_ID, {
           status: input?.status,
           memberId: input?.memberId,
