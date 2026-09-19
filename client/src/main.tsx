@@ -5,6 +5,7 @@ import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
+import { useEffect } from "react";
 import superjson from "superjson";
 import App from "./App";
 import "./index.css";
@@ -28,23 +29,21 @@ function TrpcProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const unsubscribeQuery = queryClient.getQueryCache().subscribe(event => {
+    const unsubscribeQueryCache = queryClient.getQueryCache().subscribe(event => {
       if (event.type === "updated" && event.action.type === "error") {
         redirectToLoginIfUnauthorized(event.query.state.error);
       }
     });
 
-    const unsubscribeMutation = queryClient
-      .getMutationCache()
-      .subscribe(event => {
-        if (event.type === "updated" && event.action.type === "error") {
-          redirectToLoginIfUnauthorized(event.mutation.state.error);
-        }
-      });
+    const unsubscribeMutationCache = queryClient.getMutationCache().subscribe(event => {
+      if (event.type === "updated" && event.action.type === "error") {
+        redirectToLoginIfUnauthorized(event.mutation.state.error);
+      }
+    });
 
     return () => {
-      unsubscribeQuery();
-      unsubscribeMutation();
+      unsubscribeQueryCache();
+      unsubscribeMutationCache();
     };
   }, [signOut]);
 
