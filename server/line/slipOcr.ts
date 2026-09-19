@@ -126,8 +126,13 @@ async function extractWithGemini(
   const base64Data = Buffer.from(arrayBuffer).toString("base64");
   const contentType = imgRes.headers.get("content-type") || "image/jpeg";
 
-  // Try gemini-2.0-flash first, fallback to gemini-1.5-flash
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // Prioritize gemini-3.5-flash, fallback to flash-lite and latest
+  const models = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
+  ];
   let lastError: any;
 
   for (const model of models) {
