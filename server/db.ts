@@ -82,7 +82,7 @@ export async function getDb() {
       if (!_schemaInitialized) {
         _schemaInitialized = true;
         try {
-          console.log("[Database] Ensuring tables and schema exist for Neon Postgres...");
+          console.log("[Database] Ensuring tables and schema exist...");
           await runSchemaInit(client);
           console.log("[Database] Tables verified/created successfully.");
         } catch (initErr) {

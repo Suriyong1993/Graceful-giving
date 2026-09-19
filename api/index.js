@@ -1134,6 +1134,32 @@ var INDEX_STATEMENTS = [
   /** Financial integrity backstop: prevent duplicate active offerings with the same bank reference */
   `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`
 ];
+var INTEGRITY_INDEXES = {
+  offerings_ref_active_uniq: {
+    guards: "two active offerings must not share one bank reference",
+    findBlockingRows: `SELECT "churchId", "reference", count(*) AS copies
+      FROM "offerings"
+      WHERE "reference" IS NOT NULL AND "status" = 'active'
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`
+  },
+  line_slips_ref_uniq: {
+    guards: "two live LINE slips must not share one bank reference",
+    findBlockingRows: `SELECT "churchId", "extractedRef", count(*) AS copies
+      FROM "line_slips"
+      WHERE "extractedRef" IS NOT NULL
+        AND "status" NOT IN ('rejected', 'duplicate', 'failed')
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`
+  },
+  line_slips_event_uniq: {
+    guards: "one LINE event must not create two slips",
+    findBlockingRows: `SELECT "churchId", "lineEventId", count(*) AS copies
+      FROM "line_slips"
+      GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`
+  }
+};
+function indexNameOf(stmt) {
+  return stmt.match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i)?.[1] ?? null;
+}
 async function runSchemaInit(client) {
   for (const stmt of ENUM_STATEMENTS) {
     try {
@@ -1153,7 +1179,29 @@ async function runSchemaInit(client) {
     try {
       await client.unsafe(stmt);
     } catch (err) {
-      console.warn("[Index Init]", err.message);
+      const indexName = indexNameOf(stmt);
+      const diagnostic = indexName ? INTEGRITY_INDEXES[indexName] : void 0;
+      if (!diagnostic) {
+        console.warn("[Index Init]", err.message);
+        continue;
+      }
+      console.error(
+        `[Index Init] INTEGRITY INDEX "${indexName}" WAS NOT CREATED \u2014 ${diagnostic.guards}. The database cannot enforce this rule until the index exists. Cause: ${err.message}`
+      );
+      try {
+        const blocking = await client.unsafe(diagnostic.findBlockingRows);
+        if (blocking?.length) {
+          console.error(
+            `[Index Init] "${indexName}" is blocked by ${blocking.length} duplicate group(s):`,
+            JSON.stringify(blocking.slice(0, 20))
+          );
+        }
+      } catch (diagErr) {
+        console.error(
+          `[Index Init] Could not diagnose "${indexName}":`,
+          diagErr.message
+        );
+      }
     }
   }
 }
@@ -1172,7 +1220,7 @@ async function getDb() {
       if (!_schemaInitialized) {
         _schemaInitialized = true;
         try {
-          console.log("[Database] Ensuring tables and schema exist for Neon Postgres...");
+          console.log("[Database] Ensuring tables and schema exist...");
           await runSchemaInit(client);
           console.log("[Database] Tables verified/created successfully.");
         } catch (initErr) {
@@ -2618,7 +2666,15 @@ async function createManualSlip(input) {
 async function rescanLineSlip(slipId, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db.update(lineSlips).set({ status: "pending", lastErrorMessage: null }).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
+  const [slip] = await db.select({ id: lineSlips.id, status: lineSlips.status, approvedOfferingId: lineSlips.approvedOfferingId }).from(lineSlips).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId))).limit(1);
+  if (!slip) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${slipId}`);
+  if (slip.status === "approved" || slip.approvedOfferingId) {
+    throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E30\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E25\u0E49\u0E27`);
+  }
+  if (slip.status === "rejected") {
+    throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`);
+  }
+  await db.update(lineSlips).set({ status: "pending", lastErrorMessage: null, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
   await db.insert(lineProcessingJobs).values({
     slipId,
     churchId,
@@ -2629,7 +2685,7 @@ async function rescanLineSlip(slipId, churchId = DEFAULT_CHURCH_ID) {
 }
 
 // server/line/processWorker.ts
-import { and as and4, eq as eq4, lte as lte3 } from "drizzle-orm";
+import { and as and4, eq as eq4, lte as lte3, sql as sql2 } from "drizzle-orm";
 
 // server/_core/llm.ts
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
@@ -2925,10 +2981,16 @@ var TransientOcrError = class extends Error {
     this.name = "TransientOcrError";
   }
 };
+var TRANSIENT_STATUSES = /* @__PURE__ */ new Set([408, 429, 500, 502, 503, 504]);
+var TRANSIENT_NETWORK_PATTERNS = /(econnreset|etimedout|econnrefused|enotfound|socket hang up|network error|fetch failed|timeout)/i;
 function isTransientError(err) {
   if (err instanceof TransientOcrError) return true;
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return msg.includes("429") || msg.includes("503") || msg.includes("500") || msg.includes("502") || msg.includes("504") || msg.includes("timeout") || msg.includes("econnreset") || msg.includes("etimedout") || msg.includes("fetch failed");
+  const msg = err instanceof Error ? err.message : String(err);
+  const statusMatch = msg.match(/LLM invoke failed:\s*(\d{3})\b/i);
+  if (statusMatch) {
+    return TRANSIENT_STATUSES.has(Number(statusMatch[1]));
+  }
+  return TRANSIENT_NETWORK_PATTERNS.test(msg);
 }
 function normalizeAndValidateDate(dateStr, timeStr, confidence) {
   if (!dateStr) return { transferDate: null, dateConfidence: 0 };
@@ -3296,6 +3358,7 @@ async function matchMember(churchId, lineUserId, extractedSenderName) {
 // server/line/processWorker.ts
 var MAX_ATTEMPTS = 3;
 var BATCH_SIZE = 10;
+var RETRY_BACKOFF_FACTOR = 5;
 function isAuthorizedCron(req) {
   const auth = req.headers.authorization ?? "";
   if (ENV.cronSecret && auth === `Bearer ${ENV.cronSecret}`) return true;
@@ -3406,7 +3469,11 @@ async function runWorkerBatch() {
   const jobs = await db.select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts }).from(lineProcessingJobs).where(
     and4(
       eq4(lineProcessingJobs.status, "queued"),
-      lte3(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
+      lte3(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1),
+      sql2`(
+          ${lineProcessingJobs.lastAttemptAt} IS NULL
+          OR ${lineProcessingJobs.lastAttemptAt} < now() - (interval '1 minute' * power(${RETRY_BACKOFF_FACTOR}, ${lineProcessingJobs.attempts} - 1))
+        )`
     )
   ).orderBy(lineProcessingJobs.createdAt).limit(BATCH_SIZE);
   let processed = 0;
