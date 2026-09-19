@@ -2,10 +2,17 @@ import React from "react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { EmptyState } from "@/components/common/CommonUI";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canAccessRoute } from "@/lib/routeAccess";
 import { UsersRound } from "lucide-react";
 
 export default function Ministries() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  // This page is open to every role, but /members is not, so only offer the
+  // shortcut to roles that can actually open it.
+  const canOpenMembers = canAccessRoute("/members", user);
 
   return (
     <AppLayout
@@ -32,8 +39,8 @@ export default function Ministries() {
         <EmptyState
           title="ยังไม่มีข้อมูลฝ่ายงาน"
           description="ระบบยังไม่มี endpoint สำหรับรายการพันธกิจและสมาชิกของแต่ละฝ่าย จึงไม่แสดงข้อมูลตัวอย่าง"
-          actionText="ไปหน้าสมาชิก"
-          onAction={() => setLocation("/members")}
+          actionText={canOpenMembers ? "ไปหน้าสมาชิก" : undefined}
+          onAction={canOpenMembers ? () => setLocation("/members") : undefined}
         />
       </div>
     </AppLayout>
