@@ -75,6 +75,13 @@ import {
   postCountingSession,
   deleteCountingSession,
   resetCountingSession,
+  listLineSlips,
+  getLineSlipById,
+  approveLineSlip,
+  rejectLineSlip,
+  updateLineSlipReview,
+  linkLineUserToMember,
+  getLineInboxStats,
 } from "./db";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
@@ -1652,6 +1659,196 @@ export const appRouter = router({
           },
         });
         return { success: true } as const;
+      }),
+  }),
+
+  // ── Giving Inbox (LINE Slip AI) ──────────────────────────────────────────
+  givingInbox: router({
+    /**
+     * List slips in inbox with optional status filter.
+     * Accessible by TREASURER and SUPER_ADMIN.
+     */
+    list: financeProcedure
+      .input(
+        z
+          .object({
+            status: z
+              .enum([
+                "all",
+                "pending",
+                "processing",
+                "extracted",
+                "needs_review",
+                "matched",
+                "duplicate",
+                "approved",
+                "rejected",
+                "failed",
+              ])
+              .optional(),
+            memberId: z.number().optional(),
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+          })
+          .optional()
+      )
+      .query(async ({ input }) => {
+        return await listLineSlips(DEFAULT_CHURCH_ID, {
+          status: input?.status,
+          memberId: input?.memberId,
+          limit: input?.limit,
+          offset: input?.offset,
+        });
+      }),
+
+    /**
+     * Get single slip detail with AI data and signed image URL.
+     */
+    getById: financeProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const slip = await getLineSlipById(input.id, DEFAULT_CHURCH_ID);
+        if (!slip) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `ไม่พบสลิป #${input.id}`,
+          });
+        }
+        return slip;
+      }),
+
+    /**
+     * Overview counts by status for badges and dashboard.
+     */
+    stats: financeProcedure.query(async () => {
+      return await getLineInboxStats(DEFAULT_CHURCH_ID);
+    }),
+
+    /**
+     * Approve slip and create Offering in ledger atomically.
+     * Prevents double-approval via database transaction with row locking.
+     */
+    approve: financeProcedure
+      .input(
+        z.object({
+          slipId: z.number(),
+          fundId: z.number(),
+          amount: z.number().positive("ยอดเงินต้องมากกว่า 0"),
+          memberId: z.number().nullable().optional(),
+          donorName: z.string().nullable().optional(),
+          category: offeringCategory.optional(),
+          receiptDate: z.coerce.date().optional(),
+          reviewNote: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await approveLineSlip({
+            slipId: input.slipId,
+            churchId: DEFAULT_CHURCH_ID,
+            approvedBy: ctx.user.id,
+            fundId: input.fundId,
+            amount: input.amount,
+            memberId: input.memberId,
+            donorName: input.donorName,
+            category: input.category,
+            receiptDate: input.receiptDate,
+            reviewNote: input.reviewNote,
+          });
+        } catch (err: any) {
+          const msg = err?.message || "เกิดข้อผิดพลาดในการอนุมัติสลิป";
+          if (msg.includes("ได้รับการอนุมัติไปแล้ว")) {
+            throw new TRPCError({ code: "CONFLICT", message: msg });
+          }
+          throw new TRPCError({ code: "BAD_REQUEST", message: msg });
+        }
+      }),
+
+    /**
+     * Reject a slip with reason.
+     */
+    reject: financeProcedure
+      .input(
+        z.object({
+          slipId: z.number(),
+          reason: z.string().min(1, "กรุณาระบุเหตุผลการปฏิเสธสลิป"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await rejectLineSlip({
+            slipId: input.slipId,
+            churchId: DEFAULT_CHURCH_ID,
+            reviewedBy: ctx.user.id,
+            reason: input.reason,
+          });
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err?.message || "เกิดข้อผิดพลาดในการปฏิเสธสลิป",
+          });
+        }
+      }),
+
+    /**
+     * Update review fields (fund, member, adjusted amount, notes) before approval.
+     */
+    updateReview: financeProcedure
+      .input(
+        z.object({
+          slipId: z.number(),
+          fundId: z.number().nullable().optional(),
+          matchedMemberId: z.number().nullable().optional(),
+          matchedMemberName: z.string().nullable().optional(),
+          approvedAmount: z.number().nullable().optional(),
+          reviewNote: z.string().nullable().optional(),
+          status: z.enum(["extracted", "needs_review", "matched"]).optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        try {
+          return await updateLineSlipReview({
+            slipId: input.slipId,
+            churchId: DEFAULT_CHURCH_ID,
+            fundId: input.fundId,
+            matchedMemberId: input.matchedMemberId,
+            matchedMemberName: input.matchedMemberName,
+            approvedAmount: input.approvedAmount,
+            reviewNote: input.reviewNote,
+            status: input.status,
+          });
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err?.message || "เกิดข้อผิดพลาดในการอัปเดตข้อมูลสลิป",
+          });
+        }
+      }),
+
+    /**
+     * Link a LINE User ID to a member profile and auto-match their pending slips.
+     */
+    linkMember: financeProcedure
+      .input(
+        z.object({
+          lineUserId: z.string().min(1, "LINE User ID ไม่ถูกต้อง"),
+          memberId: z.number(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await linkLineUserToMember(
+            DEFAULT_CHURCH_ID,
+            input.lineUserId,
+            input.memberId,
+            ctx.user.id
+          );
+        } catch (err: any) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
+          });
+        }
       }),
   }),
 

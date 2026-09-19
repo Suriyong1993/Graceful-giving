@@ -40,6 +40,10 @@ import {
   InsertMember,
   InsertNotification,
   auditLogs,
+  lineSlips,
+  lineProcessingJobs,
+  InsertLineSlip,
+  LineSlip,
   members,
   notifications,
   offeringEnvelopes,
@@ -54,6 +58,7 @@ import { reconcile } from "@shared/counting";
 import { ENV } from "./_core/env";
 
 import { runSchemaInit } from "./schema_init";
+import { getSlipSignedUrl } from "./storage";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _schemaInitialized = false;
@@ -2017,5 +2022,448 @@ export async function getFinancialReportSummary(
       type: f.type,
       balance: parseFloat((f.balance as unknown as string) ?? "0"),
     })),
+  };
+}
+
+// ─── LINE Slip Giving Inbox ───────────────────────────────────────────────────
+
+export interface ListLineSlipsFilter {
+  status?: string;
+  memberId?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export async function listLineSlips(
+  churchId = DEFAULT_CHURCH_ID,
+  filters: ListLineSlipsFilter = {}
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const conditions = [eq(lineSlips.churchId, churchId)];
+
+  if (filters.status && filters.status !== "all") {
+    conditions.push(eq(lineSlips.status, filters.status as any));
+  }
+  if (filters.memberId) {
+    conditions.push(eq(lineSlips.matchedMemberId, filters.memberId));
+  }
+
+  const limit = filters.limit ?? 50;
+  const offset = filters.offset ?? 0;
+
+  const rows = await db
+    .select()
+    .from(lineSlips)
+    .where(and(...conditions))
+    .orderBy(desc(lineSlips.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  // Generate signed URLs for slip images so frontend can render securely without public bucket
+  const items = await Promise.all(
+    rows.map(async slip => {
+      let signedUrl = "";
+      try {
+        if (slip.slipImageKey) {
+          signedUrl = await getSlipSignedUrl(slip.slipImageKey);
+        }
+      } catch (e) {
+        console.warn(`[listLineSlips] Failed to sign URL for slip #${slip.id}:`, e);
+      }
+      return {
+        ...slip,
+        signedImageUrl: signedUrl,
+      };
+    })
+  );
+
+  return items;
+}
+
+export async function getLineSlipById(id: number, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const rows = await db
+    .select()
+    .from(lineSlips)
+    .where(and(eq(lineSlips.id, id), eq(lineSlips.churchId, churchId)))
+    .limit(1);
+
+  const slip = rows[0];
+  if (!slip) return null;
+
+  let signedImageUrl = "";
+  try {
+    if (slip.slipImageKey) {
+      signedImageUrl = await getSlipSignedUrl(slip.slipImageKey);
+    }
+  } catch (e) {
+    console.warn(`[getLineSlipById] Failed to sign URL for slip #${id}:`, e);
+  }
+
+  return {
+    ...slip,
+    signedImageUrl,
+  };
+}
+
+export interface ApproveLineSlipInput {
+  slipId: number;
+  churchId?: string;
+  approvedBy: number;
+  fundId: number;
+  amount: number;
+  memberId?: number | null;
+  donorName?: string | null;
+  category?: string;
+  receiptDate?: Date;
+  reviewNote?: string;
+}
+
+/**
+ * Approve a LINE Slip with strict atomic transaction and row locking:
+ * 1. Lock line_slip (SELECT ... FOR UPDATE)
+ * 2. Validate current status is not already approved/rejected
+ * 3. Validate fund exists in finance_accounts and is active
+ * 4. Validate amount > 0
+ * 5. Insert Offering into offerings ledger (financial source of truth)
+ * 6. Update fund balance in finance_accounts
+ * 7. Update line_slips status to 'approved', link offeringId, reviewer
+ * 8. Insert audit log
+ * All in a single atomic transaction.
+ */
+export async function approveLineSlip(input: ApproveLineSlipInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+
+  if (input.amount <= 0) {
+    throw new Error("ยอดเงินถวายต้องมากกว่า 0 บาท");
+  }
+
+  return db.transaction(async tx => {
+    // 1. Lock line_slip row
+    const [slip] = await tx
+      .select()
+      .from(lineSlips)
+      .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+      .for("update")
+      .limit(1);
+
+    if (!slip) {
+      throw new Error(`ไม่พบสลิป #${input.slipId}`);
+    }
+
+    if (slip.status === "approved" || slip.approvedOfferingId) {
+      throw new Error(`สลิป #${input.slipId} ได้รับการอนุมัติไปแล้ว (Offering #${slip.approvedOfferingId})`);
+    }
+
+    if (slip.status === "rejected") {
+      throw new Error(`สลิป #${input.slipId} ถูกปฏิเสธไปแล้ว`);
+    }
+
+    // 2. Validate fund
+    const [fund] = await tx
+      .select()
+      .from(financeAccounts)
+      .where(
+        and(
+          eq(financeAccounts.id, input.fundId),
+          eq(financeAccounts.churchId, churchId),
+          eq(financeAccounts.isActive, true)
+        )
+      )
+      .limit(1);
+
+    if (!fund) {
+      throw new Error(`ไม่พบบัญชีกองทุนรหัส #${input.fundId} หรือกองทุนไม่ได้เปิดใช้งาน`);
+    }
+
+    // 3. Resolve donor name
+    let donorName = input.donorName?.trim() || null;
+    if (input.memberId) {
+      const [member] = await tx
+        .select({ id: members.id, name: members.name })
+        .from(members)
+        .where(and(eq(members.id, input.memberId), eq(members.churchId, churchId)))
+        .limit(1);
+      if (member && !donorName) {
+        donorName = member.name;
+      }
+    }
+    if (!donorName) {
+      donorName = slip.extractedSenderName || slip.lineDisplayName || "ผู้ถวายผ่าน LINE";
+    }
+
+    // 4. Create Offering in offerings table (Official Financial Ledger)
+    const [offering] = await tx
+      .insert(offerings)
+      .values({
+        churchId,
+        amount: String(input.amount),
+        category: (input.category as any) || "general",
+        fundId: input.fundId,
+        donorName,
+        donorMemberId: input.memberId ?? null,
+        receiptDate: input.receiptDate ?? slip.extractedDate ?? new Date(),
+        method: "transfer",
+        reference: slip.extractedRef || `LINE-${slip.id}`,
+        notes: `[LINE Slip #${slip.id}] ${input.reviewNote ? input.reviewNote : ""}`.trim(),
+        recordedBy: input.approvedBy,
+        status: "active",
+      })
+      .returning({ id: offerings.id });
+
+    // 5. Update fund balance in finance_accounts
+    await tx.execute(
+      sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
+    );
+
+    // 6. Update line_slips
+    await tx
+      .update(lineSlips)
+      .set({
+        status: "approved",
+        fundId: input.fundId,
+        approvedAmount: String(input.amount),
+        approvedOfferingId: offering.id,
+        matchedMemberId: input.memberId ?? slip.matchedMemberId,
+        matchedMemberName: donorName,
+        reviewedBy: input.approvedBy,
+        reviewedAt: new Date(),
+        reviewNote: input.reviewNote ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(lineSlips.id, input.slipId));
+
+    // 7. Insert audit log
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: input.approvedBy,
+      action: "APPROVE_LINE_SLIP",
+      entity: "line_slips",
+      entityId: input.slipId,
+      metadata: {
+        offeringId: offering.id,
+        amount: input.amount,
+        fundId: input.fundId,
+        fundName: fund.name,
+        memberId: input.memberId,
+        donorName,
+        slipRef: slip.extractedRef,
+      },
+    });
+
+    return {
+      success: true,
+      slipId: input.slipId,
+      offeringId: offering.id,
+    };
+  });
+}
+
+export interface RejectLineSlipInput {
+  slipId: number;
+  churchId?: string;
+  reviewedBy: number;
+  reason: string;
+}
+
+/**
+ * Reject a LINE slip atomically.
+ */
+export async function rejectLineSlip(input: RejectLineSlipInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+
+  if (!input.reason.trim()) {
+    throw new Error("กรุณาระบุเหตุผลการปฏิเสธสลิป");
+  }
+
+  return db.transaction(async tx => {
+    const [slip] = await tx
+      .select()
+      .from(lineSlips)
+      .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+      .for("update")
+      .limit(1);
+
+    if (!slip) throw new Error(`ไม่พบสลิป #${input.slipId}`);
+    if (slip.status === "approved" || slip.approvedOfferingId) {
+      throw new Error(`ไม่สามารถปฏิเสธสลิปที่ได้รับการอนุมัติแล้วได้`);
+    }
+
+    await tx
+      .update(lineSlips)
+      .set({
+        status: "rejected",
+        reviewedBy: input.reviewedBy,
+        reviewedAt: new Date(),
+        reviewNote: input.reason.trim(),
+        updatedAt: new Date(),
+      })
+      .where(eq(lineSlips.id, input.slipId));
+
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: input.reviewedBy,
+      action: "REJECT_LINE_SLIP",
+      entity: "line_slips",
+      entityId: input.slipId,
+      metadata: {
+        reason: input.reason.trim(),
+        previousStatus: slip.status,
+      },
+    });
+
+    return { success: true, slipId: input.slipId };
+  });
+}
+
+export interface UpdateLineSlipReviewInput {
+  slipId: number;
+  churchId?: string;
+  fundId?: number | null;
+  matchedMemberId?: number | null;
+  matchedMemberName?: string | null;
+  approvedAmount?: number | null;
+  reviewNote?: string | null;
+  status?: LineSlip["status"];
+}
+
+export async function updateLineSlipReview(input: UpdateLineSlipReviewInput) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+
+  const updateSet: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+
+  if (input.fundId !== undefined) updateSet.fundId = input.fundId;
+  if (input.matchedMemberId !== undefined) updateSet.matchedMemberId = input.matchedMemberId;
+  if (input.matchedMemberName !== undefined) updateSet.matchedMemberName = input.matchedMemberName;
+  if (input.approvedAmount !== undefined) {
+    updateSet.approvedAmount = input.approvedAmount !== null ? String(input.approvedAmount) : null;
+  }
+  if (input.reviewNote !== undefined) updateSet.reviewNote = input.reviewNote;
+  if (input.status !== undefined) updateSet.status = input.status;
+
+  const [updated] = await db
+    .update(lineSlips)
+    .set(updateSet as any)
+    .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+    .returning();
+
+  return updated;
+}
+
+/**
+ * Link a LINE User ID to a member profile.
+ * Also back-fills matchedMemberId on all pending/needs_review slips from this LINE user.
+ */
+export async function linkLineUserToMember(
+  churchId: string,
+  lineUserId: string,
+  memberId: number,
+  adminUserId: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  return db.transaction(async tx => {
+    // 1. Check member
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(and(eq(members.id, memberId), eq(members.churchId, churchId)))
+      .limit(1);
+
+    if (!member) throw new Error(`ไม่พบสมาชิก #${memberId}`);
+
+    // 2. Update member lineUserId
+    await tx
+      .update(members)
+      .set({ lineUserId, updatedAt: new Date() })
+      .where(eq(members.id, memberId));
+
+    // 3. Retroactively link unapproved slips from this LINE user
+    await tx
+      .update(lineSlips)
+      .set({
+        matchedMemberId: member.id,
+        matchedMemberName: member.name,
+        matchedConfidence: "1.000",
+        matchMethod: "line_id",
+        status: sql`CASE WHEN status IN ('extracted', 'needs_review') THEN 'matched'::line_slip_status ELSE status END`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(lineSlips.churchId, churchId),
+          eq(lineSlips.lineUserId, lineUserId),
+          ne(lineSlips.status, "approved"),
+          ne(lineSlips.status, "rejected")
+        )
+      );
+
+    // 4. Audit log
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: adminUserId,
+      action: "LINK_LINE_MEMBER",
+      entity: "members",
+      entityId: memberId,
+      metadata: {
+        lineUserId,
+        memberName: member.name,
+      },
+    });
+
+    return { success: true, memberId, lineUserId };
+  });
+}
+
+export async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const rows = await db
+    .select({
+      status: lineSlips.status,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(lineSlips)
+    .where(eq(lineSlips.churchId, churchId))
+    .groupBy(lineSlips.status);
+
+  const stats: Record<string, number> = {
+    pending: 0,
+    processing: 0,
+    extracted: 0,
+    needs_review: 0,
+    matched: 0,
+    duplicate: 0,
+    approved: 0,
+    rejected: 0,
+    failed: 0,
+  };
+
+  for (const row of rows) {
+    if (row.status in stats) {
+      stats[row.status] = row.count;
+    }
+  }
+
+  const reviewRequired = (stats.needs_review || 0) + (stats.matched || 0) + (stats.extracted || 0);
+
+  return {
+    ...stats,
+    reviewRequired,
+    total: Object.values(stats).reduce((a, b) => a + b, 0),
   };
 }

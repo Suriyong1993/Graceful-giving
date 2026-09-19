@@ -23,7 +23,14 @@ var ENV = {
   isProduction: process.env.NODE_ENV === "production",
   // Built-in Forge API (for AI features)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  // LINE Official Account (for Slip AI feature)
+  lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? "",
+  lineChannelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "",
+  // Supabase private slip bucket (default: "slips")
+  supabaseSlipBucket: process.env.SUPABASE_SLIP_BUCKET ?? "slips",
+  // Secret for protecting the Vercel Cron endpoint
+  cronSecret: process.env.CRON_SECRET ?? ""
 };
 
 // server/_core/storageProxy.ts
@@ -67,184 +74,14 @@ function registerStorageProxy(app2) {
   });
 }
 
-// shared/const.ts
-var COOKIE_NAME = "app_session_id";
-var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
-var UNAUTHED_ERR_MSG = "Please login (10001)";
-var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
-
-// server/routers.ts
-import { z as z2 } from "zod";
-
-// server/_core/cookies.ts
-function isSecureRequest(req) {
-  if (req.protocol === "https") return true;
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  if (!forwardedProto) return false;
-  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
-  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
-}
-function getSessionCookieOptions(req) {
-  const secure = isSecureRequest(req);
-  return {
-    httpOnly: true,
-    path: "/",
-    // SameSite=None is only legal on a secure origin. Browsers reject such a
-    // cookie over plain http, which silently breaks both sign-in and sign-out
-    // on non-https origins. Fall back to Lax there; https keeps None so the
-    // session still works when the app is embedded cross-site.
-    sameSite: secure ? "none" : "lax",
-    secure
-  };
-}
-
-// server/_core/systemRouter.ts
-import { z } from "zod";
-
-// server/_core/notification.ts
-import { TRPCError } from "@trpc/server";
-var TITLE_MAX_LENGTH = 1200;
-var CONTENT_MAX_LENGTH = 2e4;
-var trimValue = (value) => value.trim();
-var isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
-var buildEndpointUrl = (baseUrl) => {
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return new URL(
-    "webdevtoken.v1.WebDevService/SendNotification",
-    normalizedBase
-  ).toString();
-};
-var validatePayload = (input) => {
-  if (!isNonEmptyString(input.title)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Notification title is required."
-    });
-  }
-  if (!isNonEmptyString(input.content)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Notification content is required."
-    });
-  }
-  const title = trimValue(input.title);
-  const content = trimValue(input.content);
-  if (title.length > TITLE_MAX_LENGTH) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
-    });
-  }
-  if (content.length > CONTENT_MAX_LENGTH) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
-    });
-  }
-  return { title, content };
-};
-async function notifyOwner(payload) {
-  const { title, content } = validatePayload(payload);
-  if (!ENV.forgeApiUrl) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service URL is not configured."
-    });
-  }
-  if (!ENV.forgeApiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Notification service API key is not configured."
-    });
-  }
-  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${ENV.forgeApiKey}`,
-        "content-type": "application/json",
-        "connect-protocol-version": "1"
-      },
-      body: JSON.stringify({ title, content })
-    });
-    if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.warn(
-        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.warn("[Notification] Error calling notification service:", error);
-    return false;
-  }
-}
-
-// server/_core/trpc.ts
-import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
-import superjson from "superjson";
-var t = initTRPC.context().create({
-  transformer: superjson
-});
-var router = t.router;
-var publicProcedure = t.procedure;
-var requireUser = t.middleware(async (opts) => {
-  const { ctx, next } = opts;
-  if (!ctx.user) {
-    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
-  }
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user
-    }
-  });
-});
-var protectedProcedure = t.procedure.use(requireUser);
-var adminProcedure = t.procedure.use(
-  t.middleware(async (opts) => {
-    const { ctx, next } = opts;
-    if (!ctx.user || ctx.user.role !== "admin") {
-      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
-    }
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user
-      }
-    });
-  })
-);
-
-// server/_core/systemRouter.ts
-var systemRouter = router({
-  health: publicProcedure.input(
-    z.object({
-      timestamp: z.number().min(0, "timestamp cannot be negative")
-    })
-  ).query(() => ({
-    ok: true
-  })),
-  notifyOwner: adminProcedure.input(
-    z.object({
-      title: z.string().min(1, "title is required"),
-      content: z.string().min(1, "content is required")
-    })
-  ).mutation(async ({ input }) => {
-    const delivered = await notifyOwner(input);
-    return {
-      success: delivered
-    };
-  })
-});
+// server/line/webhook.ts
+import { createHmac, createHash } from "crypto";
 
 // server/storage.ts
 var SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 var SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 var SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "receipts";
+var SUPABASE_SLIP_BUCKET = process.env.SUPABASE_SLIP_BUCKET ?? "slips";
 function getSupabaseConfig() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error(
@@ -279,6 +116,48 @@ async function storagePut(relKey, data, contentType = "application/octet-stream"
   }
   const publicUrl = `${url}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${key}`;
   return { key, url: publicUrl };
+}
+async function storagePutPrivate(relKey, data, contentType = "image/jpeg") {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = appendHashSuffix(relKey.replace(/^\/+/, ""));
+  const uploadUrl = `${url}/storage/v1/object/${SUPABASE_SLIP_BUCKET}/${key}`;
+  const resp = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true"
+    },
+    body: data
+  });
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(
+      `Supabase private storage upload failed (${resp.status}): ${msg}`
+    );
+  }
+  return { key };
+}
+async function getSlipSignedUrl(slipImageKey) {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = slipImageKey.replace(/^\/+/, "");
+  const signUrl = `${url}/storage/v1/object/sign/${SUPABASE_SLIP_BUCKET}/${key}`;
+  const resp = await fetch(signUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ expiresIn: 3600 })
+  });
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(
+      `Supabase slip signed URL failed (${resp.status}): ${msg}`
+    );
+  }
+  const result = await resp.json();
+  return `${url}${result.signedURL}`;
 }
 
 // server/db.ts
@@ -403,6 +282,26 @@ var sessionDocumentKindEnum = pgEnum("session_document_kind", [
   "deduction_receipt",
   "other"
 ]);
+var lineSlipStatusEnum = pgEnum("line_slip_status", [
+  /** Received from LINE webhook, image stored, job queued */
+  "pending",
+  /** Worker has picked up the job and is running OCR */
+  "processing",
+  /** OCR complete; all fields extracted with sufficient confidence */
+  "extracted",
+  /** Low-confidence field(s) or OCR issue — staff must manually verify */
+  "needs_review",
+  /** Member matched with high confidence; ready for approval */
+  "matched",
+  /** Duplicate slip detected (same refNo, hash, or transaction) */
+  "duplicate",
+  /** Treasurer approved → Offering record created */
+  "approved",
+  /** Treasurer rejected the slip */
+  "rejected",
+  /** OCR failed after max retries */
+  "failed"
+]);
 var users = pgTable("users", {
   id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
@@ -457,6 +356,8 @@ var members = pgTable("members", {
   envelopeNo: varchar("envelopeNo", { length: 30 }),
   avatarUrl: varchar("avatarUrl", { length: 500 }),
   notes: text("notes"),
+  /** LINE userId linked to this member (for slip auto-matching) */
+  lineUserId: varchar("lineUserId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
 });
@@ -710,6 +611,89 @@ var sessionDocuments = pgTable("session_documents", {
   uploadedBy: integer("uploadedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
+var lineSlips = pgTable("line_slips", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  // ─── LINE sender info ───
+  /** LINE user ID of the sender */
+  lineUserId: varchar("lineUserId", { length: 64 }).notNull(),
+  /** LINE display name at time of send */
+  lineDisplayName: varchar("lineDisplayName", { length: 120 }),
+  /**
+   * LINE event ID for idempotency.
+   * Unique constraint: (churchId, lineEventId) — prevents duplicate processing
+   * when LINE re-delivers the same event.
+   */
+  lineEventId: varchar("lineEventId", { length: 64 }).notNull(),
+  // ─── Stored image (private bucket — no public URL stored) ───
+  /** Supabase Storage key in the private 'slips' bucket */
+  slipImageKey: varchar("slipImageKey", { length: 500 }).notNull(),
+  /** SHA-256 hex of the raw image bytes — Level 2 duplicate detection */
+  slipHash: varchar("slipHash", { length: 64 }).notNull(),
+  // ─── Status (see state machine in implementation_plan.md) ───
+  status: lineSlipStatusEnum("status").default("pending").notNull(),
+  // ─── Worker / retry tracking ───
+  processingAttempts: integer("processingAttempts").default(0).notNull(),
+  lastErrorMessage: text("lastErrorMessage"),
+  // ─── AI extraction results (set by worker after OCR) ───
+  aiRawText: text("aiRawText"),
+  /** Full structured JSON blob returned by AI */
+  aiData: jsonb("aiData"),
+  /** Extracted transfer amount in THB */
+  extractedAmount: decimal("extractedAmount", { precision: 15, scale: 2 }),
+  /** AI confidence 0.0–1.0 for the amount field */
+  extractedAmountConfidence: decimal("extractedAmountConfidence", { precision: 4, scale: 3 }),
+  /** Extracted transfer date/time */
+  extractedDate: timestamp("extractedDate"),
+  /** AI confidence 0.0–1.0 for the date field */
+  extractedDateConfidence: decimal("extractedDateConfidence", { precision: 4, scale: 3 }),
+  /** Bank transaction reference / transaction ID */
+  extractedRef: varchar("extractedRef", { length: 120 }),
+  /** AI confidence 0.0–1.0 for the reference field */
+  extractedRefConfidence: decimal("extractedRefConfidence", { precision: 4, scale: 3 }),
+  /** Sender name as printed on the slip */
+  extractedSenderName: varchar("extractedSenderName", { length: 180 }),
+  /** AI confidence 0.0–1.0 for the sender name field */
+  extractedSenderConfidence: decimal("extractedSenderConfidence", { precision: 4, scale: 3 }),
+  /** Source bank name (e.g. "SCB", "กสิกรไทย") */
+  extractedBank: varchar("extractedBank", { length: 80 }),
+  // ─── Duplicate detection ───
+  /** If a duplicate is found, reference the existing slip or offering */
+  duplicateOfSlipId: integer("duplicateOfSlipId"),
+  duplicateOfOfferingId: integer("duplicateOfOfferingId"),
+  // ─── Member matching ───
+  matchedMemberId: integer("matchedMemberId"),
+  matchedMemberName: varchar("matchedMemberName", { length: 180 }),
+  /** 0.0–1.0 confidence score from memberMatcher */
+  matchedConfidence: decimal("matchedConfidence", { precision: 4, scale: 3 }),
+  /** How the match was determined */
+  matchMethod: varchar("matchMethod", { length: 30 }),
+  // ─── Staff decisions (set during review) ───
+  /** Fund to credit — must be a valid finance_accounts.id */
+  fundId: integer("fundId"),
+  /** Amount confirmed by staff (may differ from extractedAmount) */
+  approvedAmount: decimal("approvedAmount", { precision: 15, scale: 2 }),
+  reviewedBy: integer("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNote: text("reviewNote"),
+  // ─── Result ───
+  /** Set when status = 'approved'; FK to the offerings row created */
+  approvedOfferingId: integer("approvedOfferingId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var lineProcessingJobs = pgTable("line_processing_jobs", {
+  id: serial("id").primaryKey(),
+  slipId: integer("slipId").notNull(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  /** queued → processing → done | failed */
+  status: varchar("status", { length: 20 }).default("queued").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  lastAttemptAt: timestamp("lastAttemptAt"),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
 
 // shared/counting.ts
 function toSatang(baht) {
@@ -794,7 +778,9 @@ var ENUM_STATEMENTS = [
   `DO $$ BEGIN CREATE TYPE "public"."bank_record_type" AS ENUM('transfer_in', 'cash_deposit'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."cash_kind" AS ENUM('note', 'coin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."counting_session_status" AS ENUM('counting', 'counted', 'verified', 'posted', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
-  `DO $$ BEGIN CREATE TYPE "public"."session_document_kind" AS ENUM('count_sheet', 'envelope_photo', 'deposit_slip', 'transfer_slip', 'passbook_page', 'deduction_receipt', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`
+  `DO $$ BEGIN CREATE TYPE "public"."session_document_kind" AS ENUM('count_sheet', 'envelope_photo', 'deposit_slip', 'transfer_slip', 'passbook_page', 'deduction_receipt', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  // LINE Slip AI
+  `DO $$ BEGIN CREATE TYPE "public"."line_slip_status" AS ENUM('pending', 'processing', 'extracted', 'needs_review', 'matched', 'duplicate', 'approved', 'rejected', 'failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`
 ];
 var TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS "users" (
@@ -1077,12 +1063,73 @@ var TABLE_STATEMENTS = [
     "bankRecordId" integer,
     "uploadedBy" integer NOT NULL,
     "createdAt" timestamp DEFAULT now() NOT NULL
+  );`,
+  // ─── LINE Slip AI ─────────────────────────────────────────────────────────
+  `ALTER TABLE "members" ADD COLUMN IF NOT EXISTS "lineUserId" varchar(64);`,
+  `CREATE TABLE IF NOT EXISTS "line_slips" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "lineUserId" varchar(64) NOT NULL,
+    "lineDisplayName" varchar(120),
+    "lineEventId" varchar(64) NOT NULL,
+    "slipImageKey" varchar(500) NOT NULL,
+    "slipHash" varchar(64) NOT NULL,
+    "status" "line_slip_status" DEFAULT 'pending' NOT NULL,
+    "processingAttempts" integer DEFAULT 0 NOT NULL,
+    "lastErrorMessage" text,
+    "aiRawText" text,
+    "aiData" jsonb,
+    "extractedAmount" numeric(15, 2),
+    "extractedAmountConfidence" numeric(4, 3),
+    "extractedDate" timestamp,
+    "extractedDateConfidence" numeric(4, 3),
+    "extractedRef" varchar(120),
+    "extractedRefConfidence" numeric(4, 3),
+    "extractedSenderName" varchar(180),
+    "extractedSenderConfidence" numeric(4, 3),
+    "extractedBank" varchar(80),
+    "duplicateOfSlipId" integer,
+    "duplicateOfOfferingId" integer,
+    "matchedMemberId" integer,
+    "matchedMemberName" varchar(180),
+    "matchedConfidence" numeric(4, 3),
+    "matchMethod" varchar(30),
+    "fundId" integer,
+    "approvedAmount" numeric(15, 2),
+    "reviewedBy" integer,
+    "reviewedAt" timestamp,
+    "reviewNote" text,
+    "approvedOfferingId" integer,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS "line_processing_jobs" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "slipId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "status" varchar(20) DEFAULT 'queued' NOT NULL,
+    "attempts" integer DEFAULT 0 NOT NULL,
+    "lastAttemptAt" timestamp,
+    "errorMessage" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
   );`
 ];
 var INDEX_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "members_church_idx" ON "members" USING btree ("churchId");`,
   `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");`,
-  `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`
+  `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`,
+  // ─── LINE Slip AI indexes ─────────────────────────────────────────────────
+  /** Idempotency: prevent duplicate LINE event processing */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_event_uniq" ON "line_slips" ("churchId", "lineEventId");`,
+  /** Level 2 duplicate detection: same image hash */
+  `CREATE INDEX IF NOT EXISTS "line_slips_hash_idx" ON "line_slips" ("slipHash");`,
+  /** Level 1 duplicate detection: same bank reference number */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_ref_uniq" ON "line_slips" ("churchId", "extractedRef") WHERE "extractedRef" IS NOT NULL AND "status" NOT IN ('rejected', 'duplicate', 'failed');`,
+  /** Worker polling: fast lookup of queued jobs ordered by age */
+  `CREATE INDEX IF NOT EXISTS "line_jobs_status_idx" ON "line_processing_jobs" ("status", "createdAt");`,
+  /** Status dashboard: count pending slips per church */
+  `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`
 ];
 async function runSchemaInit(client) {
   for (const stmt of ENUM_STATEMENTS) {
@@ -2260,6 +2307,1330 @@ async function getFinancialReportSummary(churchId = DEFAULT_CHURCH_ID, fromDate,
     }))
   };
 }
+async function listLineSlips(churchId = DEFAULT_CHURCH_ID, filters = {}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const conditions = [eq(lineSlips.churchId, churchId)];
+  if (filters.status && filters.status !== "all") {
+    conditions.push(eq(lineSlips.status, filters.status));
+  }
+  if (filters.memberId) {
+    conditions.push(eq(lineSlips.matchedMemberId, filters.memberId));
+  }
+  const limit = filters.limit ?? 50;
+  const offset = filters.offset ?? 0;
+  const rows = await db.select().from(lineSlips).where(and(...conditions)).orderBy(desc(lineSlips.createdAt)).limit(limit).offset(offset);
+  const items = await Promise.all(
+    rows.map(async (slip) => {
+      let signedUrl = "";
+      try {
+        if (slip.slipImageKey) {
+          signedUrl = await getSlipSignedUrl(slip.slipImageKey);
+        }
+      } catch (e) {
+        console.warn(`[listLineSlips] Failed to sign URL for slip #${slip.id}:`, e);
+      }
+      return {
+        ...slip,
+        signedImageUrl: signedUrl
+      };
+    })
+  );
+  return items;
+}
+async function getLineSlipById(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select().from(lineSlips).where(and(eq(lineSlips.id, id), eq(lineSlips.churchId, churchId))).limit(1);
+  const slip = rows[0];
+  if (!slip) return null;
+  let signedImageUrl = "";
+  try {
+    if (slip.slipImageKey) {
+      signedImageUrl = await getSlipSignedUrl(slip.slipImageKey);
+    }
+  } catch (e) {
+    console.warn(`[getLineSlipById] Failed to sign URL for slip #${id}:`, e);
+  }
+  return {
+    ...slip,
+    signedImageUrl
+  };
+}
+async function approveLineSlip(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  if (input.amount <= 0) {
+    throw new Error("\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19\u0E16\u0E27\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E32\u0E01\u0E01\u0E27\u0E48\u0E32 0 \u0E1A\u0E32\u0E17");
+  }
+  return db.transaction(async (tx) => {
+    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
+    if (!slip) {
+      throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
+    }
+    if (slip.status === "approved" || slip.approvedOfferingId) {
+      throw new Error(`\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 (Offering #${slip.approvedOfferingId})`);
+    }
+    if (slip.status === "rejected") {
+      throw new Error(`\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`);
+    }
+    const [fund] = await tx.select().from(financeAccounts).where(
+      and(
+        eq(financeAccounts.id, input.fundId),
+        eq(financeAccounts.churchId, churchId),
+        eq(financeAccounts.isActive, true)
+      )
+    ).limit(1);
+    if (!fund) {
+      throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E23\u0E2B\u0E31\u0E2A #${input.fundId} \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19`);
+    }
+    let donorName = input.donorName?.trim() || null;
+    if (input.memberId) {
+      const [member] = await tx.select({ id: members.id, name: members.name }).from(members).where(and(eq(members.id, input.memberId), eq(members.churchId, churchId))).limit(1);
+      if (member && !donorName) {
+        donorName = member.name;
+      }
+    }
+    if (!donorName) {
+      donorName = slip.extractedSenderName || slip.lineDisplayName || "\u0E1C\u0E39\u0E49\u0E16\u0E27\u0E32\u0E22\u0E1C\u0E48\u0E32\u0E19 LINE";
+    }
+    const [offering] = await tx.insert(offerings).values({
+      churchId,
+      amount: String(input.amount),
+      category: input.category || "general",
+      fundId: input.fundId,
+      donorName,
+      donorMemberId: input.memberId ?? null,
+      receiptDate: input.receiptDate ?? slip.extractedDate ?? /* @__PURE__ */ new Date(),
+      method: "transfer",
+      reference: slip.extractedRef || `LINE-${slip.id}`,
+      notes: `[LINE Slip #${slip.id}] ${input.reviewNote ? input.reviewNote : ""}`.trim(),
+      recordedBy: input.approvedBy,
+      status: "active"
+    }).returning({ id: offerings.id });
+    await tx.execute(
+      sql`UPDATE finance_accounts SET balance = balance + ${input.amount} WHERE id = ${input.fundId} AND "churchId" = ${churchId}`
+    );
+    await tx.update(lineSlips).set({
+      status: "approved",
+      fundId: input.fundId,
+      approvedAmount: String(input.amount),
+      approvedOfferingId: offering.id,
+      matchedMemberId: input.memberId ?? slip.matchedMemberId,
+      matchedMemberName: donorName,
+      reviewedBy: input.approvedBy,
+      reviewedAt: /* @__PURE__ */ new Date(),
+      reviewNote: input.reviewNote ?? null,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(lineSlips.id, input.slipId));
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: input.approvedBy,
+      action: "APPROVE_LINE_SLIP",
+      entity: "line_slips",
+      entityId: input.slipId,
+      metadata: {
+        offeringId: offering.id,
+        amount: input.amount,
+        fundId: input.fundId,
+        fundName: fund.name,
+        memberId: input.memberId,
+        donorName,
+        slipRef: slip.extractedRef
+      }
+    });
+    return {
+      success: true,
+      slipId: input.slipId,
+      offeringId: offering.id
+    };
+  });
+}
+async function rejectLineSlip(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  if (!input.reason.trim()) {
+    throw new Error("\u0E01\u0E23\u0E38\u0E13\u0E32\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B");
+  }
+  return db.transaction(async (tx) => {
+    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
+    if (!slip) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
+    if (slip.status === "approved" || slip.approvedOfferingId) {
+      throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E44\u0E14\u0E49`);
+    }
+    await tx.update(lineSlips).set({
+      status: "rejected",
+      reviewedBy: input.reviewedBy,
+      reviewedAt: /* @__PURE__ */ new Date(),
+      reviewNote: input.reason.trim(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(lineSlips.id, input.slipId));
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: input.reviewedBy,
+      action: "REJECT_LINE_SLIP",
+      entity: "line_slips",
+      entityId: input.slipId,
+      metadata: {
+        reason: input.reason.trim(),
+        previousStatus: slip.status
+      }
+    });
+    return { success: true, slipId: input.slipId };
+  });
+}
+async function updateLineSlipReview(input) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const churchId = input.churchId ?? DEFAULT_CHURCH_ID;
+  const updateSet = {
+    updatedAt: /* @__PURE__ */ new Date()
+  };
+  if (input.fundId !== void 0) updateSet.fundId = input.fundId;
+  if (input.matchedMemberId !== void 0) updateSet.matchedMemberId = input.matchedMemberId;
+  if (input.matchedMemberName !== void 0) updateSet.matchedMemberName = input.matchedMemberName;
+  if (input.approvedAmount !== void 0) {
+    updateSet.approvedAmount = input.approvedAmount !== null ? String(input.approvedAmount) : null;
+  }
+  if (input.reviewNote !== void 0) updateSet.reviewNote = input.reviewNote;
+  if (input.status !== void 0) updateSet.status = input.status;
+  const [updated] = await db.update(lineSlips).set(updateSet).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).returning();
+  return updated;
+}
+async function linkLineUserToMember(churchId, lineUserId, memberId, adminUserId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  return db.transaction(async (tx) => {
+    const [member] = await tx.select().from(members).where(and(eq(members.id, memberId), eq(members.churchId, churchId))).limit(1);
+    if (!member) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E21\u0E32\u0E0A\u0E34\u0E01 #${memberId}`);
+    await tx.update(members).set({ lineUserId, updatedAt: /* @__PURE__ */ new Date() }).where(eq(members.id, memberId));
+    await tx.update(lineSlips).set({
+      matchedMemberId: member.id,
+      matchedMemberName: member.name,
+      matchedConfidence: "1.000",
+      matchMethod: "line_id",
+      status: sql`CASE WHEN status IN ('extracted', 'needs_review') THEN 'matched'::line_slip_status ELSE status END`,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(
+      and(
+        eq(lineSlips.churchId, churchId),
+        eq(lineSlips.lineUserId, lineUserId),
+        ne(lineSlips.status, "approved"),
+        ne(lineSlips.status, "rejected")
+      )
+    );
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: adminUserId,
+      action: "LINK_LINE_MEMBER",
+      entity: "members",
+      entityId: memberId,
+      metadata: {
+        lineUserId,
+        memberName: member.name
+      }
+    });
+    return { success: true, memberId, lineUserId };
+  });
+}
+async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.select({
+    status: lineSlips.status,
+    count: sql`count(*)::int`
+  }).from(lineSlips).where(eq(lineSlips.churchId, churchId)).groupBy(lineSlips.status);
+  const stats = {
+    pending: 0,
+    processing: 0,
+    extracted: 0,
+    needs_review: 0,
+    matched: 0,
+    duplicate: 0,
+    approved: 0,
+    rejected: 0,
+    failed: 0
+  };
+  for (const row of rows) {
+    if (row.status in stats) {
+      stats[row.status] = row.count;
+    }
+  }
+  const reviewRequired = (stats.needs_review || 0) + (stats.matched || 0) + (stats.extracted || 0);
+  return {
+    ...stats,
+    reviewRequired,
+    total: Object.values(stats).reduce((a, b) => a + b, 0)
+  };
+}
+
+// server/line/webhook.ts
+import { eq as eq2, and as and2 } from "drizzle-orm";
+var DEFAULT_CHURCH_ID2 = "demo-church";
+var LINE_API_BASE = "https://api.line.me/v2/bot";
+var LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
+function validateSignature(rawBody, signature) {
+  if (!ENV.lineChannelSecret) {
+    if (ENV.isProduction) return false;
+    console.warn("[LINE Webhook] LINE_CHANNEL_SECRET not set \u2014 skipping validation (dev only)");
+    return true;
+  }
+  const expected = createHmac("sha256", ENV.lineChannelSecret).update(rawBody).digest("base64");
+  return expected === signature;
+}
+async function getLineProfile(userId) {
+  try {
+    const resp = await fetch(`${LINE_API_BASE}/profile/${userId}`, {
+      headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` }
+    });
+    if (!resp.ok) return userId;
+    const data = await resp.json();
+    return data.displayName ?? userId;
+  } catch {
+    return userId;
+  }
+}
+async function downloadLineImage(messageId) {
+  const resp = await fetch(
+    `${LINE_CONTENT_BASE}/message/${messageId}/content`,
+    { headers: { Authorization: `Bearer ${ENV.lineChannelAccessToken}` } }
+  );
+  if (!resp.ok) {
+    throw new Error(`LINE image download failed: ${resp.status} ${resp.statusText}`);
+  }
+  return Buffer.from(await resp.arrayBuffer());
+}
+async function replyToLine(replyToken, text2) {
+  if (!ENV.lineChannelAccessToken || !replyToken) return;
+  await fetch(`${LINE_API_BASE}/message/reply`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ENV.lineChannelAccessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: "text", text: text2 }]
+    })
+  }).catch(
+    (e) => console.error("[LINE Webhook] reply failed:", e)
+  );
+}
+function sha256Hex(data) {
+  return createHash("sha256").update(data).digest("hex");
+}
+async function processImageEvent(event, churchId) {
+  const lineUserId = event.source?.userId;
+  const messageId = event.message?.id;
+  const lineEventId = event.webhookEventId;
+  if (!lineUserId || !messageId || !lineEventId) return;
+  const db = await getDb();
+  if (!db) {
+    console.error("[LINE Webhook] DB not available");
+    return;
+  }
+  const existing = await db.select({ id: lineSlips.id }).from(lineSlips).where(
+    and2(
+      eq2(lineSlips.churchId, churchId),
+      eq2(lineSlips.lineEventId, lineEventId)
+    )
+  ).limit(1);
+  if (existing.length > 0) {
+    console.log(`[LINE Webhook] Duplicate event ${lineEventId} \u2014 skipping`);
+    return;
+  }
+  let imageBuffer;
+  try {
+    imageBuffer = await downloadLineImage(messageId);
+  } catch (err) {
+    console.error("[LINE Webhook] Image download failed:", err);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E23\u0E31\u0E1A\u0E23\u0E39\u0E1B\u0E20\u0E32\u0E1E\u0E44\u0E14\u0E49\u0E43\u0E19\u0E02\u0E13\u0E30\u0E19\u0E35\u0E49 \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const slipHash = sha256Hex(imageBuffer);
+  const hashDuplicate = await db.select({ id: lineSlips.id, status: lineSlips.status }).from(lineSlips).where(eq2(lineSlips.slipHash, slipHash)).limit(1);
+  if (hashDuplicate.length > 0) {
+    console.log(`[LINE Webhook] Duplicate image hash ${slipHash} from ${lineUserId}`);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E23\u0E27\u0E08\u0E1E\u0E1A\u0E27\u0E48\u0E32\u0E2A\u0E25\u0E34\u0E1B\u0E19\u0E35\u0E49\u0E40\u0E04\u0E22\u0E2A\u0E48\u0E07\u0E21\u0E32\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30 \u0E2B\u0E32\u0E01\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E2A\u0E07\u0E2A\u0E31\u0E22\u0E01\u0E23\u0E38\u0E13\u0E32\u0E15\u0E34\u0E14\u0E15\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const now = /* @__PURE__ */ new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const storageKey = `line/${churchId}/${lineUserId}/${dateStr}/${slipHash.slice(0, 16)}.jpg`;
+  let uploadResult;
+  try {
+    uploadResult = await storagePutPrivate(storageKey, imageBuffer, "image/jpeg");
+  } catch (err) {
+    console.error("[LINE Webhook] Storage upload failed:", err);
+    if (event.replyToken) {
+      await replyToLine(
+        event.replyToken,
+        "\u0E02\u0E2D\u0E2D\u0E20\u0E31\u0E22 \u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E2A\u0E25\u0E34\u0E1B \u0E01\u0E23\u0E38\u0E13\u0E32\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E04\u0E48\u0E30 \u{1F64F}"
+      );
+    }
+    return;
+  }
+  const lineDisplayName = await getLineProfile(lineUserId);
+  let newSlipId;
+  try {
+    const [inserted] = await db.insert(lineSlips).values({
+      churchId,
+      lineUserId,
+      lineDisplayName,
+      lineEventId,
+      slipImageKey: uploadResult.key,
+      slipHash,
+      status: "pending",
+      processingAttempts: 0
+    }).onConflictDoNothing().returning({ id: lineSlips.id });
+    if (!inserted) {
+      console.log(`[LINE Webhook] Conflict on lineEventId ${lineEventId} \u2014 already inserted`);
+      return;
+    }
+    newSlipId = inserted.id;
+  } catch (err) {
+    console.error("[LINE Webhook] DB insert failed:", err);
+    return;
+  }
+  try {
+    await db.insert(lineProcessingJobs).values({
+      slipId: newSlipId,
+      churchId,
+      status: "queued",
+      attempts: 0
+    });
+  } catch (err) {
+    console.error("[LINE Webhook] Job enqueue failed:", err);
+  }
+  if (event.replyToken) {
+    await replyToLine(
+      event.replyToken,
+      "\u2705 \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2A\u0E25\u0E34\u0E1B\u0E02\u0E2D\u0E07\u0E04\u0E38\u0E13\u0E41\u0E25\u0E49\u0E27\u0E04\u0E48\u0E30\n\n\u0E23\u0E30\u0E1A\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A \u0E41\u0E25\u0E30\u0E08\u0E30\u0E41\u0E08\u0E49\u0E07\u0E1C\u0E25\u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\n\n\u0E02\u0E2D\u0E1A\u0E04\u0E38\u0E13\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E16\u0E27\u0E32\u0E22\u0E17\u0E23\u0E31\u0E1E\u0E22\u0E4C \u{1F64F}"
+    );
+  }
+}
+function registerLineWebhook(app2) {
+  app2.post("/api/line/webhook", (req, res) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      const rawBody = Buffer.concat(chunks);
+      const signature = req.headers["x-line-signature"];
+      if (!signature || !validateSignature(rawBody, signature)) {
+        console.warn("[LINE Webhook] Invalid or missing signature");
+        res.status(401).json({ error: "Invalid signature" });
+        return;
+      }
+      let body;
+      try {
+        body = JSON.parse(rawBody.toString("utf8"));
+      } catch {
+        res.status(400).json({ error: "Invalid JSON body" });
+        return;
+      }
+      res.status(200).json({ ok: true });
+      const churchId = DEFAULT_CHURCH_ID2;
+      for (const event of body.events ?? []) {
+        if (event.type === "message" && event.message?.type === "image") {
+          processImageEvent(event, churchId).catch(
+            (err) => console.error("[LINE Webhook] processImageEvent error:", err)
+          );
+        }
+      }
+    });
+    req.on("error", (err) => {
+      console.error("[LINE Webhook] Request error:", err);
+      if (!res.headersSent) {
+        res.status(400).json({ error: "Request error" });
+      }
+    });
+  });
+}
+
+// server/line/processWorker.ts
+import { and as and5, eq as eq5, lte as lte3 } from "drizzle-orm";
+
+// server/_core/llm.ts
+var ensureArray = (value) => Array.isArray(value) ? value : [value];
+var normalizeContentPart = (part) => {
+  if (typeof part === "string") {
+    return { type: "text", text: part };
+  }
+  if (part.type === "text") {
+    return part;
+  }
+  if (part.type === "image_url") {
+    return part;
+  }
+  if (part.type === "file_url") {
+    return part;
+  }
+  throw new Error("Unsupported message content part");
+};
+var normalizeMessage = (message) => {
+  const { role, name, tool_call_id } = message;
+  if (role === "tool" || role === "function") {
+    const content = ensureArray(message.content).map((part) => typeof part === "string" ? part : JSON.stringify(part)).join("\n");
+    return {
+      role,
+      name,
+      tool_call_id,
+      content
+    };
+  }
+  const contentParts = ensureArray(message.content).map(normalizeContentPart);
+  if (contentParts.length === 1 && contentParts[0].type === "text") {
+    return {
+      role,
+      name,
+      content: contentParts[0].text
+    };
+  }
+  return {
+    role,
+    name,
+    content: contentParts
+  };
+};
+var normalizeToolChoice = (toolChoice, tools) => {
+  if (!toolChoice) return void 0;
+  if (toolChoice === "none" || toolChoice === "auto") {
+    return toolChoice;
+  }
+  if (toolChoice === "required") {
+    if (!tools || tools.length === 0) {
+      throw new Error(
+        "tool_choice 'required' was provided but no tools were configured"
+      );
+    }
+    if (tools.length > 1) {
+      throw new Error(
+        "tool_choice 'required' needs a single tool or specify the tool name explicitly"
+      );
+    }
+    return {
+      type: "function",
+      function: { name: tools[0].function.name }
+    };
+  }
+  if ("name" in toolChoice) {
+    return {
+      type: "function",
+      function: { name: toolChoice.name }
+    };
+  }
+  return toolChoice;
+};
+var resolveApiUrl = () => ENV.forgeApiUrl && ENV.forgeApiUrl.trim().length > 0 ? `${ENV.forgeApiUrl.replace(/\/$/, "")}/v1/chat/completions` : "https://forge.manus.im/v1/chat/completions";
+var assertApiKey = () => {
+  if (!ENV.forgeApiKey) {
+    throw new Error("OPENAI_API_KEY is not configured");
+  }
+};
+var normalizeResponseFormat = ({
+  responseFormat,
+  response_format,
+  outputSchema,
+  output_schema
+}) => {
+  const explicitFormat = responseFormat || response_format;
+  if (explicitFormat) {
+    if (explicitFormat.type === "json_schema" && !explicitFormat.json_schema?.schema) {
+      throw new Error(
+        "responseFormat json_schema requires a defined schema object"
+      );
+    }
+    return explicitFormat;
+  }
+  const schema = outputSchema || output_schema;
+  if (!schema) return void 0;
+  if (!schema.name || !schema.schema) {
+    throw new Error("outputSchema requires both name and schema");
+  }
+  return {
+    type: "json_schema",
+    json_schema: {
+      name: schema.name,
+      schema: schema.schema,
+      ...typeof schema.strict === "boolean" ? { strict: schema.strict } : {}
+    }
+  };
+};
+var RETRY_MAX_RETRIES = 4;
+var RETRY_BASE_DELAY_MS = 500;
+var RETRY_MAX_DELAY_MS = 3e4;
+var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var parseRetryAfter = (value) => {
+  if (!value) return void 0;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1e3);
+  const at = Date.parse(value);
+  return Number.isNaN(at) ? void 0 : Math.max(0, at - Date.now());
+};
+var computeBackoffDelay = (attempt, retryAfterMs) => {
+  const cap = Math.min(RETRY_BASE_DELAY_MS * 2 ** attempt, RETRY_MAX_DELAY_MS);
+  const jittered = cap / 2 + Math.random() * (cap / 2);
+  return Math.min(Math.max(jittered, retryAfterMs ?? 0), RETRY_MAX_DELAY_MS);
+};
+var fetchWithBackoff = async (url, init) => {
+  let lastError;
+  for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (response.ok || attempt === RETRY_MAX_RETRIES) {
+        return response;
+      }
+      const retryAfterMs = parseRetryAfter(
+        response.headers.get("retry-after")
+      );
+      try {
+        await response.body?.cancel();
+      } catch {
+      }
+      console.warn(
+        `LLM request retry ${attempt + 1}/${RETRY_MAX_RETRIES} after status ${response.status}`
+      );
+      await sleep(computeBackoffDelay(attempt, retryAfterMs));
+    } catch (error) {
+      lastError = error;
+      if (attempt === RETRY_MAX_RETRIES) throw error;
+      console.warn(
+        `LLM request retry ${attempt + 1}/${RETRY_MAX_RETRIES} after network error`
+      );
+      await sleep(computeBackoffDelay(attempt));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("LLM request failed after exhausting retries");
+};
+async function invokeLLM(params) {
+  assertApiKey();
+  const {
+    messages,
+    tools,
+    toolChoice,
+    tool_choice,
+    outputSchema,
+    output_schema,
+    responseFormat,
+    response_format,
+    model,
+    thinking,
+    reasoning,
+    maxTokens,
+    max_tokens
+  } = params;
+  const payload = {
+    messages: messages.map(normalizeMessage)
+  };
+  if (model) {
+    payload.model = model;
+  }
+  if (tools && tools.length > 0) {
+    payload.tools = tools;
+  }
+  const normalizedToolChoice = normalizeToolChoice(
+    toolChoice || tool_choice,
+    tools
+  );
+  if (normalizedToolChoice) {
+    payload.tool_choice = normalizedToolChoice;
+  }
+  const resolvedMaxTokens = max_tokens ?? maxTokens;
+  if (typeof resolvedMaxTokens === "number") {
+    payload.max_tokens = resolvedMaxTokens;
+  }
+  if (thinking) {
+    payload.thinking = thinking;
+  }
+  if (reasoning) {
+    payload.reasoning = reasoning;
+  }
+  const normalizedResponseFormat = normalizeResponseFormat({
+    responseFormat,
+    response_format,
+    outputSchema,
+    output_schema
+  });
+  if (normalizedResponseFormat) {
+    payload.response_format = normalizedResponseFormat;
+  }
+  const response = await fetchWithBackoff(resolveApiUrl(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${ENV.forgeApiKey}`
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `LLM invoke failed: ${response.status} ${response.statusText} \u2013 ${errorText}`
+    );
+  }
+  return await response.json();
+}
+
+// server/line/slipOcr.ts
+var CONFIDENCE_THRESHOLD = 0.85;
+function requiresReview(extraction) {
+  if (extraction.amountConfidence < CONFIDENCE_THRESHOLD) return true;
+  if (extraction.referenceConfidence < CONFIDENCE_THRESHOLD) return true;
+  if (extraction.amount === null) return true;
+  return false;
+}
+var SYSTEM_PROMPT = `\u0E04\u0E38\u0E13\u0E04\u0E37\u0E2D\u0E23\u0E30\u0E1A\u0E1A\u0E2D\u0E48\u0E32\u0E19\u0E41\u0E25\u0E30\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E32\u0E01\u0E2A\u0E25\u0E34\u0E1B\u0E01\u0E32\u0E23\u0E42\u0E2D\u0E19\u0E40\u0E07\u0E34\u0E19\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23\u0E44\u0E17\u0E22
+
+**\u0E2B\u0E19\u0E49\u0E32\u0E17\u0E35\u0E48**: \u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u2014 \u0E2B\u0E49\u0E32\u0E21\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 \u0E2B\u0E49\u0E32\u0E21\u0E15\u0E31\u0E14\u0E2A\u0E34\u0E19\u0E43\u0E08 \u0E2B\u0E49\u0E32\u0E21\u0E43\u0E2B\u0E49\u0E04\u0E33\u0E41\u0E19\u0E30\u0E19\u0E33\u0E14\u0E49\u0E32\u0E19\u0E01\u0E32\u0E23\u0E40\u0E07\u0E34\u0E19
+
+**\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E14\u0E36\u0E07**:
+- amount: \u0E08\u0E33\u0E19\u0E27\u0E19\u0E40\u0E07\u0E34\u0E19 (\u0E15\u0E31\u0E27\u0E40\u0E25\u0E02 THB \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E2A\u0E31\u0E0D\u0E25\u0E31\u0E01\u0E29\u0E13\u0E4C)
+- amountConfidence: \u0E04\u0E27\u0E32\u0E21\u0E21\u0E31\u0E48\u0E19\u0E43\u0E08 0.0\u20131.0
+- transferDate: \u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E42\u0E2D\u0E19 (YYYY-MM-DD) \u0E2B\u0E23\u0E37\u0E2D null
+- transferTime: \u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E42\u0E2D\u0E19 (HH:MM 24h) \u0E2B\u0E23\u0E37\u0E2D null
+- dateConfidence: \u0E04\u0E27\u0E32\u0E21\u0E21\u0E31\u0E48\u0E19\u0E43\u0E08\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48/\u0E40\u0E27\u0E25\u0E32 0.0\u20131.0
+- senderName: \u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E42\u0E2D\u0E19 \u0E2B\u0E23\u0E37\u0E2D null
+- senderConfidence: \u0E04\u0E27\u0E32\u0E21\u0E21\u0E31\u0E48\u0E19\u0E43\u0E08\u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E42\u0E2D\u0E19 0.0\u20131.0
+- referenceNumber: \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07/\u0E40\u0E25\u0E02\u0E17\u0E35\u0E48\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23 \u0E2B\u0E23\u0E37\u0E2D null
+- referenceConfidence: \u0E04\u0E27\u0E32\u0E21\u0E21\u0E31\u0E48\u0E19\u0E43\u0E08\u0E2B\u0E21\u0E32\u0E22\u0E40\u0E25\u0E02\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07 0.0\u20131.0
+- bankName: \u0E0A\u0E37\u0E48\u0E2D\u0E18\u0E19\u0E32\u0E04\u0E32\u0E23\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07 \u0E2B\u0E23\u0E37\u0E2D null
+- receiverName: \u0E0A\u0E37\u0E48\u0E2D\u0E1C\u0E39\u0E49\u0E23\u0E31\u0E1A \u0E2B\u0E23\u0E37\u0E2D null
+- notes: \u0E2B\u0E21\u0E32\u0E22\u0E40\u0E2B\u0E15\u0E38\u0E16\u0E49\u0E32\u0E23\u0E39\u0E1B\u0E44\u0E21\u0E48\u0E0A\u0E31\u0E14\u0E2B\u0E23\u0E37\u0E2D\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E2A\u0E31\u0E07\u0E40\u0E01\u0E15 \u0E2B\u0E23\u0E37\u0E2D null
+
+**\u0E01\u0E0E**:
+- \u0E16\u0E49\u0E32\u0E2D\u0E48\u0E32\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E43\u0E2B\u0E49\u0E15\u0E31\u0E49\u0E07 null \u2014 \u0E2B\u0E49\u0E32\u0E21\u0E40\u0E14\u0E32
+- \u0E16\u0E49\u0E32\u0E23\u0E39\u0E1B\u0E40\u0E1A\u0E25\u0E2D\u0E2B\u0E23\u0E37\u0E2D\u0E16\u0E48\u0E32\u0E22\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07 \u0E43\u0E2B\u0E49 amountConfidence \u0E15\u0E48\u0E33
+- \u0E15\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19 JSON \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E2D\u0E37\u0E48\u0E19`;
+var OUTPUT_SCHEMA = {
+  name: "slip_extraction",
+  schema: {
+    type: "object",
+    properties: {
+      amount: { type: ["number", "null"] },
+      amountConfidence: { type: "number", minimum: 0, maximum: 1 },
+      transferDate: { type: ["string", "null"] },
+      transferTime: { type: ["string", "null"] },
+      dateConfidence: { type: "number", minimum: 0, maximum: 1 },
+      senderName: { type: ["string", "null"] },
+      senderConfidence: { type: "number", minimum: 0, maximum: 1 },
+      referenceNumber: { type: ["string", "null"] },
+      referenceConfidence: { type: "number", minimum: 0, maximum: 1 },
+      bankName: { type: ["string", "null"] },
+      receiverName: { type: ["string", "null"] },
+      notes: { type: ["string", "null"] }
+    },
+    required: [
+      "amount",
+      "amountConfidence",
+      "transferDate",
+      "transferTime",
+      "dateConfidence",
+      "senderName",
+      "senderConfidence",
+      "referenceNumber",
+      "referenceConfidence",
+      "bankName",
+      "receiverName",
+      "notes"
+    ],
+    additionalProperties: false
+  },
+  strict: true
+};
+async function extractSlipData(signedImageUrl) {
+  let rawText = "";
+  try {
+    const result = await invokeLLM({
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: signedImageUrl, detail: "high" }
+            },
+            {
+              type: "text",
+              text: "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E2D\u0E48\u0E32\u0E19\u0E2A\u0E25\u0E34\u0E1B\u0E19\u0E35\u0E49\u0E41\u0E25\u0E30\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E15\u0E32\u0E21\u0E17\u0E35\u0E48\u0E01\u0E33\u0E2B\u0E19\u0E14 \u0E15\u0E2D\u0E1A\u0E40\u0E1B\u0E47\u0E19 JSON \u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"
+            }
+          ]
+        }
+      ],
+      outputSchema: OUTPUT_SCHEMA,
+      maxTokens: 600
+    });
+    const content = result.choices[0]?.message?.content;
+    rawText = typeof content === "string" ? content : JSON.stringify(content ?? "");
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("AI returned non-JSON response");
+      parsed = JSON.parse(match[0]);
+    }
+    return { rawText, ...parsed };
+  } catch (err) {
+    console.error("[SlipOCR] extraction failed:", err);
+    return {
+      rawText,
+      amount: null,
+      amountConfidence: 0,
+      transferDate: null,
+      transferTime: null,
+      dateConfidence: 0,
+      senderName: null,
+      senderConfidence: 0,
+      referenceNumber: null,
+      referenceConfidence: 0,
+      bankName: null,
+      receiverName: null,
+      notes: `Extraction failed: ${err instanceof Error ? err.message : String(err)}`
+    };
+  }
+}
+
+// server/line/duplicateDetector.ts
+import { and as and3, eq as eq3, gte as gte2, lte as lte2, ne as ne2 } from "drizzle-orm";
+async function checkDuplicateByReference(churchId, referenceNumber, currentSlipId) {
+  const db = await getDb();
+  if (!db) return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
+  const existingSlip = await db.select({ id: lineSlips.id }).from(lineSlips).where(
+    and3(
+      eq3(lineSlips.churchId, churchId),
+      eq3(lineSlips.extractedRef, referenceNumber),
+      ne2(lineSlips.id, currentSlipId),
+      ne2(lineSlips.status, "rejected"),
+      ne2(lineSlips.status, "failed"),
+      ne2(lineSlips.status, "duplicate")
+    )
+  ).limit(1);
+  if (existingSlip.length > 0 && existingSlip[0]) {
+    return {
+      isDuplicate: true,
+      level: 1,
+      duplicateSlipId: existingSlip[0].id,
+      duplicateOfferingId: null,
+      reason: `Duplicate bank reference: ${referenceNumber} (slip #${existingSlip[0].id})`
+    };
+  }
+  const existingOffering = await db.select({ id: offerings.id }).from(offerings).where(
+    and3(
+      eq3(offerings.churchId, churchId),
+      eq3(offerings.reference, referenceNumber),
+      ne2(offerings.status, "voided")
+    )
+  ).limit(1);
+  if (existingOffering.length > 0 && existingOffering[0]) {
+    return {
+      isDuplicate: true,
+      level: 1,
+      duplicateSlipId: null,
+      duplicateOfferingId: existingOffering[0].id,
+      reason: `Reference already recorded as offering #${existingOffering[0].id}`
+    };
+  }
+  return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
+}
+async function checkDuplicateByTransaction(churchId, amount, transferDate, matchedMemberId, currentSlipId) {
+  const db = await getDb();
+  if (!db) return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
+  const dayBefore = new Date(transferDate);
+  dayBefore.setDate(dayBefore.getDate() - 1);
+  const dayAfter = new Date(transferDate);
+  dayAfter.setDate(dayAfter.getDate() + 1);
+  const amountStr = amount.toFixed(2);
+  const similarSlips = await db.select({ id: lineSlips.id, matchedMemberId: lineSlips.matchedMemberId }).from(lineSlips).where(
+    and3(
+      eq3(lineSlips.churchId, churchId),
+      eq3(lineSlips.extractedAmount, amountStr),
+      gte2(lineSlips.extractedDate, dayBefore),
+      lte2(lineSlips.extractedDate, dayAfter),
+      ne2(lineSlips.id, currentSlipId),
+      ne2(lineSlips.status, "rejected"),
+      ne2(lineSlips.status, "failed"),
+      ne2(lineSlips.status, "duplicate")
+    )
+  ).limit(5);
+  for (const slip of similarSlips) {
+    if (matchedMemberId && slip.matchedMemberId === matchedMemberId) {
+      return {
+        isDuplicate: true,
+        level: 3,
+        duplicateSlipId: slip.id,
+        duplicateOfferingId: null,
+        reason: `Similar transaction: same amount ${amount} THB, date, and member (slip #${slip.id})`
+      };
+    }
+  }
+  const similarOfferings = await db.select({ id: offerings.id, donorMemberId: offerings.donorMemberId }).from(offerings).where(
+    and3(
+      eq3(offerings.churchId, churchId),
+      eq3(offerings.amount, amountStr),
+      gte2(offerings.receiptDate, dayBefore),
+      lte2(offerings.receiptDate, dayAfter),
+      ne2(offerings.status, "voided")
+    )
+  ).limit(5);
+  for (const offering of similarOfferings) {
+    if (matchedMemberId && offering.donorMemberId === matchedMemberId) {
+      return {
+        isDuplicate: true,
+        level: 3,
+        duplicateSlipId: null,
+        duplicateOfferingId: offering.id,
+        reason: `Similar offering already exists: #${offering.id} (${amount} THB, same member, same date)`
+      };
+    }
+  }
+  return { isDuplicate: false, level: null, duplicateSlipId: null, duplicateOfferingId: null, reason: null };
+}
+
+// server/line/memberMatcher.ts
+import { and as and4, eq as eq4 } from "drizzle-orm";
+function normalizeName(name) {
+  return name.replace(/^(นาย|นาง|นางสาว|เด็กชาย|เด็กหญิง|ด\.ต\.|ร\.ต\.|Mr\.|Mrs\.|Ms\.|Miss\.?)\s*/i, "").replace(/\s+/g, "").toLowerCase().trim();
+}
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from(
+    { length: m + 1 },
+    (_, i) => Array.from(
+      { length: n + 1 },
+      (_2, j) => i === 0 ? j : j === 0 ? i : 0
+    )
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+function similarity(a, b) {
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  return 1 - levenshtein(a, b) / maxLen;
+}
+var FUZZY_THRESHOLD = 0.85;
+async function matchMember(churchId, lineUserId, extractedSenderName) {
+  const db = await getDb();
+  if (!db) return null;
+  const activeMembers = await db.select({ id: members.id, name: members.name, lineUserId: members.lineUserId }).from(members).where(and4(eq4(members.churchId, churchId), eq4(members.status, "active")));
+  const byLineId = activeMembers.find((m) => m.lineUserId === lineUserId);
+  if (byLineId) {
+    return {
+      memberId: byLineId.id,
+      memberName: byLineId.name,
+      confidence: 1,
+      method: "line_id",
+      isAutoMatch: true
+    };
+  }
+  if (!extractedSenderName) return null;
+  const byExactName = activeMembers.find(
+    (m) => m.name.toLowerCase().trim() === extractedSenderName.toLowerCase().trim()
+  );
+  if (byExactName) {
+    return {
+      memberId: byExactName.id,
+      memberName: byExactName.name,
+      confidence: 0.95,
+      method: "name_exact",
+      isAutoMatch: true
+    };
+  }
+  const normalizedExtracted = normalizeName(extractedSenderName);
+  const byNormalizedName = activeMembers.find(
+    (m) => normalizeName(m.name) === normalizedExtracted
+  );
+  if (byNormalizedName) {
+    return {
+      memberId: byNormalizedName.id,
+      memberName: byNormalizedName.name,
+      confidence: 0.9,
+      method: "name_normalized",
+      isAutoMatch: true
+    };
+  }
+  let bestMatch = null;
+  let bestScore = 0;
+  for (const member of activeMembers) {
+    const score = similarity(normalizedExtracted, normalizeName(member.name));
+    if (score > bestScore && score >= FUZZY_THRESHOLD) {
+      bestScore = score;
+      bestMatch = {
+        memberId: member.id,
+        memberName: member.name,
+        confidence: score,
+        method: "name_fuzzy",
+        isAutoMatch: false
+        // NEVER auto-advance — always needs_review
+      };
+    }
+  }
+  return bestMatch;
+}
+
+// server/line/processWorker.ts
+var MAX_ATTEMPTS = 3;
+var BATCH_SIZE = 10;
+function isAuthorizedCron(req) {
+  const auth = req.headers.authorization ?? "";
+  if (ENV.cronSecret && auth === `Bearer ${ENV.cronSecret}`) return true;
+  if (req.headers["x-vercel-cron"] === "1") return true;
+  if (!ENV.isProduction && !ENV.cronSecret) {
+    console.warn("[Worker] CRON_SECRET not set \u2014 open in dev mode");
+    return true;
+  }
+  return false;
+}
+async function processJob(jobId, slipId) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const [slip] = await db.select().from(lineSlips).where(eq5(lineSlips.id, slipId)).limit(1);
+  if (!slip) throw new Error(`Slip #${slipId} not found`);
+  if (slip.status !== "pending") {
+    await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs.id, jobId));
+    return;
+  }
+  const signedUrl = await getSlipSignedUrl(slip.slipImageKey);
+  const extraction = await extractSlipData(signedUrl);
+  let finalStatus = "extracted";
+  let duplicateSlipId = null;
+  let duplicateOfferingId = null;
+  let duplicateReason = null;
+  if (extraction.referenceNumber) {
+    const refCheck = await checkDuplicateByReference(
+      slip.churchId,
+      extraction.referenceNumber,
+      slipId
+    );
+    if (refCheck.isDuplicate) {
+      finalStatus = "duplicate";
+      duplicateSlipId = refCheck.duplicateSlipId;
+      duplicateOfferingId = refCheck.duplicateOfferingId;
+      duplicateReason = refCheck.reason;
+    }
+  }
+  let matchedMemberId = null;
+  let matchedMemberName = null;
+  let matchedConfidence = null;
+  let matchMethod = null;
+  if (finalStatus !== "duplicate") {
+    const match = await matchMember(
+      slip.churchId,
+      slip.lineUserId,
+      extraction.senderName
+    );
+    if (match) {
+      matchedMemberId = match.memberId;
+      matchedMemberName = match.memberName;
+      matchedConfidence = match.confidence;
+      matchMethod = match.method;
+      if (extraction.amount && extraction.transferDate) {
+        const txCheck = await checkDuplicateByTransaction(
+          slip.churchId,
+          extraction.amount,
+          new Date(extraction.transferDate),
+          match.memberId,
+          slipId
+        );
+        if (txCheck.isDuplicate) {
+          finalStatus = "duplicate";
+          duplicateSlipId = txCheck.duplicateSlipId;
+          duplicateOfferingId = txCheck.duplicateOfferingId;
+          duplicateReason = txCheck.reason;
+        }
+      }
+      if (finalStatus !== "duplicate") {
+        if (requiresReview(extraction) || !match.isAutoMatch) {
+          finalStatus = "needs_review";
+        } else {
+          finalStatus = "matched";
+        }
+      }
+    } else {
+      finalStatus = "needs_review";
+    }
+  }
+  await db.update(lineSlips).set({
+    status: finalStatus,
+    aiRawText: extraction.rawText,
+    aiData: extraction,
+    extractedAmount: extraction.amount !== null ? String(extraction.amount) : null,
+    extractedAmountConfidence: String(extraction.amountConfidence),
+    extractedDate: extraction.transferDate ? new Date(extraction.transferDate) : null,
+    extractedDateConfidence: String(extraction.dateConfidence),
+    extractedRef: extraction.referenceNumber,
+    extractedRefConfidence: String(extraction.referenceConfidence),
+    extractedSenderName: extraction.senderName,
+    extractedSenderConfidence: String(extraction.senderConfidence),
+    extractedBank: extraction.bankName,
+    matchedMemberId,
+    matchedMemberName,
+    matchedConfidence: matchedConfidence !== null ? String(matchedConfidence) : null,
+    matchMethod,
+    duplicateOfSlipId: duplicateSlipId,
+    duplicateOfOfferingId: duplicateOfferingId,
+    lastErrorMessage: duplicateReason,
+    processingAttempts: (slip.processingAttempts ?? 0) + 1,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq5(lineSlips.id, slipId));
+  await db.update(lineProcessingJobs).set({ status: "done", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(lineProcessingJobs.id, jobId));
+}
+async function runWorkerBatch() {
+  const db = await getDb();
+  if (!db) return { processed: 0, errors: 0 };
+  const jobs = await db.select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts }).from(lineProcessingJobs).where(
+    and5(
+      eq5(lineProcessingJobs.status, "queued"),
+      lte3(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
+    )
+  ).orderBy(lineProcessingJobs.createdAt).limit(BATCH_SIZE);
+  let processed = 0;
+  let errors = 0;
+  for (const job of jobs) {
+    const claimed = await db.update(lineProcessingJobs).set({
+      status: "processing",
+      attempts: (job.attempts ?? 0) + 1,
+      lastAttemptAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(
+      and5(
+        eq5(lineProcessingJobs.id, job.id),
+        eq5(lineProcessingJobs.status, "queued")
+        // Only claim if still queued
+      )
+    ).returning({ id: lineProcessingJobs.id });
+    if (!claimed.length) continue;
+    try {
+      await processJob(job.id, job.slipId);
+      processed++;
+    } catch (err) {
+      errors++;
+      console.error(`[Worker] Job #${job.id} (slip #${job.slipId}) failed:`, err);
+      const nextStatus = (job.attempts ?? 0) + 1 >= MAX_ATTEMPTS ? "failed" : "queued";
+      await db.update(lineProcessingJobs).set({
+        status: nextStatus,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq5(lineProcessingJobs.id, job.id)).catch((e) => console.error("[Worker] Failed to update job status:", e));
+      if (nextStatus === "failed") {
+        await db.update(lineSlips).set({
+          status: "failed",
+          lastErrorMessage: err instanceof Error ? err.message : String(err),
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq5(lineSlips.id, job.slipId)).catch((e) => console.error("[Worker] Failed to mark slip failed:", e));
+      }
+    }
+  }
+  return { processed, errors };
+}
+function registerLineWorker(app2) {
+  app2.get("/api/line/process-worker", async (req, res) => {
+    if (!isAuthorizedCron(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const result = await runWorkerBatch();
+      console.log(`[Worker] Batch complete: processed=${result.processed}, errors=${result.errors}`);
+      res.status(200).json({ ok: true, ...result });
+    } catch (err) {
+      console.error("[Worker] Batch runner failed:", err);
+      res.status(500).json({ error: "Worker batch failed" });
+    }
+  });
+}
+
+// shared/const.ts
+var COOKIE_NAME = "app_session_id";
+var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
+var UNAUTHED_ERR_MSG = "Please login (10001)";
+var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
+
+// server/routers.ts
+import { z as z2 } from "zod";
+
+// server/_core/cookies.ts
+function isSecureRequest(req) {
+  if (req.protocol === "https") return true;
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  if (!forwardedProto) return false;
+  const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
+  return protoList.some((proto) => proto.trim().toLowerCase() === "https");
+}
+function getSessionCookieOptions(req) {
+  const secure = isSecureRequest(req);
+  return {
+    httpOnly: true,
+    path: "/",
+    // SameSite=None is only legal on a secure origin. Browsers reject such a
+    // cookie over plain http, which silently breaks both sign-in and sign-out
+    // on non-https origins. Fall back to Lax there; https keeps None so the
+    // session still works when the app is embedded cross-site.
+    sameSite: secure ? "none" : "lax",
+    secure
+  };
+}
+
+// server/_core/systemRouter.ts
+import { z } from "zod";
+
+// server/_core/notification.ts
+import { TRPCError } from "@trpc/server";
+var TITLE_MAX_LENGTH = 1200;
+var CONTENT_MAX_LENGTH = 2e4;
+var trimValue = (value) => value.trim();
+var isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+var buildEndpointUrl = (baseUrl) => {
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return new URL(
+    "webdevtoken.v1.WebDevService/SendNotification",
+    normalizedBase
+  ).toString();
+};
+var validatePayload = (input) => {
+  if (!isNonEmptyString(input.title)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification title is required."
+    });
+  }
+  if (!isNonEmptyString(input.content)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Notification content is required."
+    });
+  }
+  const title = trimValue(input.title);
+  const content = trimValue(input.content);
+  if (title.length > TITLE_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification title must be at most ${TITLE_MAX_LENGTH} characters.`
+    });
+  }
+  if (content.length > CONTENT_MAX_LENGTH) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: `Notification content must be at most ${CONTENT_MAX_LENGTH} characters.`
+    });
+  }
+  return { title, content };
+};
+async function notifyOwner(payload) {
+  const { title, content } = validatePayload(payload);
+  if (!ENV.forgeApiUrl) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service URL is not configured."
+    });
+  }
+  if (!ENV.forgeApiKey) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Notification service API key is not configured."
+    });
+  }
+  const endpoint = buildEndpointUrl(ENV.forgeApiUrl);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+        "content-type": "application/json",
+        "connect-protocol-version": "1"
+      },
+      body: JSON.stringify({ title, content })
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.warn(
+        `[Notification] Failed to notify owner (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn("[Notification] Error calling notification service:", error);
+    return false;
+  }
+}
+
+// server/_core/trpc.ts
+import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
+import superjson from "superjson";
+var t = initTRPC.context().create({
+  transformer: superjson
+});
+var router = t.router;
+var publicProcedure = t.procedure;
+var requireUser = t.middleware(async (opts) => {
+  const { ctx, next } = opts;
+  if (!ctx.user) {
+    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user
+    }
+  });
+});
+var protectedProcedure = t.procedure.use(requireUser);
+var adminProcedure = t.procedure.use(
+  t.middleware(async (opts) => {
+    const { ctx, next } = opts;
+    if (!ctx.user || ctx.user.role !== "admin") {
+      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+    }
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user
+      }
+    });
+  })
+);
+
+// server/_core/systemRouter.ts
+var systemRouter = router({
+  health: publicProcedure.input(
+    z.object({
+      timestamp: z.number().min(0, "timestamp cannot be negative")
+    })
+  ).query(() => ({
+    ok: true
+  })),
+  notifyOwner: adminProcedure.input(
+    z.object({
+      title: z.string().min(1, "title is required"),
+      content: z.string().min(1, "content is required")
+    })
+  ).mutation(async ({ input }) => {
+    const delivered = await notifyOwner(input);
+    return {
+      success: delivered
+    };
+  })
+});
 
 // server/routers.ts
 import { TRPCError as TRPCError3 } from "@trpc/server";
@@ -3632,6 +5003,173 @@ var appRouter = router({
       return { success: true };
     })
   }),
+  // ── Giving Inbox (LINE Slip AI) ──────────────────────────────────────────
+  givingInbox: router({
+    /**
+     * List slips in inbox with optional status filter.
+     * Accessible by TREASURER and SUPER_ADMIN.
+     */
+    list: financeProcedure.input(
+      z2.object({
+        status: z2.enum([
+          "all",
+          "pending",
+          "processing",
+          "extracted",
+          "needs_review",
+          "matched",
+          "duplicate",
+          "approved",
+          "rejected",
+          "failed"
+        ]).optional(),
+        memberId: z2.number().optional(),
+        limit: z2.number().min(1).max(100).default(50),
+        offset: z2.number().min(0).default(0)
+      }).optional()
+    ).query(async ({ input }) => {
+      return await listLineSlips(DEFAULT_CHURCH_ID, {
+        status: input?.status,
+        memberId: input?.memberId,
+        limit: input?.limit,
+        offset: input?.offset
+      });
+    }),
+    /**
+     * Get single slip detail with AI data and signed image URL.
+     */
+    getById: financeProcedure.input(z2.object({ id: z2.number() })).query(async ({ input }) => {
+      const slip = await getLineSlipById(input.id, DEFAULT_CHURCH_ID);
+      if (!slip) {
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: `\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.id}`
+        });
+      }
+      return slip;
+    }),
+    /**
+     * Overview counts by status for badges and dashboard.
+     */
+    stats: financeProcedure.query(async () => {
+      return await getLineInboxStats(DEFAULT_CHURCH_ID);
+    }),
+    /**
+     * Approve slip and create Offering in ledger atomically.
+     * Prevents double-approval via database transaction with row locking.
+     */
+    approve: financeProcedure.input(
+      z2.object({
+        slipId: z2.number(),
+        fundId: z2.number(),
+        amount: z2.number().positive("\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E32\u0E01\u0E01\u0E27\u0E48\u0E32 0"),
+        memberId: z2.number().nullable().optional(),
+        donorName: z2.string().nullable().optional(),
+        category: offeringCategory.optional(),
+        receiptDate: z2.coerce.date().optional(),
+        reviewNote: z2.string().optional()
+      })
+    ).mutation(async ({ ctx, input }) => {
+      try {
+        return await approveLineSlip({
+          slipId: input.slipId,
+          churchId: DEFAULT_CHURCH_ID,
+          approvedBy: ctx.user.id,
+          fundId: input.fundId,
+          amount: input.amount,
+          memberId: input.memberId,
+          donorName: input.donorName,
+          category: input.category,
+          receiptDate: input.receiptDate,
+          reviewNote: input.reviewNote
+        });
+      } catch (err) {
+        const msg = err?.message || "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E2A\u0E25\u0E34\u0E1B";
+        if (msg.includes("\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27")) {
+          throw new TRPCError3({ code: "CONFLICT", message: msg });
+        }
+        throw new TRPCError3({ code: "BAD_REQUEST", message: msg });
+      }
+    }),
+    /**
+     * Reject a slip with reason.
+     */
+    reject: financeProcedure.input(
+      z2.object({
+        slipId: z2.number(),
+        reason: z2.string().min(1, "\u0E01\u0E23\u0E38\u0E13\u0E32\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B")
+      })
+    ).mutation(async ({ ctx, input }) => {
+      try {
+        return await rejectLineSlip({
+          slipId: input.slipId,
+          churchId: DEFAULT_CHURCH_ID,
+          reviewedBy: ctx.user.id,
+          reason: input.reason
+        });
+      } catch (err) {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: err?.message || "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B"
+        });
+      }
+    }),
+    /**
+     * Update review fields (fund, member, adjusted amount, notes) before approval.
+     */
+    updateReview: financeProcedure.input(
+      z2.object({
+        slipId: z2.number(),
+        fundId: z2.number().nullable().optional(),
+        matchedMemberId: z2.number().nullable().optional(),
+        matchedMemberName: z2.string().nullable().optional(),
+        approvedAmount: z2.number().nullable().optional(),
+        reviewNote: z2.string().nullable().optional(),
+        status: z2.enum(["extracted", "needs_review", "matched"]).optional()
+      })
+    ).mutation(async ({ input }) => {
+      try {
+        return await updateLineSlipReview({
+          slipId: input.slipId,
+          churchId: DEFAULT_CHURCH_ID,
+          fundId: input.fundId,
+          matchedMemberId: input.matchedMemberId,
+          matchedMemberName: input.matchedMemberName,
+          approvedAmount: input.approvedAmount,
+          reviewNote: input.reviewNote,
+          status: input.status
+        });
+      } catch (err) {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: err?.message || "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E2D\u0E31\u0E1B\u0E40\u0E14\u0E15\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2A\u0E25\u0E34\u0E1B"
+        });
+      }
+    }),
+    /**
+     * Link a LINE User ID to a member profile and auto-match their pending slips.
+     */
+    linkMember: financeProcedure.input(
+      z2.object({
+        lineUserId: z2.string().min(1, "LINE User ID \u0E44\u0E21\u0E48\u0E16\u0E39\u0E01\u0E15\u0E49\u0E2D\u0E07"),
+        memberId: z2.number()
+      })
+    ).mutation(async ({ ctx, input }) => {
+      try {
+        return await linkLineUserToMember(
+          DEFAULT_CHURCH_ID,
+          input.lineUserId,
+          input.memberId,
+          ctx.user.id
+        );
+      } catch (err) {
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: err?.message || "\u0E40\u0E01\u0E34\u0E14\u0E02\u0E49\u0E2D\u0E1C\u0E34\u0E14\u0E1E\u0E25\u0E32\u0E14\u0E43\u0E19\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E42\u0E22\u0E07\u0E2A\u0E21\u0E32\u0E0A\u0E34\u0E01\u0E01\u0E31\u0E1A LINE"
+        });
+      }
+    })
+  }),
   // ── Audit Logs ──────────────────────────────────────────────────────────────
   audit: router({
     list: adminProcedure2.input(
@@ -3758,9 +5296,11 @@ async function createContext(opts) {
 // server/_core/app.ts
 function createApp() {
   const app2 = express();
+  registerLineWebhook(app2);
   app2.use(express.json({ limit: "50mb" }));
   app2.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app2);
+  registerLineWorker(app2);
   registerOAuthRoutes(app2);
   app2.use(
     "/api/trpc",

@@ -16,6 +16,8 @@ export const ENUM_STATEMENTS: string[] = [
   `DO $$ BEGIN CREATE TYPE "public"."cash_kind" AS ENUM('note', 'coin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."counting_session_status" AS ENUM('counting', 'counted', 'verified', 'posted', 'closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."session_document_kind" AS ENUM('count_sheet', 'envelope_photo', 'deposit_slip', 'transfer_slip', 'passbook_page', 'deduction_receipt', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  // LINE Slip AI
+  `DO $$ BEGIN CREATE TYPE "public"."line_slip_status" AS ENUM('pending', 'processing', 'extracted', 'needs_review', 'matched', 'duplicate', 'approved', 'rejected', 'failed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
 ];
 
 export const TABLE_STATEMENTS: string[] = [
@@ -317,12 +319,77 @@ export const TABLE_STATEMENTS: string[] = [
     "uploadedBy" integer NOT NULL,
     "createdAt" timestamp DEFAULT now() NOT NULL
   );`,
+
+  // ─── LINE Slip AI ─────────────────────────────────────────────────────────
+  `ALTER TABLE "members" ADD COLUMN IF NOT EXISTS "lineUserId" varchar(64);`,
+
+  `CREATE TABLE IF NOT EXISTS "line_slips" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "lineUserId" varchar(64) NOT NULL,
+    "lineDisplayName" varchar(120),
+    "lineEventId" varchar(64) NOT NULL,
+    "slipImageKey" varchar(500) NOT NULL,
+    "slipHash" varchar(64) NOT NULL,
+    "status" "line_slip_status" DEFAULT 'pending' NOT NULL,
+    "processingAttempts" integer DEFAULT 0 NOT NULL,
+    "lastErrorMessage" text,
+    "aiRawText" text,
+    "aiData" jsonb,
+    "extractedAmount" numeric(15, 2),
+    "extractedAmountConfidence" numeric(4, 3),
+    "extractedDate" timestamp,
+    "extractedDateConfidence" numeric(4, 3),
+    "extractedRef" varchar(120),
+    "extractedRefConfidence" numeric(4, 3),
+    "extractedSenderName" varchar(180),
+    "extractedSenderConfidence" numeric(4, 3),
+    "extractedBank" varchar(80),
+    "duplicateOfSlipId" integer,
+    "duplicateOfOfferingId" integer,
+    "matchedMemberId" integer,
+    "matchedMemberName" varchar(180),
+    "matchedConfidence" numeric(4, 3),
+    "matchMethod" varchar(30),
+    "fundId" integer,
+    "approvedAmount" numeric(15, 2),
+    "reviewedBy" integer,
+    "reviewedAt" timestamp,
+    "reviewNote" text,
+    "approvedOfferingId" integer,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS "line_processing_jobs" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "slipId" integer NOT NULL,
+    "churchId" varchar(64) DEFAULT 'demo-church' NOT NULL,
+    "status" varchar(20) DEFAULT 'queued' NOT NULL,
+    "attempts" integer DEFAULT 0 NOT NULL,
+    "lastAttemptAt" timestamp,
+    "errorMessage" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
 ];
 
 export const INDEX_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "members_church_idx" ON "members" USING btree ("churchId");`,
   `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");`,
   `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`,
+
+  // ─── LINE Slip AI indexes ─────────────────────────────────────────────────
+  /** Idempotency: prevent duplicate LINE event processing */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_event_uniq" ON "line_slips" ("churchId", "lineEventId");`,
+  /** Level 2 duplicate detection: same image hash */
+  `CREATE INDEX IF NOT EXISTS "line_slips_hash_idx" ON "line_slips" ("slipHash");`,
+  /** Level 1 duplicate detection: same bank reference number */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_ref_uniq" ON "line_slips" ("churchId", "extractedRef") WHERE "extractedRef" IS NOT NULL AND "status" NOT IN ('rejected', 'duplicate', 'failed');`,
+  /** Worker polling: fast lookup of queued jobs ordered by age */
+  `CREATE INDEX IF NOT EXISTS "line_jobs_status_idx" ON "line_processing_jobs" ("status", "createdAt");`,
+  /** Status dashboard: count pending slips per church */
+  `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`,
 ];
 
 export async function runSchemaInit(client: any) {
@@ -348,3 +415,4 @@ export async function runSchemaInit(client: any) {
     }
   }
 }
+

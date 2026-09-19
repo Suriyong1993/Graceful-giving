@@ -40,6 +40,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Updates = lazy(() => import("./pages/Updates"));
+const GivingInbox = lazy(() => import("./pages/GivingInbox"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 
 /** Routes reachable without a session. Everything else needs one. */
@@ -224,6 +225,16 @@ function Router() {
 
       <Route path="/offerings" component={Offerings} />
       <Route path="/offerings/new" component={NewOffering} />
+
+      {/* LINE Giving Inbox */}
+      <Route path="/giving/inbox">
+        <RoleGuard
+          canAccess={u => canAccessRoute("/giving/inbox", u)}
+          message="ส่วนกล่องข้อความสลิปสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
+        >
+          <GivingInbox />
+        </RoleGuard>
+      </Route>
 
       {/* Expenses */}
       <Route path="/expenses">

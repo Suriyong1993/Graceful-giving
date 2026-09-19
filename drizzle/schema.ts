@@ -105,6 +105,26 @@ export const sessionDocumentKindEnum = pgEnum("session_document_kind", [
   "deduction_receipt",
   "other",
 ]);
+export const lineSlipStatusEnum = pgEnum("line_slip_status", [
+  /** Received from LINE webhook, image stored, job queued */
+  "pending",
+  /** Worker has picked up the job and is running OCR */
+  "processing",
+  /** OCR complete; all fields extracted with sufficient confidence */
+  "extracted",
+  /** Low-confidence field(s) or OCR issue — staff must manually verify */
+  "needs_review",
+  /** Member matched with high confidence; ready for approval */
+  "matched",
+  /** Duplicate slip detected (same refNo, hash, or transaction) */
+  "duplicate",
+  /** Treasurer approved → Offering record created */
+  "approved",
+  /** Treasurer rejected the slip */
+  "rejected",
+  /** OCR failed after max retries */
+  "failed",
+]);
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -189,6 +209,8 @@ export const members = pgTable("members", {
   envelopeNo: varchar("envelopeNo", { length: 30 }),
   avatarUrl: varchar("avatarUrl", { length: 500 }),
   notes: text("notes"),
+  /** LINE userId linked to this member (for slip auto-matching) */
+  lineUserId: varchar("lineUserId", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -599,3 +621,124 @@ export type BankRecord = typeof bankRecords.$inferSelect;
 export type InsertBankRecord = typeof bankRecords.$inferInsert;
 export type SessionDocument = typeof sessionDocuments.$inferSelect;
 export type InsertSessionDocument = typeof sessionDocuments.$inferInsert;
+
+// ─── LINE Slip Giving Inbox ───────────────────────────────────────────────────
+
+/**
+ * A payment slip received from a LINE Official Account message.
+ * Staff (TREASURER / SUPER_ADMIN) review these in the Giving Inbox
+ * before approving them into the offerings ledger.
+ *
+ * Financial source of truth: `offerings` — this table is evidence/audit trail only.
+ */
+export const lineSlips = pgTable("line_slips", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+
+  // ─── LINE sender info ───
+  /** LINE user ID of the sender */
+  lineUserId: varchar("lineUserId", { length: 64 }).notNull(),
+  /** LINE display name at time of send */
+  lineDisplayName: varchar("lineDisplayName", { length: 120 }),
+  /**
+   * LINE event ID for idempotency.
+   * Unique constraint: (churchId, lineEventId) — prevents duplicate processing
+   * when LINE re-delivers the same event.
+   */
+  lineEventId: varchar("lineEventId", { length: 64 }).notNull(),
+
+  // ─── Stored image (private bucket — no public URL stored) ───
+  /** Supabase Storage key in the private 'slips' bucket */
+  slipImageKey: varchar("slipImageKey", { length: 500 }).notNull(),
+  /** SHA-256 hex of the raw image bytes — Level 2 duplicate detection */
+  slipHash: varchar("slipHash", { length: 64 }).notNull(),
+
+  // ─── Status (see state machine in implementation_plan.md) ───
+  status: lineSlipStatusEnum("status").default("pending").notNull(),
+
+  // ─── Worker / retry tracking ───
+  processingAttempts: integer("processingAttempts").default(0).notNull(),
+  lastErrorMessage: text("lastErrorMessage"),
+
+  // ─── AI extraction results (set by worker after OCR) ───
+  aiRawText: text("aiRawText"),
+  /** Full structured JSON blob returned by AI */
+  aiData: jsonb("aiData"),
+  /** Extracted transfer amount in THB */
+  extractedAmount: decimal("extractedAmount", { precision: 15, scale: 2 }),
+  /** AI confidence 0.0–1.0 for the amount field */
+  extractedAmountConfidence: decimal("extractedAmountConfidence", { precision: 4, scale: 3 }),
+  /** Extracted transfer date/time */
+  extractedDate: timestamp("extractedDate"),
+  /** AI confidence 0.0–1.0 for the date field */
+  extractedDateConfidence: decimal("extractedDateConfidence", { precision: 4, scale: 3 }),
+  /** Bank transaction reference / transaction ID */
+  extractedRef: varchar("extractedRef", { length: 120 }),
+  /** AI confidence 0.0–1.0 for the reference field */
+  extractedRefConfidence: decimal("extractedRefConfidence", { precision: 4, scale: 3 }),
+  /** Sender name as printed on the slip */
+  extractedSenderName: varchar("extractedSenderName", { length: 180 }),
+  /** AI confidence 0.0–1.0 for the sender name field */
+  extractedSenderConfidence: decimal("extractedSenderConfidence", { precision: 4, scale: 3 }),
+  /** Source bank name (e.g. "SCB", "กสิกรไทย") */
+  extractedBank: varchar("extractedBank", { length: 80 }),
+
+  // ─── Duplicate detection ───
+  /** If a duplicate is found, reference the existing slip or offering */
+  duplicateOfSlipId: integer("duplicateOfSlipId"),
+  duplicateOfOfferingId: integer("duplicateOfOfferingId"),
+
+  // ─── Member matching ───
+  matchedMemberId: integer("matchedMemberId"),
+  matchedMemberName: varchar("matchedMemberName", { length: 180 }),
+  /** 0.0–1.0 confidence score from memberMatcher */
+  matchedConfidence: decimal("matchedConfidence", { precision: 4, scale: 3 }),
+  /** How the match was determined */
+  matchMethod: varchar("matchMethod", { length: 30 }),
+
+  // ─── Staff decisions (set during review) ───
+  /** Fund to credit — must be a valid finance_accounts.id */
+  fundId: integer("fundId"),
+  /** Amount confirmed by staff (may differ from extractedAmount) */
+  approvedAmount: decimal("approvedAmount", { precision: 15, scale: 2 }),
+  reviewedBy: integer("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNote: text("reviewNote"),
+
+  // ─── Result ───
+  /** Set when status = 'approved'; FK to the offerings row created */
+  approvedOfferingId: integer("approvedOfferingId"),
+
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export type LineSlip = typeof lineSlips.$inferSelect;
+export type InsertLineSlip = typeof lineSlips.$inferInsert;
+
+/**
+ * Async processing queue for LINE slip OCR jobs.
+ * The Vercel Cron worker polls this table and processes queued jobs.
+ * This decouples the webhook (must return < 5s) from the OCR work.
+ */
+export const lineProcessingJobs = pgTable("line_processing_jobs", {
+  id: serial("id").primaryKey(),
+  slipId: integer("slipId").notNull(),
+  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  /** queued → processing → done | failed */
+  status: varchar("status", { length: 20 }).default("queued").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  lastAttemptAt: timestamp("lastAttemptAt"),
+  errorMessage: text("errorMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export type LineProcessingJob = typeof lineProcessingJobs.$inferSelect;
+export type InsertLineProcessingJob = typeof lineProcessingJobs.$inferInsert;

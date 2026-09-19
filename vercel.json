@@ -3,6 +3,12 @@
   "version": 2,
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/public",
+  "crons": [
+    {
+      "path": "/api/line/process-worker",
+      "schedule": "*/2 * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

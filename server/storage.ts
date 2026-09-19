@@ -5,6 +5,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const SUPABASE_STORAGE_BUCKET =
   process.env.SUPABASE_STORAGE_BUCKET ?? "receipts";
+/** Private bucket for LINE slip images — financial data, never public */
+const SUPABASE_SLIP_BUCKET =
+  process.env.SUPABASE_SLIP_BUCKET ?? "slips";
 
 function getSupabaseConfig() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -99,4 +102,89 @@ export async function storageGet(
     key,
     url: `${url}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${key}`,
   };
+}
+
+/**
+ * Delete a file from Supabase Storage.
+ */
+export async function storageDelete(relKey: string): Promise<void> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = relKey.replace(/^\/+/, "");
+
+  const deleteUrl = `${url}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${key}`;
+  const resp = await fetch(deleteUrl, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Supabase Storage delete failed (${resp.status}): ${msg}`);
+  }
+}
+
+/**
+ * Upload a slip image to the PRIVATE Supabase Storage bucket.
+ * Never generates or returns a public URL — use getSlipSignedUrl() to display.
+ *
+ * @returns { key } — the storage key to persist in line_slips.slipImageKey
+ */
+export async function storagePutPrivate(
+  relKey: string,
+  data: Buffer | Uint8Array,
+  contentType = "image/jpeg"
+): Promise<{ key: string }> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = appendHashSuffix(relKey.replace(/^\/+/, ""));
+
+  const uploadUrl = `${url}/storage/v1/object/${SUPABASE_SLIP_BUCKET}/${key}`;
+  const resp = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true",
+    },
+    body: data as BodyInit,
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(
+      `Supabase private storage upload failed (${resp.status}): ${msg}`
+    );
+  }
+
+  return { key };
+}
+
+/**
+ * Generate a signed URL for a slip image in the PRIVATE bucket.
+ * Valid for 1 hour. Regenerate on each view request.
+ */
+export async function getSlipSignedUrl(slipImageKey: string): Promise<string> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = slipImageKey.replace(/^\/+/, "");
+
+  const signUrl = `${url}/storage/v1/object/sign/${SUPABASE_SLIP_BUCKET}/${key}`;
+  const resp = await fetch(signUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(
+      `Supabase slip signed URL failed (${resp.status}): ${msg}`
+    );
+  }
+
+  const result = (await resp.json()) as { signedURL?: string };
+  return `${url}${result.signedURL}`;
 }

@@ -23,6 +23,7 @@ type AuthUser =
 export const ROUTE_ACCESS: Record<string, (user: AuthUser) => boolean> = {
   "/settings": isSuperAdmin,
   "/counting": canCountOfferings,
+  "/giving/inbox": canManageFinance,
   "/expenses": u => canManageFinance(u) || canManageChurchSettings(u),
   "/funds": u => canManageFinance(u) || canManageChurchSettings(u),
   "/budgets": u => canManageFinance(u) || canManageChurchSettings(u),

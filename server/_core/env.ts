@@ -1,4 +1,4 @@
-﻿export const ENV = {
+export const ENV = {
   // Clerk Auth
   clerkSecretKey: process.env.CLERK_SECRET_KEY ?? "",
   clerkPublishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY ?? "",
@@ -13,4 +13,14 @@
   // Built-in Forge API (for AI features)
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+
+  // LINE Official Account (for Slip AI feature)
+  lineChannelSecret: process.env.LINE_CHANNEL_SECRET ?? "",
+  lineChannelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "",
+
+  // Supabase private slip bucket (default: "slips")
+  supabaseSlipBucket: process.env.SUPABASE_SLIP_BUCKET ?? "slips",
+
+  // Secret for protecting the Vercel Cron endpoint
+  cronSecret: process.env.CRON_SECRET ?? "",
 };

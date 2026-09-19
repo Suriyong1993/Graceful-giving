@@ -1,0 +1,293 @@
+/**
+ * LINE Slip Processing Worker
+ *
+ * Called by Vercel Cron every 2 minutes via GET /api/line/process-worker
+ * Also callable manually by SUPER_ADMIN for debugging.
+ *
+ * For each queued job:
+ *   1. Claim job atomically (status: queued → processing)
+ *   2. Get signed URL for the slip image (private bucket, 1hr)
+ *   3. Run AI OCR extraction
+ *   4. Run 3-level duplicate detection
+ *   5. Run member matching
+ *   6. Determine final status (extracted/matched/needs_review/duplicate/failed)
+ *   7. Update line_slips
+ *   8. Mark job done/failed
+ *
+ * Retry: up to MAX_ATTEMPTS before marking failed.
+ */
+
+import type { Request, Response, Express } from "express";
+import { ENV } from "../_core/env";
+import { getDb } from "../db";
+import {
+  lineSlips,
+  lineProcessingJobs,
+  type LineSlip,
+} from "../../drizzle/schema";
+import { and, eq, lte, sql } from "drizzle-orm";
+import { getSlipSignedUrl } from "../storage";
+import { extractSlipData, requiresReview } from "./slipOcr";
+import {
+  checkDuplicateByReference,
+  checkDuplicateByTransaction,
+} from "./duplicateDetector";
+import { matchMember } from "./memberMatcher";
+
+const MAX_ATTEMPTS = 3;
+const BATCH_SIZE = 10;
+
+// ─── Auth guard ───────────────────────────────────────────────────────────────
+
+function isAuthorizedCron(req: Request): boolean {
+  // Vercel passes Authorization: Bearer <CRON_SECRET>
+  const auth = req.headers.authorization ?? "";
+  if (ENV.cronSecret && auth === `Bearer ${ENV.cronSecret}`) return true;
+
+  // Also allow Vercel's internal cron header (x-vercel-signature)
+  // In production, Vercel signs cron requests automatically
+  if (req.headers["x-vercel-cron"] === "1") return true;
+
+  // In dev, allow if no cron secret is configured
+  if (!ENV.isProduction && !ENV.cronSecret) {
+    console.warn("[Worker] CRON_SECRET not set — open in dev mode");
+    return true;
+  }
+
+  return false;
+}
+
+// ─── Single job processor ─────────────────────────────────────────────────────
+
+async function processJob(jobId: number, slipId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+
+  // 1. Get the slip
+  const [slip] = await db
+    .select()
+    .from(lineSlips)
+    .where(eq(lineSlips.id, slipId))
+    .limit(1);
+
+  if (!slip) throw new Error(`Slip #${slipId} not found`);
+  if (slip.status !== "pending") {
+    // Already processed by another worker run
+    await db
+      .update(lineProcessingJobs)
+      .set({ status: "done", updatedAt: new Date() })
+      .where(eq(lineProcessingJobs.id, jobId));
+    return;
+  }
+
+  // 2. Get signed URL for private image
+  const signedUrl = await getSlipSignedUrl(slip.slipImageKey);
+
+  // 3. AI OCR extraction
+  const extraction = await extractSlipData(signedUrl);
+
+  // 4. Duplicate detection
+  let finalStatus: LineSlip["status"] = "extracted";
+  let duplicateSlipId: number | null = null;
+  let duplicateOfferingId: number | null = null;
+  let duplicateReason: string | null = null;
+
+  // Level 1: reference number
+  if (extraction.referenceNumber) {
+    const refCheck = await checkDuplicateByReference(
+      slip.churchId,
+      extraction.referenceNumber,
+      slipId
+    );
+    if (refCheck.isDuplicate) {
+      finalStatus = "duplicate";
+      duplicateSlipId = refCheck.duplicateSlipId;
+      duplicateOfferingId = refCheck.duplicateOfferingId;
+      duplicateReason = refCheck.reason;
+    }
+  }
+
+  // 5. Member matching (skip if already duplicate)
+  let matchedMemberId: number | null = null;
+  let matchedMemberName: string | null = null;
+  let matchedConfidence: number | null = null;
+  let matchMethod: string | null = null;
+
+  if (finalStatus !== "duplicate") {
+    const match = await matchMember(
+      slip.churchId,
+      slip.lineUserId,
+      extraction.senderName
+    );
+
+    if (match) {
+      matchedMemberId = match.memberId;
+      matchedMemberName = match.memberName;
+      matchedConfidence = match.confidence;
+      matchMethod = match.method;
+
+      // Level 3 duplicate: same amount + date + member
+      if (extraction.amount && extraction.transferDate) {
+        const txCheck = await checkDuplicateByTransaction(
+          slip.churchId,
+          extraction.amount,
+          new Date(extraction.transferDate),
+          match.memberId,
+          slipId
+        );
+        if (txCheck.isDuplicate) {
+          finalStatus = "duplicate";
+          duplicateSlipId = txCheck.duplicateSlipId;
+          duplicateOfferingId = txCheck.duplicateOfferingId;
+          duplicateReason = txCheck.reason;
+        }
+      }
+
+      // Determine status based on match reliability and OCR confidence
+      if (finalStatus !== "duplicate") {
+        if (requiresReview(extraction) || !match.isAutoMatch) {
+          finalStatus = "needs_review";
+        } else {
+          finalStatus = "matched";
+        }
+      }
+    } else {
+      // No member match → needs_review for manual assignment
+      finalStatus = "needs_review";
+    }
+  }
+
+  // 6. Update line_slips with all results
+  await db
+    .update(lineSlips)
+    .set({
+      status: finalStatus,
+      aiRawText: extraction.rawText,
+      aiData: extraction as unknown as Record<string, unknown>,
+      extractedAmount: extraction.amount !== null ? String(extraction.amount) : null,
+      extractedAmountConfidence: String(extraction.amountConfidence),
+      extractedDate: extraction.transferDate ? new Date(extraction.transferDate) : null,
+      extractedDateConfidence: String(extraction.dateConfidence),
+      extractedRef: extraction.referenceNumber,
+      extractedRefConfidence: String(extraction.referenceConfidence),
+      extractedSenderName: extraction.senderName,
+      extractedSenderConfidence: String(extraction.senderConfidence),
+      extractedBank: extraction.bankName,
+      matchedMemberId,
+      matchedMemberName,
+      matchedConfidence: matchedConfidence !== null ? String(matchedConfidence) : null,
+      matchMethod,
+      duplicateOfSlipId: duplicateSlipId,
+      duplicateOfOfferingId: duplicateOfferingId,
+      lastErrorMessage: duplicateReason,
+      processingAttempts: (slip.processingAttempts ?? 0) + 1,
+      updatedAt: new Date(),
+    })
+    .where(eq(lineSlips.id, slipId));
+
+  // 7. Mark job done
+  await db
+    .update(lineProcessingJobs)
+    .set({ status: "done", updatedAt: new Date() })
+    .where(eq(lineProcessingJobs.id, jobId));
+}
+
+// ─── Worker batch runner ──────────────────────────────────────────────────────
+
+async function runWorkerBatch(): Promise<{ processed: number; errors: number }> {
+  const db = await getDb();
+  if (!db) return { processed: 0, errors: 0 };
+
+  // Fetch queued jobs (not exceeded max attempts)
+  const jobs = await db
+    .select({ id: lineProcessingJobs.id, slipId: lineProcessingJobs.slipId, attempts: lineProcessingJobs.attempts })
+    .from(lineProcessingJobs)
+    .where(
+      and(
+        eq(lineProcessingJobs.status, "queued"),
+        lte(lineProcessingJobs.attempts, MAX_ATTEMPTS - 1)
+      )
+    )
+    .orderBy(lineProcessingJobs.createdAt)
+    .limit(BATCH_SIZE);
+
+  let processed = 0;
+  let errors = 0;
+
+  for (const job of jobs) {
+    // Atomically claim job (prevents double-processing if two cron runs overlap)
+    const claimed = await db
+      .update(lineProcessingJobs)
+      .set({
+        status: "processing",
+        attempts: (job.attempts ?? 0) + 1,
+        lastAttemptAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(lineProcessingJobs.id, job.id),
+          eq(lineProcessingJobs.status, "queued") // Only claim if still queued
+        )
+      )
+      .returning({ id: lineProcessingJobs.id });
+
+    if (!claimed.length) continue; // Another worker claimed this job
+
+    try {
+      await processJob(job.id, job.slipId);
+      processed++;
+    } catch (err) {
+      errors++;
+      console.error(`[Worker] Job #${job.id} (slip #${job.slipId}) failed:`, err);
+
+      const nextStatus =
+        (job.attempts ?? 0) + 1 >= MAX_ATTEMPTS ? "failed" : "queued";
+
+      await db
+        .update(lineProcessingJobs)
+        .set({
+          status: nextStatus,
+          errorMessage: err instanceof Error ? err.message : String(err),
+          updatedAt: new Date(),
+        })
+        .where(eq(lineProcessingJobs.id, job.id))
+        .catch((e: unknown) => console.error("[Worker] Failed to update job status:", e));
+
+      // Mark slip as failed if max retries exceeded
+      if (nextStatus === "failed") {
+        await db
+          .update(lineSlips)
+          .set({
+            status: "failed",
+            lastErrorMessage: err instanceof Error ? err.message : String(err),
+            updatedAt: new Date(),
+          })
+          .where(eq(lineSlips.id, job.slipId))
+          .catch((e: unknown) => console.error("[Worker] Failed to mark slip failed:", e));
+      }
+    }
+  }
+
+  return { processed, errors };
+}
+
+// ─── Express Route Registration ───────────────────────────────────────────────
+
+export function registerLineWorker(app: Express): void {
+  app.get("/api/line/process-worker", async (req: Request, res: Response): Promise<void> => {
+    if (!isAuthorizedCron(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    try {
+      const result = await runWorkerBatch();
+      console.log(`[Worker] Batch complete: processed=${result.processed}, errors=${result.errors}`);
+      res.status(200).json({ ok: true, ...result });
+    } catch (err) {
+      console.error("[Worker] Batch runner failed:", err);
+      res.status(500).json({ error: "Worker batch failed" });
+    }
+  });
+}

@@ -12,6 +12,7 @@ import {
   FileBarChart,
   HandCoins,
   Home,
+  Inbox,
   Landmark,
   Menu,
   PieChart,
@@ -49,6 +50,12 @@ export const navItems = [
     path: "/offerings",
     icon: HandCoins,
     iconColor: "text-[#F7B6A6]",
+  },
+  {
+    label: "กล่องสลิป LINE",
+    path: "/giving/inbox",
+    icon: Inbox,
+    iconColor: "text-[#4F8B33]",
   },
   {
     label: "รายจ่าย",
