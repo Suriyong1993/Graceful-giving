@@ -87,7 +87,10 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
   }
 
   const result = (await resp.json()) as { signedURL?: string };
-  return `${url}${result.signedURL}`;
+  const signedPath = result.signedURL?.startsWith("/storage/v1")
+    ? result.signedURL
+    : `/storage/v1${result.signedURL ?? ""}`;
+  return `${url}${signedPath}`;
 }
 
 /**
@@ -186,5 +189,8 @@ export async function getSlipSignedUrl(slipImageKey: string): Promise<string> {
   }
 
   const result = (await resp.json()) as { signedURL?: string };
-  return `${url}${result.signedURL}`;
+  const signedPath = result.signedURL?.startsWith("/storage/v1")
+    ? result.signedURL
+    : `/storage/v1${result.signedURL ?? ""}`;
+  return `${url}${signedPath}`;
 }

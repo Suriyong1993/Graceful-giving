@@ -157,7 +157,8 @@ async function getSlipSignedUrl(slipImageKey) {
     );
   }
   const result = await resp.json();
-  return `${url}${result.signedURL}`;
+  const signedPath = result.signedURL?.startsWith("/storage/v1") ? result.signedURL : `/storage/v1${result.signedURL ?? ""}`;
+  return `${url}${signedPath}`;
 }
 
 // server/db.ts
@@ -2883,8 +2884,74 @@ var OUTPUT_SCHEMA = {
   },
   strict: true
 };
+async function extractWithGemini(signedImageUrl, apiKey) {
+  const imgRes = await fetch(signedImageUrl);
+  if (!imgRes.ok) {
+    throw new Error(`Failed to download slip image: ${imgRes.status}`);
+  }
+  const arrayBuffer = await imgRes.arrayBuffer();
+  const base64Data = Buffer.from(arrayBuffer).toString("base64");
+  const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError;
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${SYSTEM_PROMPT}
+
+\u0E01\u0E23\u0E38\u0E13\u0E32\u0E14\u0E36\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E41\u0E25\u0E30\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A\u0E15\u0E32\u0E21 JSON Schema \u0E19\u0E35\u0E49\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19:
+${JSON.stringify(
+                    OUTPUT_SCHEMA.schema
+                  )}`
+                },
+                {
+                  inline_data: {
+                    mime_type: contentType,
+                    data: base64Data
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.1
+          }
+        })
+      });
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        throw new Error(`Gemini ${model} error (${resp.status}): ${errorText}`);
+      }
+      const data = await resp.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parsed = JSON.parse(rawText);
+      return { rawText, ...parsed };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
 async function extractSlipData(signedImageUrl) {
   let rawText = "";
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (geminiKey) {
+    try {
+      console.log("[SlipOCR] Extracting slip data via Google Gemini Vision API...");
+      return await extractWithGemini(signedImageUrl, geminiKey);
+    } catch (geminiErr) {
+      console.warn("[SlipOCR] Gemini extraction error, trying fallback:", geminiErr);
+    }
+  }
   try {
     const result = await invokeLLM({
       messages: [

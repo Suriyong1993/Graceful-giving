@@ -112,12 +112,89 @@ const OUTPUT_SCHEMA = {
   strict: true,
 };
 
+// ─── Gemini API direct integration (Free tier via Google AI Studio) ───────────
+
+async function extractWithGemini(
+  signedImageUrl: string,
+  apiKey: string
+): Promise<SlipExtraction> {
+  const imgRes = await fetch(signedImageUrl);
+  if (!imgRes.ok) {
+    throw new Error(`Failed to download slip image: ${imgRes.status}`);
+  }
+  const arrayBuffer = await imgRes.arrayBuffer();
+  const base64Data = Buffer.from(arrayBuffer).toString("base64");
+  const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+
+  // Try gemini-2.0-flash first, fallback to gemini-1.5-flash
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError: any;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${SYSTEM_PROMPT}\n\nกรุณาดึงข้อมูลและตอบกลับตาม JSON Schema นี้เท่านั้น:\n${JSON.stringify(
+                    OUTPUT_SCHEMA.schema
+                  )}`,
+                },
+                {
+                  inline_data: {
+                    mime_type: contentType,
+                    data: base64Data,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.1,
+          },
+        }),
+      });
+
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        throw new Error(`Gemini ${model} error (${resp.status}): ${errorText}`);
+      }
+
+      const data = await resp.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const parsed = JSON.parse(rawText) as Omit<SlipExtraction, "rawText">;
+      return { rawText, ...parsed };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+
 // ─── Main extraction function ─────────────────────────────────────────────────
 
 export async function extractSlipData(
   signedImageUrl: string
 ): Promise<SlipExtraction> {
   let rawText = "";
+
+  // 1. Try Google Gemini API if GEMINI_API_KEY is available (100% Free via Google AI Studio)
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (geminiKey) {
+    try {
+      console.log("[SlipOCR] Extracting slip data via Google Gemini Vision API...");
+      return await extractWithGemini(signedImageUrl, geminiKey);
+    } catch (geminiErr) {
+      console.warn("[SlipOCR] Gemini extraction error, trying fallback:", geminiErr);
+    }
+  }
 
   try {
     const result = await invokeLLM({
