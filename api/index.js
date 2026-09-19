@@ -1210,7 +1210,12 @@ async function runSchemaInit(client) {
 import { createHash } from "crypto";
 var _db = null;
 var _schemaInitialized = false;
-var DEFAULT_CHURCH_ID = "demo-church";
+var DEFAULT_CHURCH_ID = process.env.CHURCH_ID || "demo-church";
+if (ENV.isProduction && DEFAULT_CHURCH_ID.startsWith("test-")) {
+  throw new Error(
+    `CHURCH_ID is set to the test tenant "${DEFAULT_CHURCH_ID}" in production. That tenant holds no real data. Unset CHURCH_ID so the app uses its default tenant, and check the deployment's environment variables \u2014 CHURCH_ID exists for the test suite and should never be set in production.`
+  );
+}
 async function getDb() {
   const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
   if (!_db && dbUrl) {
@@ -3534,7 +3539,6 @@ function registerLineWorker(app2) {
 
 // server/line/webhook.ts
 import { eq as eq5, and as and5 } from "drizzle-orm";
-var DEFAULT_CHURCH_ID2 = "demo-church";
 var LINE_API_BASE = "https://api.line.me/v2/bot";
 var LINE_CONTENT_BASE = "https://api-data.line.me/v2/bot";
 function validateSignature(rawBody, signature) {
@@ -3713,7 +3717,7 @@ function registerLineWebhook(app2) {
         return;
       }
       res.status(200).json({ ok: true });
-      const churchId = DEFAULT_CHURCH_ID2;
+      const churchId = DEFAULT_CHURCH_ID;
       for (const event of body.events ?? []) {
         if (event.type === "message" && event.message?.type === "image") {
           processImageEvent(event, churchId).catch(

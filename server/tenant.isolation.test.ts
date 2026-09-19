@@ -7,6 +7,10 @@ import { sql } from "drizzle-orm";
  * Before this existed, the integration suites wrote under "demo-church", the
  * tenant the running application uses, so a run pointed at a live database
  * mixed test rows into real ones.
+ *
+ * Every loader below pins NODE_ENV explicitly. These modules read it at module
+ * scope, so a test that inherited the ambient value would pass on a developer
+ * machine and fail in the Vercel build, where NODE_ENV is "production".
  */
 
 afterEach(() => {
@@ -14,26 +18,62 @@ afterEach(() => {
   vi.resetModules();
 });
 
-/** Re-import a module with CHURCH_ID stubbed, since both read it at module scope. */
-async function loadWithChurchId(value: string | undefined) {
+/** Load server/db.ts under a chosen environment and tenant. */
+async function loadDb(nodeEnv: string, churchId: string) {
   vi.resetModules();
-  if (value === undefined) vi.stubEnv("CHURCH_ID", "");
-  else vi.stubEnv("CHURCH_ID", value);
-  return {
-    db: await import("./db"),
-    tenant: await import("./test/tenant"),
-  };
+  vi.stubEnv("NODE_ENV", nodeEnv);
+  vi.stubEnv("CHURCH_ID", churchId);
+  return import("./db");
+}
+
+/** Load the tenant helper alone; it never reads NODE_ENV. */
+async function loadTenant(churchId: string) {
+  vi.resetModules();
+  vi.stubEnv("CHURCH_ID", churchId);
+  return import("./test/tenant");
 }
 
 describe("DEFAULT_CHURCH_ID", () => {
   it("falls back to demo-church when CHURCH_ID is unset", async () => {
-    const { db } = await loadWithChurchId(undefined);
+    const db = await loadDb("test", "");
     expect(db.DEFAULT_CHURCH_ID).toBe("demo-church");
   });
 
   it("takes the tenant from CHURCH_ID when set", async () => {
-    const { db } = await loadWithChurchId("test-1234");
+    const db = await loadDb("test", "test-1234");
     expect(db.DEFAULT_CHURCH_ID).toBe("test-1234");
+  });
+});
+
+describe("the production boot guard", () => {
+  it("refuses to start when a test tenant reaches production", async () => {
+    await expect(loadDb("production", "test-abc")).rejects.toThrow(/CHURCH_ID/);
+  });
+
+  it("names the offending tenant and the remedy", async () => {
+    await expect(loadDb("production", "test-abc")).rejects.toThrow(
+      /"test-abc".*Unset CHURCH_ID/s
+    );
+  });
+
+  it("allows the default tenant in production", async () => {
+    const db = await loadDb("production", "");
+    expect(db.DEFAULT_CHURCH_ID).toBe("demo-church");
+  });
+
+  it("allows a non-test tenant in production", async () => {
+    const db = await loadDb("production", "second-church");
+    expect(db.DEFAULT_CHURCH_ID).toBe("second-church");
+  });
+
+  it("stays out of the way outside production, where the suites run", async () => {
+    const db = await loadDb("test", "test-abc");
+    expect(db.DEFAULT_CHURCH_ID).toBe("test-abc");
+  });
+
+  it("stays out of the way in development", async () => {
+    const db = await loadDb("development", "test-abc");
+    expect(db.DEFAULT_CHURCH_ID).toBe("test-abc");
   });
 });
 
@@ -50,21 +90,21 @@ describe("purgeTenant", () => {
   }
 
   it("refuses to delete anything when the tenant is not isolated", async () => {
-    const { tenant } = await loadWithChurchId("demo-church");
+    const tenant = await loadTenant("demo-church");
     const db = recordingDb();
     await tenant.purgeTenant(db);
     expect(db.statements).toHaveLength(0);
   });
 
   it("refuses to delete anything for a tenant that merely contains 'test'", async () => {
-    const { tenant } = await loadWithChurchId("not-a-test-tenant");
+    const tenant = await loadTenant("not-a-test-tenant");
     const db = recordingDb();
     await tenant.purgeTenant(db);
     expect(db.statements).toHaveLength(0);
   });
 
-  it("deletes for an isolated tenant, children before parents", async () => {
-    const { tenant } = await loadWithChurchId("test-abc");
+  it("deletes for an isolated tenant", async () => {
+    const tenant = await loadTenant("test-abc");
     const db = recordingDb();
     await tenant.purgeTenant(db);
 
@@ -79,7 +119,7 @@ describe("purgeTenant", () => {
       ["production", false],
       ["my-test-church", false],
     ] as const) {
-      const { tenant } = await loadWithChurchId(value);
+      const tenant = await loadTenant(value);
       expect(tenant.isIsolatedTenant, value).toBe(expected);
     }
   });
