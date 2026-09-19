@@ -1893,6 +1893,42 @@ export const appRouter = router({
           });
         }
       }),
+
+    /**
+     * Trigger immediate AI re-scan on an existing slip.
+     */
+    rescan: financeProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "ฐานข้อมูลไม่พร้อมใช้งาน",
+          });
+        }
+
+        // Reset slip status to pending
+        await db
+          .update(lineSlips)
+          .set({ status: "pending", errorMessage: null })
+          .where(eq(lineSlips.id, input.id));
+
+        // Insert a new queued job
+        await db.insert(lineProcessingJobs).values({
+          slipId: input.id,
+          status: "queued",
+          attempts: 0,
+          maxAttempts: 3,
+        });
+
+        // Run worker batch immediately with Gemini AI
+        await runWorkerBatch().catch((err) =>
+          console.warn("[Rescan] Worker error:", err)
+        );
+
+        return { success: true };
+      }),
   }),
 
   // ── Audit Logs ──────────────────────────────────────────────────────────────

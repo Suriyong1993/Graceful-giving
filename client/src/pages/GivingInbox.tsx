@@ -150,6 +150,20 @@ export default function GivingInbox() {
     },
   });
 
+  const rescanMutation = trpc.givingInbox.rescan.useMutation({
+    onSuccess: () => {
+      toast.success("AI สแกนและสกัดข้อมูลสลิปเรียบร้อยแล้ว");
+      utils.givingInbox.invalidate();
+    },
+    onError: err => {
+      toast.error(err.message || "ไม่สามารถสแกนสลิปได้");
+    },
+  });
+
+  const handleRescan = (id: number) => {
+    rescanMutation.mutate({ id });
+  };
+
   // Local edit form state when viewing detail
   const currentSlip = selectedSlipQuery.data;
   const [editAmount, setEditAmount] = useState<string>("");
@@ -691,16 +705,30 @@ export default function GivingInbox() {
                     </p>
                   </div>
 
-                  {currentSlip.signedImageUrl && (
-                    <a
-                      href={currentSlip.signedImageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-[#FFF4DF] text-xs font-bold text-[#70452E] hover:bg-[#FBE9CD] flex items-center gap-1.5"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> ดูภาพเต็ม
-                    </a>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {currentSlip.signedImageUrl && (
+                      <a
+                        href={currentSlip.signedImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-[#FFF4DF] text-xs font-bold text-[#70452E] hover:bg-[#FBE9CD] flex items-center gap-1.5 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> ดูภาพเต็ม
+                      </a>
+                    )}
+                    {currentSlip.status !== "approved" && currentSlip.status !== "rejected" && (
+                      <button
+                        type="button"
+                        onClick={() => handleRescan(currentSlip.id)}
+                        disabled={rescanMutation.isPending}
+                        className="px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 text-xs font-bold text-amber-800 hover:bg-amber-100 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                        title="ให้ Google Gemini AI สแกนอ่านข้อมูลสลิปนี้ใหม่"
+                      >
+                        <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${rescanMutation.isPending ? "animate-spin" : ""}`} />
+                        {rescanMutation.isPending ? "กำลังอ่านข้อมูล..." : "สแกน AI ใหม่"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Duplicate Warning */}
