@@ -18,15 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # pnpm must install before setup-node, so setup-node can read the pnpm
-      # store path for its cache. The version comes from package.json
-      # packageManager, which keeps CI and local installs identical.
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+
+      # corepack ships with Node and reads the pnpm version from package.json
+      # packageManager, so CI and local installs resolve the same pnpm. Using it
+      # keeps this workflow on GitHub-owned actions only.
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
+          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
