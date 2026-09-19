@@ -19,16 +19,7 @@ import {
   Sprout,
   UsersRound,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useLocation } from "wouter";
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   Sheet,
   SheetContent,
@@ -39,6 +30,8 @@ import {
 import { Illustration } from "@/components/Illustration";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AppMenu } from "@/components/layout/AppNavigation";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canAccessRoute } from "@/lib/routeAccess";
 import { offeringCategoryLabel } from "@shared/categories";
 
 export const quickActions = [
@@ -121,10 +114,30 @@ function useCountUp(target: number, durationMs = 900): number {
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [showBalance, setShowBalance] = useState(true);
 
   // Dialog states
   const [newsOpen, setNewsOpen] = useState(false);
+
+  // The dashboard only offers shortcuts the signed-in role can actually open,
+  // so a tile never drops the user on the Restricted Access screen.
+  const canOpenReports = canAccessRoute("/reports", user);
+  const canOpenMembers = canAccessRoute("/members", user);
+  const canRecordExpense = canAccessRoute("/expenses", user);
+
+  // Three tiles always show (กิจกรรม, ขอเบิกเงิน, เพิ่มเติม); the two gated
+  // ones change the count, so match the column count to what is actually
+  // rendered rather than leaving empty columns. Classes are spelled out
+  // because Tailwind only sees literal strings.
+  const visibleSecondaryTiles =
+    3 + (canOpenReports ? 1 : 0) + (canOpenMembers ? 1 : 0);
+  const secondaryTileColsClass =
+    visibleSecondaryTiles === 5
+      ? "sm:grid-cols-5"
+      : visibleSecondaryTiles === 4
+        ? "sm:grid-cols-4"
+        : "sm:grid-cols-3";
 
   // tRPC Queries with resilient fallback
   const {
@@ -134,19 +147,6 @@ export default function Home() {
   } = trpc.finance.summary.useQuery(undefined, {
     retry: false,
     staleTime: 30_000,
-  });
-
-  const { data: monthlyStatsData } = trpc.finance.monthlyStats.useQuery(
-    undefined,
-    {
-      retry: false,
-      staleTime: 60_000,
-    }
-  );
-
-  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
-    retry: false,
-    staleTime: 60_000,
   });
 
   const { data: offeringsData } = trpc.offerings.list.useQuery(
@@ -177,8 +177,6 @@ export default function Home() {
   const isPositiveBalance = (totalBalance ?? 0) >= 0;
   const isPositiveNet = (netMonthly ?? 0) >= 0;
   const animatedBalance = useCountUp(totalBalance ?? 0);
-  const chartData = monthlyStatsData ?? [];
-  const fundAccounts = accountsData ?? [];
 
   // Combined transactions
   const allTransactions = useMemo(() => {
@@ -371,16 +369,18 @@ export default function Home() {
                 )}
               </p>
 
-              <div className="pt-3">
-                <button
-                  onClick={() => setLocation("/reports")}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-black border-2 border-[#E9D9BF] transition-all focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-xs hover:border-[#D47012]"
-                >
-                  <BarChart3 className="w-5 h-5 text-[#D47012]" />
-                  <span>ดูรายละเอียด</span>
-                  <ChevronRight className="w-5 h-5 text-[#523D2E]" />
-                </button>
-              </div>
+              {canOpenReports && (
+                <div className="pt-3">
+                  <button
+                    onClick={() => setLocation("/reports")}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-black border-2 border-[#E9D9BF] transition-all focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-xs hover:border-[#D47012]"
+                  >
+                    <BarChart3 className="w-5 h-5 text-[#D47012]" />
+                    <span>ดูรายละเอียด</span>
+                    <ChevronRight className="w-5 h-5 text-[#523D2E]" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right: Decorative balance_wallet.jpg tucked cleanly in corner */}
@@ -523,7 +523,9 @@ export default function Home() {
         <section
           aria-label="การดำเนินการหลัก"
           style={{ animationDelay: "230ms" }}
-          className="animate-fade-up grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full"
+          className={`animate-fade-up grid gap-4 sm:gap-6 w-full ${
+            canRecordExpense ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+          }`}
         >
           <button
             onClick={() => setLocation("/offerings/new")}
@@ -534,44 +536,50 @@ export default function Home() {
             <span>บันทึกการถวาย</span>
           </button>
 
-          <button
-            onClick={() => setLocation("/expenses/new")}
-            className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-3xl bg-[#B54A1E] hover:bg-[#963C15] text-white font-black text-lg sm:text-2xl clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#B54A1E] focus-visible:ring-offset-2 shadow-md"
-            aria-label="บันทึกรายจ่าย"
-          >
-            <ReceiptText className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
-            <span>บันทึกรายจ่าย</span>
-          </button>
+          {canRecordExpense && (
+            <button
+              onClick={() => setLocation("/expenses/new")}
+              className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-3xl bg-[#B54A1E] hover:bg-[#963C15] text-white font-black text-lg sm:text-2xl clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#B54A1E] focus-visible:ring-offset-2 shadow-md"
+              aria-label="บันทึกรายจ่าย"
+            >
+              <ReceiptText className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
+              <span>บันทึกรายจ่าย</span>
+            </button>
+          )}
         </section>
 
         {/* ─── 4b. SECONDARY MENU (รายงาน / สมาชิก / กิจกรรม / เพิ่มเติม) ── */}
         <section
           aria-label="เมนูลัดอื่น ๆ"
-          className="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4 md:gap-5 w-full"
+          className={`grid grid-cols-3 gap-3 sm:gap-4 md:gap-5 w-full ${secondaryTileColsClass}`}
         >
           {/* รายงาน */}
-          <button
-            onClick={() => setLocation("/reports")}
-            className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-4 px-3 rounded-2xl sm:rounded-3xl bg-white border-2 border-[#E9D9BF] hover:border-[#8E44AD] transition-all hover:scale-102 focus-visible:ring-2 focus-visible:ring-[#8E44AD] shadow-xs"
-            aria-label="รายงาน"
-          >
-            <FileBarChart className="w-7 h-7 stroke-[2.4] text-[#8E44AD] mb-1.5" />
-            <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
-              รายงาน
-            </span>
-          </button>
+          {canOpenReports && (
+            <button
+              onClick={() => setLocation("/reports")}
+              className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-4 px-3 rounded-2xl sm:rounded-3xl bg-white border-2 border-[#E9D9BF] hover:border-[#8E44AD] transition-all hover:scale-102 focus-visible:ring-2 focus-visible:ring-[#8E44AD] shadow-xs"
+              aria-label="รายงาน"
+            >
+              <FileBarChart className="w-7 h-7 stroke-[2.4] text-[#8E44AD] mb-1.5" />
+              <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
+                รายงาน
+              </span>
+            </button>
+          )}
 
           {/* สมาชิก */}
-          <button
-            onClick={() => setLocation("/members")}
-            className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-4 px-3 rounded-2xl sm:rounded-3xl bg-white border-2 border-[#E9D9BF] hover:border-[#D47012] transition-all hover:scale-102 focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-xs"
-            aria-label="สมาชิก"
-          >
-            <UsersRound className="w-7 h-7 stroke-[2.4] text-[#D47012] mb-1.5" />
-            <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
-              สมาชิก
-            </span>
-          </button>
+          {canOpenMembers && (
+            <button
+              onClick={() => setLocation("/members")}
+              className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-4 px-3 rounded-2xl sm:rounded-3xl bg-white border-2 border-[#E9D9BF] hover:border-[#D47012] transition-all hover:scale-102 focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-xs"
+              aria-label="สมาชิก"
+            >
+              <UsersRound className="w-7 h-7 stroke-[2.4] text-[#D47012] mb-1.5" />
+              <span className="text-sm sm:text-base font-black text-[#2C1810] tracking-tight text-center">
+                สมาชิก
+              </span>
+            </button>
+          )}
 
           {/* กิจกรรม */}
           <button
@@ -661,13 +669,15 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl font-black text-[#2C1810]">
               แผนการใช้จ่าย
             </h2>
-            <button
-              onClick={() => setLocation("/reports")}
-              className="text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
-            >
-              <span>ดูรายงาน</span>
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {canOpenReports && (
+              <button
+                onClick={() => setLocation("/reports")}
+                className="text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
+              >
+                <span>ดูรายงาน</span>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
           <p className="py-6 text-sm sm:text-base text-[#4A2E1B] font-bold">
             ยังไม่มีข้อมูลแผนการใช้จ่ายจากระบบ จึงยังไม่แสดงตัวเลขประมาณการ

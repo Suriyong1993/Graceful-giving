@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canAccessRoute } from "@/lib/routeAccess";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   confirmDiscardChanges,
@@ -9,9 +11,22 @@ import {
 import { ArrowLeft, Banknote, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
+// withdrawals.create caps details at 1000 chars, and an urgent request spends
+// part of that budget on the prefix below, so the field stops short of both.
+const URGENT_PREFIX = "[เร่งด่วน] ";
+const DETAILS_MAX_LENGTH = 1000 - URGENT_PREFIX.length;
+
 export default function NewWithdrawal() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  // Anyone signed in may file a request, but /approvals is finance-only, so
+  // send requesters who cannot open it back to the dashboard instead of into
+  // the Restricted Access wall.
+  const canOpenApprovals = canAccessRoute("/approvals", user);
+  const returnPath = canOpenApprovals ? "/approvals" : "/";
+  const returnLabel = canOpenApprovals ? "หน้าการอนุมัติ" : "หน้าหลัก";
 
   const [purpose, setPurpose] = useState("");
   const [amount, setAmount] = useState("");
@@ -25,7 +40,7 @@ export default function NewWithdrawal() {
     !showSuccessModal && Boolean(purpose || amount || fundId || details);
   useUnsavedChanges(isDirty);
   const goBack = async () => {
-    if (await confirmDiscardChanges(isDirty)) setLocation("/approvals");
+    if (await confirmDiscardChanges(isDirty)) setLocation(returnPath);
   };
 
   const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
@@ -63,11 +78,17 @@ export default function NewWithdrawal() {
     }
 
     setIsSubmitting(true);
+    // The withdrawal_requests table has no urgency column, so carry the flag
+    // in the note the approver reads rather than dropping the selection.
+    const composedDetails =
+      urgency === "urgent"
+        ? `${URGENT_PREFIX}${details.trim()}`.trim()
+        : details.trim();
     createWithdrawalMutation.mutate({
       purpose: purpose.trim(),
       amount: numAmount,
       fundId,
-      details: details.trim() || undefined,
+      details: composedDetails || undefined,
     });
   };
 
@@ -80,7 +101,7 @@ export default function NewWithdrawal() {
             className="inline-flex items-center gap-2 text-sm font-medium text-[#70452E] hover:text-[#38251B] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>กลับหน้าการอนุมัติ</span>
+            <span>กลับ{returnLabel}</span>
           </button>
           <span className="text-xs text-[#70452E]/60 bg-[#FFF4DF] border border-[#E9D9BF] px-3 py-1 rounded-full font-medium">
             คำขอเบิกเงิน
@@ -186,6 +207,7 @@ export default function NewWithdrawal() {
               </label>
               <textarea
                 rows={2}
+                maxLength={DETAILS_MAX_LENGTH}
                 placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับผู้อนุมัติ..."
                 value={details}
                 onChange={e => setDetails(e.target.value)}
@@ -237,6 +259,7 @@ export default function NewWithdrawal() {
                     setAmount("");
                     setFundId(null);
                     setDetails("");
+                    setUrgency("normal");
                   }}
                   className="w-full py-3 rounded-2xl bg-[#E99A4A] text-white font-medium text-sm hover:bg-[#d88939] transition-colors shadow-sm"
                 >
@@ -245,11 +268,11 @@ export default function NewWithdrawal() {
                 <button
                   onClick={() => {
                     setShowSuccessModal(false);
-                    setLocation("/approvals");
+                    setLocation(returnPath);
                   }}
                   className="w-full py-2.5 rounded-2xl border border-[#E9D9BF] text-[#70452E] font-medium text-sm hover:bg-[#FFF4DF]/50 transition-colors"
                 >
-                  กลับสู่หน้าการอนุมัติ
+                  กลับสู่{returnLabel}
                 </button>
               </div>
             </div>
