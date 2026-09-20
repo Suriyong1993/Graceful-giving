@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
@@ -16,27 +17,34 @@ const queryClient = new QueryClient();
 function TrpcProvider({ children }: { children: React.ReactNode }) {
   const { getToken, signOut } = useAuth();
 
-  const redirectToLoginIfUnauthorized = (error: unknown) => {
-    if (!(error instanceof TRPCClientError)) return;
-    if (typeof window === "undefined") return;
-    if (error.message === UNAUTHED_ERR_MSG) {
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+  useEffect(() => {
+    const redirectToLoginIfUnauthorized = (error: unknown) => {
+      if (!(error instanceof TRPCClientError)) return;
+      if (typeof window === "undefined") return;
+      if (error.message === UNAUTHED_ERR_MSG) {
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       }
-    }
-  };
+    };
 
-  queryClient.getQueryCache().subscribe((event) => {
-    if (event.type === "updated" && event.action.type === "error") {
-      redirectToLoginIfUnauthorized(event.query.state.error);
-    }
-  });
+    const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "error") {
+        redirectToLoginIfUnauthorized(event.query.state.error);
+      }
+    });
 
-  queryClient.getMutationCache().subscribe((event) => {
-    if (event.type === "updated" && event.action.type === "error") {
-      redirectToLoginIfUnauthorized(event.mutation.state.error);
-    }
-  });
+    const unsubscribeMutation = queryClient.getMutationCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "error") {
+        redirectToLoginIfUnauthorized(event.mutation.state.error);
+      }
+    });
+
+    return () => {
+      unsubscribeQuery();
+      unsubscribeMutation();
+    };
+  }, [signOut]);
 
   const trpcClient = trpc.createClient({
     links: [
