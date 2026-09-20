@@ -20,6 +20,7 @@ pnpm start            # run the production build (dist/index.js)
 pnpm check            # tsc --noEmit (project-wide type check)
 pnpm format           # prettier --write .
 pnpm test             # vitest run (server/**/*.test.ts only, see vitest.config.ts)
+pnpm ci               # pnpm check + pnpm test, with the DB env vars blanked (see below)
 pnpm db:push          # drizzle-kit generate && drizzle-kit migrate (requires DATABASE_URL)
 ```
 
@@ -27,11 +28,14 @@ Run a single test file: `pnpm exec vitest run server/updates.access.test.ts`. Te
 
 There is no separate lint script; `pnpm check` (tsc) and `pnpm format` (prettier) are the enforced checks. `tsconfig.json` excludes `*.test.ts`.
 
+**CI runs inside the Vercel build.** `vercel.json` sets `buildCommand` to `pnpm run ci && pnpm run build`, so a typecheck error or a failing test turns the PR check red and nothing deploys. There is no GitHub Actions workflow — runners cannot be allocated on this account, so Vercel is the only automation. `pnpm ci` blanks `DATABASE_URL`, `POSTGRES_URL` and `POSTGRES_PRISMA_URL` for the test run: Vercel's build environment sets them, and without the guard the integration suites below would run against the live database.
+
 ## Environment
 
 No `.env` is committed. Required variables (read in `server/_core/env.ts`):
 
-- `DATABASE_URL` — PostgreSQL connection string (Supabase; `drizzle-orm/postgres-js` + `postgres` client with `prepare: false` for the :6543 pooler). If unset — or unreachable (one eager `SELECT 1` runs at init) — `getDb()` returns `null` and every DB-backed function degrades to a no-op/empty read rather than throwing — keep this behavior in mind when adding new `db.ts` functions.
+- `DATABASE_URL` — PostgreSQL connection string. Production points at **Neon** (provisioned through the Vercel integration, which also sets `POSTGRES_URL`, `DATABASE_URL_UNPOOLED`, `PG*` and friends). `getDb()` reads `DATABASE_URL`, then `POSTGRES_URL`, then `POSTGRES_PRISMA_URL`, and builds `drizzle-orm/postgres-js` + a `postgres` client with `prepare: false`, which any transaction pooler requires. If none is set — or the URL is unreachable (one eager `SELECT 1` runs at init) — `getDb()` returns `null` and every DB-backed function degrades to a no-op/empty read rather than throwing — keep this behavior in mind when adding new `db.ts` functions.
+- `CHURCH_ID` — optional tenant override, defaulting to `demo-church`. **Only the test suite sets it.** `server/test/setupTenant.ts` assigns a unique `test-<uuid>` per test file so an integration run against a real database cannot touch application rows. `server/db.ts` throws at module scope if a `test-` tenant reaches production, so never set this on a deployment.
 - `VITE_APP_ID`, `JWT_SECRET` (session cookie signing), `OAUTH_SERVER_URL`, `OWNER_OPEN_ID` (the openId that gets auto-promoted to `role: "admin"` on first upsert), `BUILT_IN_FORGE_API_URL`, `BUILT_IN_FORGE_API_KEY`.
 
 ## Architecture
@@ -64,9 +68,14 @@ There are two authorization concepts on `User` (`drizzle/schema.ts`): the coarse
 
 ### Data layer
 
-`server/db.ts` holds all Drizzle queries as plain exported async functions (no repository classes/ORM abstraction beyond Drizzle itself). `getDb()` lazily creates a single `drizzle(DATABASE_URL)` instance and caches it in module scope; it returns `null` (never throws) if `DATABASE_URL` is missing, so callers must handle the `null`/empty case. `DEFAULT_CHURCH_ID = "demo-church"` — the schema supports multi-church (`churchId` column on most tables) but the app is currently single-tenant, hardcoded to this constant everywhere.
+`server/db.ts` holds all Drizzle queries as plain exported async functions (no repository classes/ORM abstraction beyond Drizzle itself). `getDb()` lazily creates a single `drizzle(...)` instance and caches it in module scope; it returns `null` (never throws) when no connection string is set, so callers must handle the `null`/empty case. `DEFAULT_CHURCH_ID` resolves to `process.env.CHURCH_ID || "demo-church"` — the schema supports multi-church (`churchId` column on most tables) but the app runs single-tenant, and every query defaults to this constant. Treat the env var as test-only (see Environment above).
 
-`server/storage.ts` and `server/_core/storageProxy.ts`/`server/_core/dataApi.ts` handle file/object storage (S3 via `@aws-sdk/client-s3`) separately from the relational data.
+File and object storage is separate from the relational data, and split across two unrelated backends:
+
+- `server/storage.ts` — **Supabase Storage**, called over its REST API with `fetch` and `SUPABASE_SERVICE_ROLE_KEY`. Two buckets: `SUPABASE_STORAGE_BUCKET` (`receipts`, public) and `SUPABASE_SLIP_BUCKET` (`slips`, private — LINE slip images are financial records, so they are only ever served through the 1-hour signed URLs from `getSlipSignedUrl`).
+- `server/_core/storageProxy.ts` / `server/_core/dataApi.ts` — proxy to the Forge API, unrelated to Supabase.
+
+So Supabase provides object storage only; the database is Neon. `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` are still in `package.json` but no source file imports them.
 
 ### Frontend
 
@@ -74,7 +83,11 @@ There are two authorization concepts on `User` (`drizzle/schema.ts`): the coarse
 
 ### Testing
 
-Only server-side unit tests exist today (`server/*.test.ts`), run against `appRouter.createCaller(context)` directly (no HTTP layer in tests) — see `server/updates.access.test.ts` and `server/dashboard.contract.test.ts` for the pattern: build a fake `TrpcContext` with a plain `User` object, call procedures via the caller, and assert on thrown tRPC error codes (`UNAUTHORIZED`/`FORBIDDEN`/`BAD_REQUEST`) for access-control tests.
+Server-side only (`server/*.test.ts`); client tests are not wired up. Tests run against `appRouter.createCaller(context)` directly, with no HTTP layer — see `server/updates.access.test.ts` or `server/line.inbox.test.ts` for the pattern: build a fake `TrpcContext` with a plain `User` object, call procedures via the caller, and assert on thrown tRPC error codes (`UNAUTHORIZED`/`FORBIDDEN`/`BAD_REQUEST`) for access-control tests.
+
+Two suites are different and need care. `server/counting.workflow.test.ts` and `server/reports.integration.test.ts` hit a real Postgres and **write rows**. They skip themselves unless `DATABASE_URL` is set, which is why `pnpm test` reports skipped files on a normal machine.
+
+When a database is configured, `server/test/setupTenant.ts` (a vitest `setupFile`, which runs before each test file's modules load — early enough for `DEFAULT_CHURCH_ID` to read it) assigns a unique `test-<uuid>` tenant per file, and `purgeTenant` in `server/test/tenant.ts` drops the whole tenant afterwards. That keeps a run away from application data even if a test fails partway. `purgeTenant` refuses to act unless the tenant starts with `test-`, so a misconfigured `CHURCH_ID` cannot turn cleanup into a wipe. If you add a suite that writes rows, scope every statement by `churchId` and let it inherit this tenant rather than naming one.
 
 ## Notable local tooling
 
