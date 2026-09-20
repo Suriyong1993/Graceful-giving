@@ -120,30 +120,26 @@ select:focus-visible {
   }
 }
 
-/* Soft 3D Clay Card Shadow */
+/* Professional Financial Card & Elevation Shadows */
 .clay-card-shadow {
   box-shadow:
-    0 10px 30px -5px rgba(112, 69, 46, 0.06),
-    0 2px 8px -2px rgba(112, 69, 46, 0.04);
+    0 1px 3px 0 rgba(112, 69, 46, 0.05),
+    0 1px 2px -1px rgba(112, 69, 46, 0.05);
 }
 
 .clay-button-shadow {
-  box-shadow: 0 8px 20px -4px rgba(233, 154, 74, 0.35);
+  box-shadow: 0 2px 6px -1px rgba(233, 154, 74, 0.25);
 }
 
 .clay-inset-bevel {
-  box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.8),
-    0 4px 12px rgba(112, 69, 46, 0.05);
+  box-shadow: 0 1px 2px 0 rgba(112, 69, 46, 0.04);
 }
 
-/* Elevated glow for the single most important figure on the page (the
-   total balance) — stronger and warmer than clay-card-shadow so it reads
-   as the focal point at a glance, not just another card. */
+/* Clear, balanced elevation for the primary financial focal point */
 .clay-balance-glow {
   box-shadow:
-    0 20px 45px -12px rgba(168, 201, 120, 0.35),
-    0 8px 20px -6px rgba(112, 69, 46, 0.08);
+    0 4px 16px -2px rgba(112, 69, 46, 0.08),
+    0 2px 6px -2px rgba(112, 69, 46, 0.04);
 }
 
 /* Staggered entrance for above-the-fold Home sections (hero, balance,

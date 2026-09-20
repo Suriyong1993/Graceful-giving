@@ -39,7 +39,7 @@ export function BalanceCard({
     <section
       aria-label="ยอดเงินคงเหลือรวม"
       style={{ animationDelay: "90ms" }}
-      className={`animate-fade-up bg-gradient-to-br from-white via-white to-[#F7FBF4] rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 md:p-10 border-2 relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D]" : "border-[#F2C9BE]"} ${isPositiveBalance ? "clay-balance-glow" : "clay-card-shadow"}`}
+      className={`animate-fade-up bg-white rounded-3xl p-6 sm:p-8 md:p-10 border relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D] clay-balance-glow" : "border-[#F2C9BE] clay-card-shadow"}`}
     >
       <div className="flex items-center justify-between gap-6">
         {/* Left: Prominent financial figures */}
@@ -116,23 +116,23 @@ export function BalanceCard({
             <div className="pt-3">
               <button
                 onClick={onOpenReports}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-black border-2 border-[#E9D9BF] transition-all focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-xs hover:border-[#D47012]"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-bold border border-[#E9D9BF] transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-2xs hover:border-[#D47012]"
               >
-                <BarChart3 className="w-5 h-5 text-[#D47012]" />
+                <BarChart3 className="w-4 h-4 text-[#D47012]" />
                 <span>ดูรายละเอียด</span>
-                <ChevronRight className="w-5 h-5 text-[#523D2E]" />
+                <ChevronRight className="w-4 h-4 text-[#523D2E]" />
               </button>
             </div>
           )}
         </div>
 
-        {/* Right: Decorative balance_wallet.jpg tucked cleanly in corner */}
+        {/* Right: Balance illustration tucked cleanly in corner */}
         <div className="hidden sm:block shrink-0 z-10">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-44 lg:h-44 rounded-[28px] sm:rounded-[36px] overflow-hidden border-2 border-[#E9D9BF] bg-[#FFF8EB] p-2 shadow-xs">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden border border-[#E9D9BF] bg-[#FFF8EB] p-1.5 shadow-2xs">
             <Illustration
               src="/illustrations/balance_wallet.jpg"
               alt="กระเป๋าสตางค์ยอดคงเหลือ"
-              className="w-full h-full object-cover rounded-[22px] sm:rounded-[30px]"
+              className="w-full h-full object-cover rounded-xl"
               width={176}
               height={176}
               aria-hidden="true"

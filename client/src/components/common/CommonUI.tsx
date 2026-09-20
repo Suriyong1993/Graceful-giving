@@ -58,13 +58,13 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-[28px] bg-white border border-[#E9D9BF] clay-card-shadow flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-white border border-[#E9D9BF] clay-card-shadow flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="w-24 h-24 rounded-[24px] overflow-hidden bg-[#FFF4DF] p-1 border border-[#E9D9BF] shadow-xs shrink-0">
+      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#FFF4DF] p-1 border border-[#E9D9BF] shadow-xs shrink-0">
         <Illustration
           src={illustrationSrc}
           alt={illustrationAlt}
-          className="w-full h-full object-cover rounded-[20px]"
+          className="w-full h-full object-cover rounded-xl"
           width={96}
           height={96}
         />
@@ -76,7 +76,7 @@ export const EmptyState: React.FC<{
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="min-h-11 mt-2 px-5 py-2.5 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
         >
           {actionText}
         </button>
@@ -97,10 +97,10 @@ export const ErrorState: React.FC<{
   className = "",
 }) => (
   <div
-    className={`py-12 px-6 rounded-[28px] bg-[#FFF8F6] border border-[#F7D5CD] flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+    className={`py-12 px-6 rounded-2xl bg-[#FFF8F6] border border-[#F7D5CD] flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     role="alert"
   >
-    <div className="w-14 h-14 rounded-full bg-[#FFEBE5] text-[#D45945] flex items-center justify-center text-2xl font-bold">
+    <div className="w-12 h-12 rounded-full bg-[#FFEBE5] text-[#D45945] flex items-center justify-center text-xl font-bold">
       !
     </div>
     <div className="space-y-1 max-w-sm">
@@ -111,7 +111,7 @@ export const ErrorState: React.FC<{
       <button
         type="button"
         onClick={onRetry}
-        className="min-h-11 rounded-full bg-[#D45945] px-5 py-2.5 text-sm font-bold text-white"
+        className="min-h-11 rounded-xl bg-[#D45945] hover:bg-[#C24D3A] px-5 py-2.5 text-sm font-bold text-white transition-colors"
       >
         ลองใหม่
       </button>
@@ -147,13 +147,13 @@ export const StatusBadge: React.FC<{
       case "completed":
       case "active":
         return {
-          bg: "bg-[#EAF5E4] text-[#4F8B33] border-[#D2EAC7]",
+          bg: "bg-[#EAF5E4] text-[#2D6622] border-[#C3E4B8]",
           defaultLabel: "อนุมัติแล้ว",
         };
       case "rejected":
       case "inactive":
         return {
-          bg: "bg-[#FFEBE5] text-[#D45945] border-[#F7D5CD]",
+          bg: "bg-[#FEECEB] text-[#B92A20] border-[#F8C8C5]",
           defaultLabel: "ปฏิเสธ / ยกเลิก",
         };
       case "voided":
@@ -163,17 +163,17 @@ export const StatusBadge: React.FC<{
         };
       case "counting":
         return {
-          bg: "bg-[#FFF3DF] text-[#C26B1E] border-[#F6E1BF]",
+          bg: "bg-[#FFF4E5] text-[#9A5612] border-[#FCE1C2]",
           defaultLabel: "กำลังนับ",
         };
       case "counted":
         return {
-          bg: "bg-[#E7F1FB] text-[#2F6690] border-[#CBE0F2]",
+          bg: "bg-[#EAF2FB] text-[#1E5282] border-[#C7DCF3]",
           defaultLabel: "รอตรวจสอบ",
         };
       case "verified":
         return {
-          bg: "bg-[#EAF5E4] text-[#4F8B33] border-[#D2EAC7]",
+          bg: "bg-[#EAF5E4] text-[#2D6622] border-[#C3E4B8]",
           defaultLabel: "ตรวจสอบแล้ว",
         };
       case "posted":
@@ -189,7 +189,7 @@ export const StatusBadge: React.FC<{
       case "pending":
       default:
         return {
-          bg: "bg-[#FFF3DF] text-[#C26B1E] border-[#F6E1BF]",
+          bg: "bg-[#FFF4E5] text-[#9A5612] border-[#FCE1C2]",
           defaultLabel: "รอดำเนินการ",
         };
     }
@@ -199,7 +199,7 @@ export const StatusBadge: React.FC<{
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold border ${style.bg} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold border ${style.bg} ${className}`}
     >
       <span
         className="w-1.5 h-1.5 shrink-0 rounded-full bg-current"
@@ -271,7 +271,7 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF] clay-card-shadow ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E9D9BF] clay-card-shadow ${className}`}
     >
       <div className="min-w-0">
         <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight break-words">
@@ -451,7 +451,7 @@ export const ConfirmDialog: React.FC<{
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-[#38251B]">
+      <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-2xl p-6 text-[#38251B]">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-[#70452E]">
             {title}

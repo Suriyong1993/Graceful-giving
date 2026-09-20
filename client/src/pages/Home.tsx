@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
-import { Heart, Landmark } from "lucide-react";
+import { ArrowRight, Heart, Inbox, Landmark } from "lucide-react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -11,7 +11,6 @@ import { BalanceCard } from "./Home/components/BalanceCard";
 import { FinancialSummaryRow } from "./Home/components/FinancialSummaryRow";
 import { PrimaryActions } from "./Home/components/PrimaryActions";
 import { SecondaryMenu } from "./Home/components/SecondaryMenu";
-import { ChurchNewsCard } from "./Home/components/ChurchNewsCard";
 import { BudgetSection } from "./Home/components/BudgetSection";
 import {
   RecentTransactions,
@@ -41,8 +40,8 @@ function trendValue(trend: string) {
 
 const fmtThaiDate = (d: Date | string) => formatThaiDateTime(d);
 
-// ─── Balance count-up (first-impression polish) ─────────────────────────────
-function useCountUp(target: number, durationMs = 900): number {
+// ─── Balance count-up (snappy and instant) ───────────────────────────────────
+function useCountUp(target: number, durationMs = 200): number {
   const [value, setValue] = useState(target);
   const prefersReducedMotion =
     typeof window !== "undefined" &&
@@ -86,6 +85,7 @@ export default function Home() {
   const canOpenReports = canAccessRoute("/reports", user);
   const canOpenMembers = canAccessRoute("/members", user);
   const canRecordExpense = canAccessRoute("/expenses", user);
+  const canAccessInbox = canAccessRoute("/giving-inbox", user);
 
   // Three tiles always show (กิจกรรม, ขอเบิกเงิน, เพิ่มเติม); the two gated
   // ones change the count, so match the column count to what is actually
@@ -118,6 +118,14 @@ export default function Home() {
     { limit: 30 },
     { retry: false }
   );
+
+  const { data: inboxStats } = trpc.givingInbox.stats.useQuery(undefined, {
+    enabled: canAccessInbox,
+    retry: false,
+    staleTime: 15_000,
+  });
+
+  const pendingSlipCount = inboxStats?.reviewRequired ?? 0;
 
   // Derived values always come from the current API response.
   const totalBalance = summaryData?.totalBalance;
@@ -186,6 +194,36 @@ export default function Home() {
         {/* 1. Hero Section */}
         <HeroSection />
 
+        {/* Action Needed Banner: High-priority inbox alerts */}
+        {canAccessInbox && pendingSlipCount > 0 && (
+          <div
+            role="region"
+            aria-label="รายการที่ต้องดำเนินการ"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#FFF8EB] border border-[#F6E1BF] text-[#70452E] shadow-2xs"
+          >
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#FFF3DF] border border-[#F6E1BF] flex items-center justify-center text-[#D47012] shrink-0">
+                <Inbox className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-sm sm:text-base text-[#2C1810]">
+                  มีสลิปถวายรอตรวจสอบ {pendingSlipCount} รายการ
+                </h3>
+                <p className="text-xs text-[#70452E] truncate">
+                  สลิปจาก LINE Official Account รอดำเนินการตรวจสอบและบันทึกบัญชี
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setLocation("/giving-inbox")}
+              className="min-h-11 px-4 py-2 rounded-xl bg-[#D47012] hover:bg-[#B85E0E] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012]"
+            >
+              <span>ตรวจสอบสลิป</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* 2. Balance Card */}
         <BalanceCard
           showBalance={showBalance}
@@ -234,16 +272,13 @@ export default function Home() {
           onOpenWithdrawals={() => setLocation("/withdrawals/new")}
         />
 
-        {/* 5. Church News Card */}
-        <ChurchNewsCard onOpenNews={() => setNewsOpen(true)} />
-
-        {/* 6. Budget Section */}
+        {/* 5. Budget Section */}
         <BudgetSection
           canOpenReports={canOpenReports}
           onOpenReports={() => setLocation("/reports")}
         />
 
-        {/* 7. Recent Transactions Section */}
+        {/* 6. Recent Transactions Section */}
         <RecentTransactions
           allTransactions={allTransactions}
           onViewAll={() => setLocation("/transactions")}
