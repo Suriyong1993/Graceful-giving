@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { Heart, Landmark } from "lucide-react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -152,14 +152,16 @@ export default function Home() {
 
   // Combined transactions
   const allTransactions = useMemo<TransactionItem[]>(() => {
+    type OfferingItem = RouterOutputs["offerings"]["list"][number];
+    type ExpenseItem = RouterOutputs["expenses"]["list"][number];
     const list: TransactionItem[] = [];
     if (offeringsData && offeringsData.length > 0) {
-      offeringsData.forEach((o: any) => {
+      offeringsData.forEach((o: OfferingItem) => {
         list.push({
           id: `offering-${o.id}`,
           rawId: o.id,
           title: offeringCategoryLabel(o.category),
-          date: o.receiptDate || o.createdAt,
+          date: o.receiptDate,
           type: "income",
           category: o.category,
           subCategory: "อาคารคริสตจักร",
@@ -170,12 +172,12 @@ export default function Home() {
       });
     }
     if (expensesData && expensesData.length > 0) {
-      expensesData.forEach((e: any) => {
+      expensesData.forEach((e: ExpenseItem) => {
         list.push({
           id: `expense-${e.id}`,
           rawId: e.id,
           title: e.description,
-          date: e.expenseDate || e.createdAt,
+          date: e.expenseDate,
           type: "expense",
           category: e.category,
           subCategory: "พันธกิจนมัสการ",

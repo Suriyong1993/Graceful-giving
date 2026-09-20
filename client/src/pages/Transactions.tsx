@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   ErrorState,
@@ -21,6 +21,24 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { offeringCategoryLabel } from "@shared/categories";
+
+type OfferingItem = RouterOutputs["offerings"]["list"][number];
+type ExpenseItem = RouterOutputs["expenses"]["list"][number];
+
+interface TransactionItem {
+  id: string;
+  rawId: number;
+  title: string;
+  date: string | Date;
+  type: "income" | "expense";
+  category: string;
+  fund: string;
+  ministry: string;
+  amount: number;
+  status: string;
+  icon: typeof Heart | typeof Landmark;
+  tone: string;
+}
 
 export default function Transactions() {
   const [, setLocation] = useLocation();
@@ -44,14 +62,14 @@ export default function Transactions() {
 
   // Map and combine transactions
   const transactions = useMemo(() => {
-    const list: any[] = [];
+    const list: TransactionItem[] = [];
     if (offeringsData && offeringsData.length > 0) {
-      offeringsData.forEach((o: any) => {
+      offeringsData.forEach((o: OfferingItem) => {
         list.push({
           id: `offering-${o.id}`,
           rawId: o.id,
           title: offeringCategoryLabel(o.category),
-          date: o.receiptDate || o.createdAt,
+          date: o.receiptDate,
           type: "income",
           category: o.category,
           fund: "บัญชีทั่วไป",
@@ -65,12 +83,12 @@ export default function Transactions() {
     }
 
     if (expensesData && expensesData.length > 0) {
-      expensesData.forEach((e: any) => {
+      expensesData.forEach((e: ExpenseItem) => {
         list.push({
           id: `expense-${e.id}`,
           rawId: e.id,
           title: e.description,
-          date: e.expenseDate || e.createdAt,
+          date: e.expenseDate,
           type: "expense",
           category: e.category,
           fund: "บัญชีทั่วไป",

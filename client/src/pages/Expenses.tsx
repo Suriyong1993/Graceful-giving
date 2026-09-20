@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   EmptyState,
@@ -24,11 +24,15 @@ import {
   Paperclip,
   Printer,
   Eye,
+  Calendar,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@shared/categories";
 import { VoucherModal, type VoucherData } from "@/components/finance/VoucherModal";
 import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
+
+type ExpenseItem = RouterOutputs["expenses"]["list"][number];
 
 export default function Expenses() {
   const [, setLocation] = useLocation();
@@ -57,12 +61,12 @@ export default function Expenses() {
 
   const expenses = useMemo(() => {
     if (expensesData && expensesData.length > 0) {
-      return expensesData.map((e: any) => ({
+      return expensesData.map((e: ExpenseItem) => ({
         id: e.id,
         category: e.category,
         description: e.description,
         amount: Number(e.amount),
-        date: e.expenseDate || e.createdAt,
+        date: e.expenseDate,
         payee: e.payee || "ทั่วไป",
         receiptRef: e.receiptRef || "-",
         fundId: e.fundId as number | null,

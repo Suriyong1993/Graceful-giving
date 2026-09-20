@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   EmptyState,
@@ -22,12 +22,25 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+type WithdrawalItem = RouterOutputs["withdrawals"]["list"][number];
+
+export interface ApprovalRequest {
+  id: number;
+  purpose: string;
+  amount: number;
+  status: string;
+  date: string | Date;
+  requester: string;
+  fund: string;
+  details: string;
+}
+
 export default function Approvals() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<
     "pending" | "approved" | "rejected"
   >("pending");
-  const [selectedReq, setSelectedReq] = useState<any | null>(null);
+  const [selectedReq, setSelectedReq] = useState<ApprovalRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
 
@@ -49,7 +62,7 @@ export default function Approvals() {
 
   const requests = useMemo(() => {
     if (withdrawalsData && withdrawalsData.length > 0) {
-      return withdrawalsData.map((w: any) => ({
+      return withdrawalsData.map((w: WithdrawalItem): ApprovalRequest => ({
         id: w.id,
         purpose: w.purpose,
         amount: Number(w.amount),

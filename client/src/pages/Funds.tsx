@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Illustration } from "@/components/Illustration";
 import {
@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/common/CommonUI";
+
+type AccountItem = RouterOutputs["finance"]["accounts"][number];
 
 export default function Funds() {
   const [, setLocation] = useLocation();
@@ -51,7 +53,7 @@ export default function Funds() {
   });
 
   const fundsList = useMemo(() => {
-    return (accountsData ?? []).map((account: any) => ({
+    return (accountsData ?? []).map((account: AccountItem) => ({
       ...account,
       code: `FD-${String(account.id).padStart(3, "0")}`,
       icon:
@@ -245,7 +247,7 @@ export default function Funds() {
                   </label>
                   <select
                     value={newFundType}
-                    onChange={e => setNewFundType(e.target.value as any)}
+                    onChange={e => setNewFundType(e.target.value as typeof newFundType)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
                   >
                     <option value="mission">พันธกิจและประกาศ (Mission)</option>
