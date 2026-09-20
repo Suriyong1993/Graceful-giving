@@ -42,11 +42,11 @@ export function useAuth(options?: UseAuthOptions) {
               clerkUser.fullName ??
               clerkUser.username ??
               clerkUser.primaryEmailAddress?.emailAddress ??
-              "Admin",
+              "Member",
             email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
             loginMethod: "clerk",
-            role: "admin" as const,
-            churchRole: "SUPER_ADMIN" as const,
+            role: "user" as const,
+            churchRole: "MEMBER" as const,
             createdAt: new Date(),
             updatedAt: new Date(),
             lastSignedIn: new Date(),
@@ -57,11 +57,11 @@ export function useAuth(options?: UseAuthOptions) {
 
     return {
       user,
-      loading: !isLoaded,
+      loading: !isLoaded || (Boolean(isSignedIn) && meQuery.isLoading),
       error: meQuery.error ?? null,
       isAuthenticated: Boolean(isSignedIn),
     };
-  }, [isLoaded, isSignedIn, clerkUser, meQuery.data, meQuery.error]);
+  }, [isLoaded, isSignedIn, clerkUser, meQuery.data, meQuery.error, meQuery.isLoading]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;

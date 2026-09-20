@@ -260,6 +260,10 @@ var memberStatusEnum = pgEnum("member_status", [
   "inactive",
   "pending"
 ]);
+var ministryStatusEnum = pgEnum("ministry_status", [
+  "active",
+  "inactive"
+]);
 var countingSessionStatusEnum = pgEnum("counting_session_status", [
   "counting",
   "counted",
@@ -359,6 +363,23 @@ var members = pgTable("members", {
   notes: text("notes"),
   /** LINE userId linked to this member (for slip auto-matching) */
   lineUserId: varchar("lineUserId", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var ministries = pgTable("ministries", {
+  id: serial("id").primaryKey(),
+  churchId: varchar("churchId", { length: 64 }).notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  description: text("description"),
+  /**
+   * Free text rather than a reference to members: a ministry leader is not
+   * always on the member roll, and the roster is optional in this app. Swap
+   * for a members FK if leaders must become registered members.
+   */
+  leaderName: varchar("leaderName", { length: 180 }),
+  /** Human-readable meeting time, e.g. "ทุกวันอาทิตย์ 09:00". */
+  meetingSchedule: varchar("meetingSchedule", { length: 180 }),
+  status: ministryStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
 });
@@ -775,6 +796,7 @@ var ENUM_STATEMENTS = [
   `DO $$ BEGIN CREATE TYPE "public"."user_role" AS ENUM('user', 'admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."withdrawal_status" AS ENUM('pending', 'approved', 'rejected', 'disbursed'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."member_status" AS ENUM('active', 'inactive', 'pending'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN CREATE TYPE "public"."ministry_status" AS ENUM('active', 'inactive'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."offering_status" AS ENUM('active', 'voided'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."bank_record_type" AS ENUM('transfer_in', 'cash_deposit'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
   `DO $$ BEGIN CREATE TYPE "public"."cash_kind" AS ENUM('note', 'coin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
@@ -943,6 +965,17 @@ var TABLE_STATEMENTS = [
     "avatarUrl" varchar(500),
     "envelopeNo" varchar(30),
     "notes" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS "ministries" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "churchId" varchar(64) NOT NULL,
+    "name" varchar(180) NOT NULL,
+    "description" text,
+    "leaderName" varchar(180),
+    "meetingSchedule" varchar(180),
+    "status" "ministry_status" DEFAULT 'active' NOT NULL,
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
@@ -1118,6 +1151,7 @@ var TABLE_STATEMENTS = [
 ];
 var INDEX_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "members_church_idx" ON "members" USING btree ("churchId");`,
+  `CREATE INDEX IF NOT EXISTS "ministries_church_idx" ON "ministries" USING btree ("churchId");`,
   `CREATE INDEX IF NOT EXISTS "notifications_user_idx" ON "notifications" USING btree ("churchId", "userId", "createdAt");`,
   `CREATE INDEX IF NOT EXISTS "audit_logs_entity_idx" ON "audit_logs" USING btree ("churchId", "entity", "entityId", "createdAt");`,
   // ─── LINE Slip AI indexes ─────────────────────────────────────────────────
@@ -1822,6 +1856,32 @@ async function updateMember(id, input, churchId = DEFAULT_CHURCH_ID) {
 async function deactivateMember(id, churchId = DEFAULT_CHURCH_ID) {
   return updateMember(id, { status: "inactive" }, churchId);
 }
+async function listMinistries(churchId = DEFAULT_CHURCH_ID, limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(ministries).where(eq(ministries.churchId, churchId)).orderBy(asc(ministries.name)).limit(limit);
+}
+async function getMinistryById(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(ministries).where(and(eq(ministries.id, id), eq(ministries.churchId, churchId))).limit(1);
+  return rows[0] ?? null;
+}
+async function createMinistry(input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.insert(ministries).values({ ...input, churchId }).returning({ id: ministries.id });
+  return rows[0].id;
+}
+async function updateMinistry(id, input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.update(ministries).set(input).where(and(eq(ministries.id, id), eq(ministries.churchId, churchId))).returning({ id: ministries.id });
+  return rows[0]?.id ?? null;
+}
+async function archiveMinistry(id, churchId = DEFAULT_CHURCH_ID) {
+  return updateMinistry(id, { status: "inactive" }, churchId);
+}
 async function listNotifications(userId, churchId = DEFAULT_CHURCH_ID, limit = 50) {
   const db = await getDb();
   if (!db) return [];
@@ -2244,7 +2304,10 @@ async function deleteCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
-      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      and(
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId)
+      )
     ).limit(1);
     if (!session[0]) {
       return { success: false, reason: "NOT_FOUND" };
@@ -2258,7 +2321,10 @@ async function deleteCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
     await tx.delete(cashCounts).where(eq(cashCounts.sessionId, id));
     await tx.delete(offeringEnvelopes).where(eq(offeringEnvelopes.sessionId, id));
     const deleted = await tx.delete(countingSessions).where(
-      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      and(
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId)
+      )
     ).returning({ id: countingSessions.id });
     return { success: deleted.length > 0, reason: null };
   });
@@ -2268,7 +2334,10 @@ async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
   if (!db) throw new Error("Database is not available");
   return db.transaction(async (tx) => {
     const session = await tx.select({ id: countingSessions.id, status: countingSessions.status }).from(countingSessions).where(
-      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      and(
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId)
+      )
     ).limit(1);
     if (!session[0]) {
       return { success: false, reason: "NOT_FOUND" };
@@ -2290,7 +2359,10 @@ async function resetCountingSession(id, churchId = DEFAULT_CHURCH_ID) {
       varianceApprovedBy: null,
       updatedAt: /* @__PURE__ */ new Date()
     }).where(
-      and(eq(countingSessions.id, id), eq(countingSessions.churchId, churchId))
+      and(
+        eq(countingSessions.id, id),
+        eq(countingSessions.churchId, churchId)
+      )
     );
     return { success: true, reason: null };
   });
@@ -3962,6 +4034,9 @@ function canApproveWithdrawals(user) {
 function canManageChurchSettings(user) {
   return hasAnyRole(user, "SUPER_ADMIN", "PASTOR");
 }
+function canManageMinistries(user) {
+  return hasAnyRole(user, "SUPER_ADMIN", "PASTOR", "DEACON");
+}
 function canCountOfferings(user) {
   return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "COUNTER");
 }
@@ -3994,6 +4069,15 @@ var churchLeaderProcedure = protectedProcedure.use(({ ctx, next }) => {
     throw new TRPCError3({
       code: "FORBIDDEN",
       message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1C\u0E39\u0E49\u0E19\u0E33\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E08\u0E31\u0E01\u0E23\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"
+    });
+  }
+  return next();
+});
+var ministryProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canManageMinistries(ctx.user)) {
+    throw new TRPCError3({
+      code: "FORBIDDEN",
+      message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E1C\u0E39\u0E49\u0E19\u0E33\u0E04\u0E23\u0E34\u0E2A\u0E15\u0E08\u0E31\u0E01\u0E23\u0E41\u0E25\u0E30\u0E21\u0E31\u0E04\u0E19\u0E32\u0E22\u0E01\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"
     });
   }
   return next();
@@ -4375,7 +4459,11 @@ var appRouter = router({
     ).mutation(async ({ input }) => {
       const ext = input.fileName.split(".").pop() ?? "bin";
       const key = `expenses/receipt.${ext}`;
-      const { url } = await storagePut(key, input.base64Data, input.contentType);
+      const { url } = await storagePut(
+        key,
+        input.base64Data,
+        input.contentType
+      );
       return { url };
     }),
     update: financeProcedure.input(
@@ -4527,6 +4615,48 @@ var appRouter = router({
       const updated = await deactivateMember(input.id);
       if (updated === null)
         throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E21\u0E32\u0E0A\u0E34\u0E01" });
+      return { id: updated };
+    })
+  }),
+  // ── Ministries ───────────────────────────────────────────────────────────────
+  // Reading is open to every signed-in member so the congregation can see the
+  // teams; creating and editing belongs to leadership and deacons.
+  ministries: router({
+    list: protectedProcedure.query(
+      async () => listMinistries(DEFAULT_CHURCH_ID)
+    ),
+    getById: protectedProcedure.input(z2.object({ id: z2.number().int().positive() })).query(async ({ input }) => getMinistryById(input.id, DEFAULT_CHURCH_ID)),
+    create: ministryProcedure.input(
+      z2.object({
+        name: z2.string().trim().min(2).max(180),
+        description: z2.string().trim().max(2e3).optional(),
+        leaderName: z2.string().trim().max(180).optional(),
+        meetingSchedule: z2.string().trim().max(180).optional(),
+        status: z2.enum(["active", "inactive"]).default("active")
+      })
+    ).mutation(async ({ input }) => ({ id: await createMinistry(input) })),
+    update: ministryProcedure.input(
+      z2.object({
+        id: z2.number().int().positive(),
+        name: z2.string().trim().min(2).max(180).optional(),
+        description: z2.string().trim().max(2e3).nullable().optional(),
+        leaderName: z2.string().trim().max(180).nullable().optional(),
+        meetingSchedule: z2.string().trim().max(180).nullable().optional(),
+        status: z2.enum(["active", "inactive"]).optional()
+      }).refine((input) => Object.keys(input).length > 1, {
+        message: "\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E1F\u0E34\u0E25\u0E14\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02"
+      })
+    ).mutation(async ({ input }) => {
+      const { id, ...data } = input;
+      const updated = await updateMinistry(id, data);
+      if (updated === null)
+        throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1D\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19" });
+      return { id: updated };
+    }),
+    archive: ministryProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ input }) => {
+      const updated = await archiveMinistry(input.id);
+      if (updated === null)
+        throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1D\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19" });
       return { id: updated };
     })
   }),
