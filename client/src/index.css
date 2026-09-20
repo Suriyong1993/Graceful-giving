@@ -36,15 +36,15 @@
   --color-ring: var(--ring);
 
   /* Custom Grace-giving Brand Colors */
-  --color-clay-bg: #fff9ee;
+  --color-clay-bg: var(--background);
   --color-clay-cream: #fff4df;
   --color-clay-sage: #a8c978;
   --color-clay-lightsage: #dcecc5;
   --color-clay-peach: #f7b6a6;
-  --color-clay-orange: #e99a4a;
+  --color-clay-orange: var(--primary);
   --color-clay-sky: #a9d4ed;
   --color-clay-brown: #70452e;
-  --color-clay-dark: #38251b;
+  --color-clay-dark: var(--foreground);
   --color-clay-muted: #927d6d;
   --color-clay-border: #e9d9bf;
 }
@@ -82,14 +82,14 @@
   box-sizing: border-box;
 }
 html {
-  background-color: #fff9ee;
-  color: #38251b;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 body {
   margin: 0;
-  background-color: #fff9ee;
-  color: #38251b;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: "Prompt", "Noto Sans Thai", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -198,7 +198,7 @@ select:focus-visible {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #fff9ee;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
   background: #e5d5bc;

@@ -45,7 +45,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     churchProfile?.name || user?.name || "คริสตจักรพระคุณสมบูรณ์";
 
   return (
-    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
       <div className="flex-1 flex flex-row w-full max-w-none mx-auto min-w-0">
         {/* DESKTOP FIXED SIDEBAR (Visible on lg: >= 1024px) */}
         <aside className="hidden lg:flex flex-col w-76 xl:w-80 bg-[#FFF4DF]/95 border-r-2 border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
@@ -118,7 +118,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="pt-4 mt-auto border-t-2 border-[#E9D9BF]/80">
             <GuardedLink
               href="/profile"
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border-2 border-[#E9D9BF] cursor-pointer hover:bg-[#FFF9EE] transition-all shadow-xs"
+              className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border-2 border-[#E9D9BF] cursor-pointer hover:bg-background transition-all shadow-xs"
             >
               <div className="w-12 h-12 rounded-full bg-[#D47012]/15 flex items-center justify-center text-[#2C1810] font-black text-base shrink-0 border border-[#D47012]/30">
                 {user?.name ? user.name.slice(0, 1) : "ศ"}
@@ -250,7 +250,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="relative -top-6 flex flex-col items-center">
             <button
               onClick={() => navigate("/offerings/new")}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-background focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
               aria-label="บันทึกการถวายใหม่"
             >
               <Plus className="w-8 h-8 stroke-[3]" />

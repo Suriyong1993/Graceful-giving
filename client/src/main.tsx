@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from "@shared/const";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
@@ -16,44 +17,55 @@ const queryClient = new QueryClient();
 function TrpcProvider({ children }: { children: React.ReactNode }) {
   const { getToken, signOut } = useAuth();
 
-  const redirectToLoginIfUnauthorized = (error: unknown) => {
-    if (!(error instanceof TRPCClientError)) return;
-    if (typeof window === "undefined") return;
-    if (error.message === UNAUTHED_ERR_MSG) {
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+  useEffect(() => {
+    const redirectToLoginIfUnauthorized = (error: unknown) => {
+      if (!(error instanceof TRPCClientError)) return;
+      if (typeof window === "undefined") return;
+      if (error.message === UNAUTHED_ERR_MSG) {
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       }
-    }
-  };
+    };
 
-  queryClient.getQueryCache().subscribe((event) => {
-    if (event.type === "updated" && event.action.type === "error") {
-      redirectToLoginIfUnauthorized(event.query.state.error);
-    }
-  });
+    const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "error") {
+        redirectToLoginIfUnauthorized(event.query.state.error);
+      }
+    });
 
-  queryClient.getMutationCache().subscribe((event) => {
-    if (event.type === "updated" && event.action.type === "error") {
-      redirectToLoginIfUnauthorized(event.mutation.state.error);
-    }
-  });
+    const unsubscribeMutation = queryClient.getMutationCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "error") {
+        redirectToLoginIfUnauthorized(event.mutation.state.error);
+      }
+    });
 
-  const trpcClient = trpc.createClient({
-    links: [
-      httpBatchLink({
-        url: "/api/trpc",
-        transformer: superjson,
-        async headers() {
-          // Pass Clerk session token to backend for authentication
-          const token = await getToken().catch(() => null);
-          return token ? { Authorization: `Bearer ${token}` } : {};
-        },
-        fetch(input, init) {
-          return globalThis.fetch(input, { ...(init ?? {}), credentials: "include" });
-        },
+    return () => {
+      unsubscribeQuery();
+      unsubscribeMutation();
+    };
+  }, [signOut]);
+
+  const trpcClient = useMemo(
+    () =>
+      trpc.createClient({
+        links: [
+          httpBatchLink({
+            url: "/api/trpc",
+            transformer: superjson,
+            async headers() {
+              // Pass Clerk session token to backend for authentication
+              const token = await getToken().catch(() => null);
+              return token ? { Authorization: `Bearer ${token}` } : {};
+            },
+            fetch(input, init) {
+              return globalThis.fetch(input, { ...(init ?? {}), credentials: "include" });
+            },
+          }),
+        ],
       }),
-    ],
-  });
+    [getToken]
+  );
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
