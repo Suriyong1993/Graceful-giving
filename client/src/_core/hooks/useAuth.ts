@@ -32,21 +32,27 @@ export function useAuth(options?: UseAuthOptions) {
   }, [signOut, utils]);
 
   const state = useMemo(() => {
-    // If signed in via Clerk, create fallback user so UI never blocks if DB is syncing
+    // Someone signed in through Clerk whose row has not synced yet still gets
+    // a usable app rather than a blocked screen. The fallback carries the
+    // LOWEST privileges on purpose: every role gate in the client reads this
+    // user, so guessing high would hand a plain member the treasurer's and
+    // the admin's screens for as long as auth.me is unresolved — and
+    // permanently if it fails. Their real role replaces this as soon as
+    // auth.me answers.
     const fallbackUser =
       isSignedIn && clerkUser
         ? {
-            id: 1,
+            id: 0,
             openId: clerkUser.id,
             name:
               clerkUser.fullName ??
               clerkUser.username ??
               clerkUser.primaryEmailAddress?.emailAddress ??
-              "Admin",
+              "สมาชิก",
             email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
             loginMethod: "clerk",
-            role: "admin" as const,
-            churchRole: "SUPER_ADMIN" as const,
+            role: "user" as const,
+            churchRole: "MEMBER" as const,
             createdAt: new Date(),
             updatedAt: new Date(),
             lastSignedIn: new Date(),
@@ -57,11 +63,22 @@ export function useAuth(options?: UseAuthOptions) {
 
     return {
       user,
-      loading: !isLoaded,
+      // Stay "loading" until the real role is known, so the route guards and
+      // the navigation wait rather than rendering against the fallback and
+      // flipping once the answer lands. A disabled query (signed out) reports
+      // isLoading false, so this does not stall the login page.
+      loading: !isLoaded || meQuery.isLoading,
       error: meQuery.error ?? null,
       isAuthenticated: Boolean(isSignedIn),
     };
-  }, [isLoaded, isSignedIn, clerkUser, meQuery.data, meQuery.error]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    clerkUser,
+    meQuery.data,
+    meQuery.error,
+    meQuery.isLoading,
+  ]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
