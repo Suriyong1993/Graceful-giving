@@ -18,13 +18,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatEventDate, formatThaiDate, StatusPill, toDateTimeLocal } from "./updatesUtils";
+import {
+  formatEventDate,
+  formatThaiDate,
+  StatusPill,
+  toDateTimeLocal,
+} from "./updatesUtils";
 import { AdminNewsDialog } from "./AdminNewsDialog";
 import { AdminEventDialog } from "./AdminEventDialog";
 
 export function AdminManager() {
   const utils = trpc.useUtils();
-  const { data, isLoading } = trpc.updates.adminList.useQuery(undefined, { retry: false });
+  const { data, isLoading } = trpc.updates.adminList.useQuery(undefined, {
+    retry: false,
+  });
   const createNews = trpc.updates.createNews.useMutation({
     onSuccess: async () => {
       await utils.updates.adminList.invalidate();
@@ -108,7 +115,13 @@ export function AdminManager() {
     body: string;
     category: "announcement" | "ministry" | "finance" | "pastoral";
     status: "draft" | "published" | "archived";
-  }>({ title: "", summary: "", body: "", category: "announcement", status: "draft" });
+  }>({
+    title: "",
+    summary: "",
+    body: "",
+    category: "announcement",
+    status: "draft",
+  });
 
   const [eventForm, setEventForm] = useState<{
     title: string;
@@ -119,20 +132,37 @@ export function AdminManager() {
     location: string;
     registrationUrl: string;
     status: "draft" | "published" | "cancelled";
-  }>({ title: "", summary: "", description: "", startsAt: "", endsAt: "", location: "", registrationUrl: "", status: "draft" });
+  }>({
+    title: "",
+    summary: "",
+    description: "",
+    startsAt: "",
+    endsAt: "",
+    location: "",
+    registrationUrl: "",
+    status: "draft",
+  });
 
   const filteredNews = useMemo(() => {
     const list = data?.news ?? [];
     if (!query.trim()) return list;
     const q = query.toLowerCase();
-    return list.filter((item) => item.title.toLowerCase().includes(q) || item.summary.toLowerCase().includes(q));
+    return list.filter(
+      item =>
+        item.title.toLowerCase().includes(q) ||
+        item.summary.toLowerCase().includes(q)
+    );
   }, [data?.news, query]);
 
   const filteredEvents = useMemo(() => {
     const list = data?.events ?? [];
     if (!query.trim()) return list;
     const q = query.toLowerCase();
-    return list.filter((item) => item.title.toLowerCase().includes(q) || item.summary.toLowerCase().includes(q));
+    return list.filter(
+      item =>
+        item.title.toLowerCase().includes(q) ||
+        item.summary.toLowerCase().includes(q)
+    );
   }, [data?.events, query]);
 
   const handleNews = (event: FormEvent) => {
@@ -143,7 +173,10 @@ export function AdminManager() {
 
   const handleEvent = (event: FormEvent) => {
     event.preventDefault();
-    if (eventForm.endsAt && new Date(eventForm.endsAt) < new Date(eventForm.startsAt)) {
+    if (
+      eventForm.endsAt &&
+      new Date(eventForm.endsAt) < new Date(eventForm.startsAt)
+    ) {
       toast.error("วัน-เวลาสิ้นสุด ต้องไม่เกิดขึ้นก่อนวัน-เวลาเริ่มต้น");
       return;
     }
@@ -185,7 +218,13 @@ export function AdminManager() {
 
   const openNewNews = () => {
     setEditingNewsId(null);
-    setNewsForm({ title: "", summary: "", body: "", category: "announcement", status: "draft" });
+    setNewsForm({
+      title: "",
+      summary: "",
+      body: "",
+      category: "announcement",
+      status: "draft",
+    });
     setNewsOpen(true);
   };
 
@@ -210,9 +249,13 @@ export function AdminManager() {
         <div>
           <div className="flex items-center gap-2">
             <Settings2 className="size-5 text-[#bd7b42]" />
-            <h2 className="font-display text-xl font-bold tracking-tight text-[#4c392e]">จัดการเนื้อหา</h2>
+            <h2 className="font-display text-xl font-bold tracking-tight text-[#4c392e]">
+              จัดการเนื้อหา
+            </h2>
           </div>
-          <p className="mt-1 text-sm text-[#6a5649]">เพิ่มประกาศและปฏิทินกิจกรรมให้สมาชิกติดตาม</p>
+          <p className="mt-1 text-sm text-[#6a5649]">
+            เพิ่มประกาศและปฏิทินกิจกรรมให้สมาชิกติดตาม
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -235,7 +278,7 @@ export function AdminManager() {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={e => setQuery(e.target.value)}
           placeholder="ค้นหาชื่อข่าวสารหรือกิจกรรม..."
           className="w-full rounded-2xl border border-[#eadfce] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#4d3a30] focus:border-[#bd7b42] focus:outline-none"
         />
@@ -249,32 +292,41 @@ export function AdminManager() {
           <div className="rounded-2xl border border-[#eee4d7] bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-[#4d3a30]">ข่าวสารทั้งหมด</p>
-              <span className="text-xs font-semibold text-[#786455]">{filteredNews.length} รายการ</span>
+              <span className="text-xs font-semibold text-[#786455]">
+                {filteredNews.length} รายการ
+              </span>
             </div>
             {filteredNews.length ? (
               <div className="max-h-[380px] overflow-y-auto divide-y divide-[#f1e8dd] pr-1">
-                {filteredNews.map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                {filteredNews.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#fff0dc] text-[#bd7b42]">
                         <Megaphone className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#4d3a30]">{item.title}</p>
-                        <p className="text-[11px] text-[#786455]">{formatThaiDate(item.createdAt)}</p>
+                        <p className="truncate text-sm font-semibold text-[#4d3a30]">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-[#786455]">
+                          {formatThaiDate(item.createdAt)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         aria-label={`แก้ไขข่าวสาร ${item.title}`}
-                        className="grid min-h-[36px] min-w-[36px] place-items-center rounded-lg text-[#8d5e30] hover:bg-[#fff4e5]"
+                        className="grid min-h-11 min-w-11 place-items-center rounded-lg text-[#8d5e30] hover:bg-[#fff4e5]"
                         onClick={() => beginNewsEdit(item)}
                       >
                         <PencilLine className="size-4" />
                       </button>
                       <button
                         aria-label={`ลบข่าวสาร ${item.title}`}
-                        className="grid min-h-[36px] min-w-[36px] place-items-center rounded-lg text-[#c25a50] hover:bg-[#ffefec]"
+                        className="grid min-h-11 min-w-11 place-items-center rounded-lg text-[#c25a50] hover:bg-[#ffefec]"
                         onClick={() => setDeletingNews(item)}
                       >
                         <Trash2 className="size-4" />
@@ -282,16 +334,26 @@ export function AdminManager() {
                       <StatusPill status={item.status} />
                       {item.status === "draft" && (
                         <button
-                          className="min-h-[36px] px-2 text-xs font-bold text-[#2e7d52] hover:underline"
-                          onClick={() => setNewsStatus.mutate({ id: item.id, status: "published" })}
+                          className="min-h-11 px-2 text-xs font-bold text-[#2e7d52] hover:underline"
+                          onClick={() =>
+                            setNewsStatus.mutate({
+                              id: item.id,
+                              status: "published",
+                            })
+                          }
                         >
                           เผยแพร่
                         </button>
                       )}
                       {item.status === "published" && (
                         <button
-                          className="min-h-[36px] px-2 text-xs font-bold text-[#aa4e46] hover:underline"
-                          onClick={() => setNewsStatus.mutate({ id: item.id, status: "archived" })}
+                          className="min-h-11 px-2 text-xs font-bold text-[#aa4e46] hover:underline"
+                          onClick={() =>
+                            setNewsStatus.mutate({
+                              id: item.id,
+                              status: "archived",
+                            })
+                          }
                         >
                           เก็บถาวร
                         </button>
@@ -301,7 +363,9 @@ export function AdminManager() {
                 ))}
               </div>
             ) : (
-              <p className="py-6 text-center text-xs text-[#786455]">ไม่พบข่าวสาร</p>
+              <p className="py-6 text-center text-xs text-[#786455]">
+                ไม่พบข่าวสาร
+              </p>
             )}
           </div>
 
@@ -309,32 +373,41 @@ export function AdminManager() {
           <div className="rounded-2xl border border-[#eee4d7] bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-[#4d3a30]">กิจกรรมทั้งหมด</p>
-              <span className="text-xs font-semibold text-[#786455]">{filteredEvents.length} รายการ</span>
+              <span className="text-xs font-semibold text-[#786455]">
+                {filteredEvents.length} รายการ
+              </span>
             </div>
             {filteredEvents.length ? (
               <div className="max-h-[380px] overflow-y-auto divide-y divide-[#f1e8dd] pr-1">
-                {filteredEvents.map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                {filteredEvents.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-2 py-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#e7f1fb] text-[#3c6f9e]">
                         <CalendarDays className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-[#4d3a30]">{item.title}</p>
-                        <p className="text-[11px] text-[#3b6d9c]">{formatEventDate(item.startsAt)}</p>
+                        <p className="truncate text-sm font-semibold text-[#4d3a30]">
+                          {item.title}
+                        </p>
+                        <p className="text-[11px] text-[#3b6d9c]">
+                          {formatEventDate(item.startsAt)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         aria-label={`แก้ไขกิจกรรม ${item.title}`}
-                        className="grid min-h-[36px] min-w-[36px] place-items-center rounded-lg text-[#3c6f9e] hover:bg-[#eef6ff]"
+                        className="grid min-h-11 min-w-11 place-items-center rounded-lg text-[#3c6f9e] hover:bg-[#eef6ff]"
                         onClick={() => beginEventEdit(item)}
                       >
                         <PencilLine className="size-4" />
                       </button>
                       <button
                         aria-label={`ลบกิจกรรม ${item.title}`}
-                        className="grid min-h-[36px] min-w-[36px] place-items-center rounded-lg text-[#c25a50] hover:bg-[#ffefec]"
+                        className="grid min-h-11 min-w-11 place-items-center rounded-lg text-[#c25a50] hover:bg-[#ffefec]"
                         onClick={() => setDeletingEvent(item)}
                       >
                         <Trash2 className="size-4" />
@@ -342,16 +415,26 @@ export function AdminManager() {
                       <StatusPill status={item.status} />
                       {item.status === "draft" && (
                         <button
-                          className="min-h-[36px] px-2 text-xs font-bold text-[#2e7d52] hover:underline"
-                          onClick={() => setEventStatus.mutate({ id: item.id, status: "published" })}
+                          className="min-h-11 px-2 text-xs font-bold text-[#2e7d52] hover:underline"
+                          onClick={() =>
+                            setEventStatus.mutate({
+                              id: item.id,
+                              status: "published",
+                            })
+                          }
                         >
                           เผยแพร่
                         </button>
                       )}
                       {item.status === "published" && (
                         <button
-                          className="min-h-[36px] px-2 text-xs font-bold text-[#aa4e46] hover:underline"
-                          onClick={() => setEventStatus.mutate({ id: item.id, status: "cancelled" })}
+                          className="min-h-11 px-2 text-xs font-bold text-[#aa4e46] hover:underline"
+                          onClick={() =>
+                            setEventStatus.mutate({
+                              id: item.id,
+                              status: "cancelled",
+                            })
+                          }
                         >
                           ยกเลิก
                         </button>
@@ -361,7 +444,9 @@ export function AdminManager() {
                 ))}
               </div>
             ) : (
-              <p className="py-6 text-center text-xs text-[#786455]">ไม่พบกิจกรรม</p>
+              <p className="py-6 text-center text-xs text-[#786455]">
+                ไม่พบกิจกรรม
+              </p>
             )}
           </div>
         </div>
@@ -390,7 +475,10 @@ export function AdminManager() {
       />
 
       {/* Delete News Confirmation Dialog */}
-      <Dialog open={!!deletingNews} onOpenChange={(open) => !open && setDeletingNews(null)}>
+      <Dialog
+        open={!!deletingNews}
+        onOpenChange={open => !open && setDeletingNews(null)}
+      >
         <DialogContent className="w-full max-w-sm rounded-[26px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
           {deletingNews && (
             <>
@@ -435,7 +523,10 @@ export function AdminManager() {
       </Dialog>
 
       {/* Delete Event Confirmation Dialog */}
-      <Dialog open={!!deletingEvent} onOpenChange={(open) => !open && setDeletingEvent(null)}>
+      <Dialog
+        open={!!deletingEvent}
+        onOpenChange={open => !open && setDeletingEvent(null)}
+      >
         <DialogContent className="w-full max-w-sm rounded-[26px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
           {deletingEvent && (
             <>

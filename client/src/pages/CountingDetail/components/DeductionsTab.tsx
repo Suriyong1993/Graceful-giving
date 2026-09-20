@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { MoneyDisplay, StatusBadge } from "@/components/common/CommonUI";
 import { EXPENSE_CATEGORIES } from "@shared/categories";
 import { fmtBaht } from "./countingUtils";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface DeductionsTabProps {
   sessionId: number;
@@ -53,8 +54,8 @@ export function DeductionsTab({
   return (
     <section className="space-y-4">
       <p className="rounded-2xl border border-[#E9D9BF] bg-background p-4 text-sm text-[#674F42]">
-        เงินที่เบิกจากถุงถวายก่อนนำฝาก ยอดถวายจะไม่หายจากระบบ —
-        ระบบตรวจว่า นับเงินสดได้ − หักเบิก = ยอดนำฝาก
+        เงินที่เบิกจากถุงถวายก่อนนำฝาก ยอดถวายจะไม่หายจากระบบ — ระบบตรวจว่า
+        นับเงินสดได้ − หักเบิก = ยอดนำฝาก
       </p>
 
       {editable && (
@@ -132,25 +133,25 @@ export function DeductionsTab({
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               หมวดหมู่รายจ่าย
-              <select
+              <NativeSelect
                 value={dCategory}
                 onChange={e => setDCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1"
               >
                 {EXPENSE_CATEGORIES.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               ตัดจากกองทุน *
-              <select
+              <NativeSelect
                 required
                 value={dFundId}
                 onChange={e => setDFundId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -160,7 +161,7 @@ export function DeductionsTab({
                     {f.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42] md:col-span-2">
               เหตุผล *
@@ -215,10 +216,7 @@ export function DeductionsTab({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <MoneyDisplay
-                      amount={deduction.amount}
-                      type="expense"
-                    />
+                    <MoneyDisplay amount={deduction.amount} type="expense" />
                     {editable && (
                       <button
                         type="button"

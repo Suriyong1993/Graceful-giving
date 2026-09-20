@@ -24,12 +24,13 @@ import {
   Paperclip,
   Printer,
   Eye,
-  Calendar,
-  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@shared/categories";
-import { VoucherModal, type VoucherData } from "@/components/finance/VoucherModal";
+import {
+  VoucherModal,
+  type VoucherData,
+} from "@/components/finance/VoucherModal";
 import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
 
 type ExpenseItem = RouterOutputs["expenses"]["list"][number];
@@ -38,7 +39,9 @@ export default function Expenses() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(
+    null
+  );
   const [previewReceipt, setPreviewReceipt] = useState<{
     url: string;
     ref: string;
@@ -333,7 +336,10 @@ export default function Expenses() {
                         <td className="py-4 px-6 text-xs text-[#70452E]/60 font-mono whitespace-nowrap">
                           {e.receiptRef}
                         </td>
-                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={ev => ev.stopPropagation()}>
+                        <td
+                          className="py-4 px-6 text-center whitespace-nowrap"
+                          onClick={ev => ev.stopPropagation()}
+                        >
                           {e.receiptUrl ? (
                             <button
                               onClick={() =>
@@ -363,7 +369,10 @@ export default function Expenses() {
                         <td className="py-4 px-6 text-center whitespace-nowrap">
                           <StatusBadge status={e.status} />
                         </td>
-                        <td className="py-4 px-6 text-center whitespace-nowrap" onClick={ev => ev.stopPropagation()}>
+                        <td
+                          className="py-4 px-6 text-center whitespace-nowrap"
+                          onClick={ev => ev.stopPropagation()}
+                        >
                           <button
                             onClick={() =>
                               setSelectedVoucher({
@@ -379,7 +388,7 @@ export default function Expenses() {
                                 receiptUrl: e.receiptUrl,
                               })
                             }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-primary text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
+                            className="min-h-11 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-primary text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
                             title="พิมพ์ใบสำคัญจ่าย"
                           >
                             <Printer className="w-3.5 h-3.5 text-primary" />
@@ -438,7 +447,10 @@ export default function Expenses() {
                     </div>
 
                     {/* Mobile Action Bar */}
-                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#E9D9BF]/30" onClick={ev => ev.stopPropagation()}>
+                    <div
+                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#E9D9BF]/30"
+                      onClick={ev => ev.stopPropagation()}
+                    >
                       {e.receiptUrl && (
                         <button
                           onClick={() =>
@@ -469,7 +481,7 @@ export default function Expenses() {
                             receiptUrl: e.receiptUrl,
                           })
                         }
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
+                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
                       >
                         <Printer className="w-3 h-3 text-primary" />
                         <span>พิมพ์ใบสำคัญ</span>

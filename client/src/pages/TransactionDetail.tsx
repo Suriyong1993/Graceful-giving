@@ -3,13 +3,13 @@ import { useLocation, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
+  BackLink,
   EmptyState,
   LoadingSkeleton,
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
 import {
-  ArrowLeft,
   Calendar,
   CreditCard,
   Landmark,
@@ -29,6 +29,11 @@ import {
 } from "@/hooks/useUnsavedChanges";
 import { VoucherModal } from "@/components/finance/VoucherModal";
 import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
+import {
+  expenseCategoryLabel,
+  offeringCategoryLabel,
+  paymentMethodLabel,
+} from "@shared/categories";
 
 export default function TransactionDetail() {
   const [, setLocation] = useLocation();
@@ -107,7 +112,20 @@ export default function TransactionDetail() {
     { enabled: isExpense && hasValidId, retry: false }
   );
 
+  // Detail rows hold a fundId; without the account list the page showed the
+  // internal id ("กองทุน #1") where the reader expects the fund's name.
+  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+
   const transaction = useMemo(() => {
+    const fundName = (id: number | null | undefined) => {
+      if (id == null) return "ไม่ระบุกองทุน";
+      return (
+        (accountsData ?? []).find(a => a.id === id)?.name ?? "ไม่ระบุกองทุน"
+      );
+    };
     if (isOffering) {
       const item = offeringQuery.data;
       if (!item) return null;
@@ -123,9 +141,9 @@ export default function TransactionDetail() {
         amount: item.amount,
         type: "income" as const,
         date: item.receiptDate,
-        category: item.category,
-        fund: item.fundId ? `กองทุน #${item.fundId}` : "ไม่ระบุกองทุน",
-        paymentMethod: item.method,
+        category: offeringCategoryLabel(item.category),
+        fund: fundName(item.fundId),
+        paymentMethod: paymentMethodLabel(item.method),
         donorOrPayee: item.donorName || "ผู้ถวายนิรนาม",
         status: "approved",
         notes: item.notes,
@@ -143,8 +161,8 @@ export default function TransactionDetail() {
         amount: item.amount,
         type: "expense" as const,
         date: item.expenseDate,
-        category: item.category,
-        fund: item.fundId ? `กองทุน #${item.fundId}` : "ไม่ระบุกองทุน",
+        category: expenseCategoryLabel(item.category),
+        fund: fundName(item.fundId),
         paymentMethod: "ไม่ระบุ",
         donorOrPayee: item.payee || "ไม่ระบุผู้รับเงิน",
         status: item.status,
@@ -154,7 +172,14 @@ export default function TransactionDetail() {
       };
     }
     return null;
-  }, [expenseQuery.data, isExpense, isOffering, offeringQuery.data, txId]);
+  }, [
+    accountsData,
+    expenseQuery.data,
+    isExpense,
+    isOffering,
+    offeringQuery.data,
+    txId,
+  ]);
 
   const loading = offeringQuery.isLoading || expenseQuery.isLoading;
   useEffect(() => {
@@ -248,15 +273,13 @@ export default function TransactionDetail() {
               <span>ยกเลิกรายการ</span>
             </button>
           )}
-          <button
+          <BackLink
+            label="กลับหน้ารายการ"
             onClick={async () => {
-              if (await confirmDiscardChanges(isDirty)) setLocation("/transactions");
+              if (await confirmDiscardChanges(isDirty))
+                setLocation("/transactions");
             }}
-            className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>กลับหน้ารายการ</span>
-          </button>
+          />
         </div>
       }
     >
@@ -389,8 +412,12 @@ export default function TransactionDetail() {
                 {transaction.receiptUrl.toLowerCase().includes(".pdf") ? (
                   <div className="text-center p-4">
                     <FileText className="w-12 h-12 text-[#E99A4A] mx-auto mb-2" />
-                    <span className="text-xs font-bold text-stone-700">เอกสารแนบ PDF</span>
-                    <p className="text-[10px] text-stone-400 mt-1">คลิกเพื่อเปิดดูไฟล์</p>
+                    <span className="text-xs font-bold text-stone-700">
+                      เอกสารแนบ PDF
+                    </span>
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      คลิกเพื่อเปิดดูไฟล์
+                    </p>
                   </div>
                 ) : (
                   <>

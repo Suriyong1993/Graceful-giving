@@ -1,4 +1,11 @@
-import { BarChart3, ChevronRight, Eye, EyeOff, Info, Loader2 } from "lucide-react";
+import {
+  BarChart3,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Info,
+  Loader2,
+} from "lucide-react";
 import { Illustration } from "@/components/Illustration";
 
 interface BalanceCardProps {
@@ -43,7 +50,7 @@ export function BalanceCard({
             </h2>
             <button
               onClick={() => setShowBalance(!showBalance)}
-              className="text-[#523D2E] hover:text-[#2C1810] transition-colors p-2 rounded-full focus-visible:ring-2 focus-visible:ring-[#D47012]"
+              className="size-11 shrink-0 inline-flex items-center justify-center text-[#523D2E] hover:text-[#2C1810] transition-colors rounded-full focus-visible:ring-2 focus-visible:ring-[#D47012]"
               aria-label={showBalance ? "ซ่อนยอดเงิน" : "แสดงยอดเงิน"}
               aria-pressed={!showBalance}
             >
@@ -78,7 +85,13 @@ export function BalanceCard({
             />
           ) : (
             <div
-              className={`break-words text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#155724]" : "text-[#9E2D12]"}`}
+              /* Fluid, and never wrapping. The old fixed steps reached 96px,
+                 which a seven-figure balance cannot fit beside the card's
+                 illustration, and `break-words` then split the figure across
+                 two lines mid-digit — "4,182,671." over "50" reads as two
+                 different numbers. Scaling down is the only safe way for an
+                 amount to lose an argument with its container. */
+              className={`whitespace-nowrap text-[clamp(1.75rem,5.5vw,4.5rem)] font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#155724]" : "text-[#9E2D12]"}`}
             >
               {showBalance && hasSummaryData ? fmtBaht(animatedBalance) : "—"}
             </div>

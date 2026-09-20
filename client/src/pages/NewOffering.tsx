@@ -8,7 +8,6 @@ import {
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
 import {
-  ArrowLeft,
   Calendar,
   CheckCircle2,
   FileUp,
@@ -27,6 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { NativeSelect } from "@/components/ui/native-select";
+import { BackLink, Chip } from "@/components/common/CommonUI";
+import { formatBaht } from "@/lib/format";
 
 export default function NewOffering() {
   const [, setLocation] = useLocation();
@@ -116,15 +118,7 @@ export default function NewOffering() {
       activeRoute="/offerings"
       title="บันทึกถวาย"
       subtitle="บันทึกรายการเงินถวายเข้าสู่บัญชีและกองทุนคริสตจักร"
-      action={
-        <button
-          onClick={goBack}
-          className="px-3.5 py-2 rounded-2xl bg-[#FFF4DF] hover:bg-[#FBE9CD] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>ดูรายการทั้งหมด</span>
-        </button>
-      }
+      action={<BackLink label="ดูรายการทั้งหมด" onClick={goBack} />}
     >
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Hero Card with offering_box.jpg */}
@@ -200,14 +194,13 @@ export default function NewOffering() {
             {/* Shortcut Chips */}
             <div className="flex flex-wrap gap-2 pt-1">
               {quickAmounts.map(q => (
-                <button
+                <Chip
                   key={q}
                   type="button"
                   onClick={() => setAmount(String(q))}
-                  className="px-3.5 py-1.5 rounded-full bg-[#FFF4DF] hover:bg-[#FBE9CD] text-xs font-bold text-[#70452E] border border-[#E9D9BF] transition-all"
                 >
-                  +฿{q.toLocaleString()}
-                </button>
+                  +{formatBaht(q, 0)}
+                </Chip>
               ))}
             </div>
           </div>
@@ -217,11 +210,10 @@ export default function NewOffering() {
             <label className="text-xs font-bold text-[#70452E] block">
               3. เข้ากองทุน
             </label>
-            <select
+            <NativeSelect
               required
               value={fundId}
               onChange={e => setFundId(e.target.value)}
-              className="w-full p-3 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-xs sm:text-sm text-[#38251B] focus:outline-none focus:border-[#E99A4A]"
             >
               <option value="" disabled>
                 — เลือกกองทุน —
@@ -231,7 +223,7 @@ export default function NewOffering() {
                   {f.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             {funds.length === 0 && (
               <p className="text-xs text-[#D45945]">
                 ยังไม่มีกองทุนในระบบ ต้องสร้างกองทุนก่อนบันทึกการถวาย
@@ -250,7 +242,7 @@ export default function NewOffering() {
                   key={m}
                   type="button"
                   onClick={() => setMethod(m)}
-                  className={`py-2.5 px-3 rounded-2xl border text-xs font-bold transition-all ${
+                  className={`min-h-11 py-2.5 px-3 rounded-2xl border text-xs font-bold transition-all ${
                     method === m
                       ? "bg-[#EAF5E4] border-[#A8C978] text-[#4F8B33] shadow-2xs"
                       : "bg-white border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"

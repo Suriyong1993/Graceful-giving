@@ -37,7 +37,7 @@ export function RecentTransactions({
         </h2>
         <button
           onClick={onViewAll}
-          className="text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
+          className="min-h-11 -mr-2 px-2 text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
         >
           <span>ดูทั้งหมด</span>
           <ChevronRight className="w-5 h-5" />
@@ -69,9 +69,11 @@ export function RecentTransactions({
                     {tx.title}
                   </p>
                   <p className="text-xs sm:text-sm text-[#4A2E1B] font-bold pt-0.5">
-                    {typeof tx.date === "string"
-                      ? tx.date
-                      : fmtThaiDate(tx.date)}
+                    {/* The API returns receiptDate/expenseDate as ISO strings,
+                        so the old `typeof === "string"` branch printed
+                        "2026-09-20T12:52:36.967Z" straight into the row.
+                        Format every value, whatever its type. */}
+                    {fmtThaiDate(tx.date)}
                   </p>
                 </div>
               </div>

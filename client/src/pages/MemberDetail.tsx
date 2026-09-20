@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
+import {
+  BackLink,
+  EmptyState,
+  LoadingSkeleton,
+} from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
-import { ArrowLeft, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { Swal } from "@/lib/sweetalert";
 import {
@@ -38,10 +42,16 @@ export default function MemberDetail() {
     onSuccess: async () => {
       await utils.members.list.invalidate();
       await utils.members.getById.invalidate({ id });
-      await Swal.success("บันทึกข้อมูลสำเร็จ!", "อัปเดตข้อมูลสมาชิกเรียบร้อยแล้ว");
+      await Swal.success(
+        "บันทึกข้อมูลสำเร็จ!",
+        "อัปเดตข้อมูลสมาชิกเรียบร้อยแล้ว"
+      );
     },
     onError: async error => {
-      await Swal.error("เกิดข้อผิดพลาด", error.message || "ไม่สามารถบันทึกข้อมูลได้");
+      await Swal.error(
+        "เกิดข้อผิดพลาด",
+        error.message || "ไม่สามารถบันทึกข้อมูลได้"
+      );
     },
   });
 
@@ -52,7 +62,10 @@ export default function MemberDetail() {
       await Swal.success("ปิดใช้งานสำเร็จ!", "ปิดใช้งานสมาชิกเรียบร้อยแล้ว");
     },
     onError: async error => {
-      await Swal.error("เกิดข้อผิดพลาด", error.message || "ไม่สามารถปิดใช้งานได้");
+      await Swal.error(
+        "เกิดข้อผิดพลาด",
+        error.message || "ไม่สามารถปิดใช้งานได้"
+      );
     },
   });
 
@@ -79,16 +92,12 @@ export default function MemberDetail() {
   return (
     <AppLayout title="รายละเอียดสมาชิก" subtitle="ข้อมูลจากฐานข้อมูลจริง">
       <div className="max-w-3xl space-y-6">
-        <button
-          type="button"
+        <BackLink
+          label="กลับหน้าสมาชิก"
           onClick={async () => {
             if (await confirmDiscardChanges(isDirty)) setLocation("/members");
           }}
-          className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-[#70452E]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          กลับหน้าสมาชิก
-        </button>
+        />
         {query.isLoading ? (
           <LoadingSkeleton count={3} />
         ) : query.isError ? (
@@ -138,7 +147,7 @@ export default function MemberDetail() {
                     deactivate.mutate({ id });
                   }
                 }}
-                className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer"
+                className="min-h-11 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 disabled:opacity-50 cursor-pointer"
               >
                 ปิดใช้งาน
               </button>

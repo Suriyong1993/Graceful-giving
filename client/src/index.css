@@ -56,6 +56,12 @@
      value plus its own height, instead of guessing a pixel offset. */
   --mobile-nav-clearance: 8.5rem;
 
+  /* Widest the page content column is allowed to get (AppLayout.tsx). Without
+     a ceiling, a ledger row on a 1920px monitor puts its date at the far left
+     and its amount at the far right with half a metre of empty space between
+     them, which is unreadable. The sidebar sits outside this width. */
+  --content-max: 88rem;
+
   --primary: #e99a4a;
   --primary-foreground: #ffffff;
   --background: #fff9ee;

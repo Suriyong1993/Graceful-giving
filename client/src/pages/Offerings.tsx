@@ -9,16 +9,30 @@ import {
   MoneyDisplay,
 } from "@/components/common/CommonUI";
 import { Illustration } from "@/components/Illustration";
-import { Download, HandCoins, Heart, Plus, Sparkles, Printer } from "lucide-react";
+import {
+  Download,
+  HandCoins,
+  Heart,
+  Plus,
+  Sparkles,
+  Printer,
+} from "lucide-react";
 import { toast } from "sonner";
 import { offeringCategoryLabel } from "@shared/categories";
-import { VoucherModal, type VoucherData } from "@/components/finance/VoucherModal";
+import {
+  VoucherModal,
+  type VoucherData,
+} from "@/components/finance/VoucherModal";
+import { paymentMethodLabel } from "@shared/categories";
+import { formatThaiDateTime } from "@/lib/format";
 
 export default function Offerings() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(null);
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(
+    null
+  );
 
   const {
     data: offeringsData,
@@ -27,19 +41,28 @@ export default function Offerings() {
     refetch,
   } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
+  // Rows store a fundId, so the fund's name has to come from the account list.
+  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+
   const offerings = useMemo(() => {
+    const fundName = (id: number | null | undefined) =>
+      (id != null && (accountsData ?? []).find(a => a.id === id)?.name) ||
+      "ไม่ระบุกองทุน";
     return (offeringsData ?? []).map(o => ({
       id: o.id,
       category: o.category,
       title: offeringCategoryLabel(o.category),
       amount: Number(o.amount),
       date: o.receiptDate,
-      method: o.method || "เงินสด",
-      fund: "บัญชีทั่วไป",
+      method: paymentMethodLabel(o.method || "cash"),
+      fund: fundName(o.fundId),
       donorName: o.donorName || "ผู้ถวายนิรนาม",
       notes: o.notes,
     }));
-  }, [offeringsData]);
+  }, [offeringsData, accountsData]);
 
   const filtered = useMemo(() => {
     return offerings.filter(o => {
@@ -58,7 +81,8 @@ export default function Offerings() {
   );
 
   const exportCSV = () => {
-    const headers = "ID,วันที่,ประเภทการถวาย,ผู้ถวาย,จำนวนเงิน,ช่องทาง,กองทุน\n";
+    const headers =
+      "ID,วันที่,ประเภทการถวาย,ผู้ถวาย,จำนวนเงิน,ช่องทาง,กองทุน\n";
     const rows = filtered
       .map(
         o =>
@@ -199,14 +223,7 @@ export default function Offerings() {
                     {o.title}
                   </h3>
                   <p className="text-[11px] text-[#927D6D] pt-0.5">
-                    {new Intl.DateTimeFormat("th-TH", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(o.date))}{" "}
-                    · {o.method} · {o.fund}
+                    {formatThaiDateTime(o.date)} · {o.method} · {o.fund}
                   </p>
                 </div>
               </div>
@@ -236,7 +253,7 @@ export default function Offerings() {
                       notes: o.notes || undefined,
                     });
                   }}
-                  className="p-2.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-[#E99A4A] text-[#70452E] border border-stone-200 transition-colors shadow-2xs"
+                  className="size-11 shrink-0 inline-flex items-center justify-center rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-[#E99A4A] text-[#70452E] border border-stone-200 transition-colors shadow-2xs"
                   title="พิมพ์ใบเสร็จเงินถวาย"
                 >
                   <Printer className="w-4 h-4 text-[#E99A4A]" />

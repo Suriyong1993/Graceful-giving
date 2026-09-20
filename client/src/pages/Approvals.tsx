@@ -62,16 +62,18 @@ export default function Approvals() {
 
   const requests = useMemo(() => {
     if (withdrawalsData && withdrawalsData.length > 0) {
-      return withdrawalsData.map((w: WithdrawalItem): ApprovalRequest => ({
-        id: w.id,
-        purpose: w.purpose,
-        amount: Number(w.amount),
-        status: w.status,
-        date: w.requestDate || w.createdAt,
-        requester: "ผู้ประสานงานพันธกิจ",
-        fund: "บัญชีทั่วไป",
-        details: w.details || "เบิกจ่ายตามงบประมาณที่ได้รับอนุมัติ",
-      }));
+      return withdrawalsData.map(
+        (w: WithdrawalItem): ApprovalRequest => ({
+          id: w.id,
+          purpose: w.purpose,
+          amount: Number(w.amount),
+          status: w.status,
+          date: w.requestDate || w.createdAt,
+          requester: "ผู้ประสานงานพันธกิจ",
+          fund: "บัญชีทั่วไป",
+          details: w.details || "เบิกจ่ายตามงบประมาณที่ได้รับอนุมัติ",
+        })
+      );
     }
 
     return [];
@@ -245,13 +247,13 @@ export default function Approvals() {
                           setSelectedReq(req);
                           setShowRejectModal(true);
                         }}
-                        className="px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
+                        className="min-h-11 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
                       >
                         ไม่อนุมัติ
                       </button>
                       <button
                         onClick={() => handleApprove(req.id)}
-                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
+                        className="min-h-11 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
                       >
                         อนุมัติคำขอ
                       </button>

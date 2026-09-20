@@ -20,7 +20,11 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
-import { offeringCategoryLabel } from "@shared/categories";
+import { formatThaiDate } from "@/lib/format";
+import {
+  expenseCategoryLabel,
+  offeringCategoryLabel,
+} from "@shared/categories";
 
 type OfferingItem = RouterOutputs["offerings"]["list"][number];
 type ExpenseItem = RouterOutputs["expenses"]["list"][number];
@@ -32,8 +36,9 @@ interface TransactionItem {
   date: string | Date;
   type: "income" | "expense";
   category: string;
+  /** Resolved from fundId against finance.accounts; "—" when the row has none. */
   fund: string;
-  ministry: string;
+  categoryLabel: string;
   amount: number;
   status: string;
   icon: typeof Heart | typeof Landmark;
@@ -53,6 +58,14 @@ export default function Transactions() {
     refetch: refetchOfferings,
   } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
+  // Rows carry a fundId only, so the fund column needs the account list to
+  // show a name. It used to print the constant "บัญชีทั่วไป" on every row
+  // regardless of which fund the money actually went to.
+  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+
   const {
     data: expensesData,
     isLoading: loadingExpenses,
@@ -60,9 +73,17 @@ export default function Transactions() {
     refetch: refetchExpenses,
   } = trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
 
+  const fundNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const a of accountsData ?? []) m.set(a.id, a.name);
+    return m;
+  }, [accountsData]);
+
   // Map and combine transactions
   const transactions = useMemo(() => {
     const list: TransactionItem[] = [];
+    const fundName = (id: number | null | undefined) =>
+      (id != null && fundNameById.get(id)) || "—";
     if (offeringsData && offeringsData.length > 0) {
       offeringsData.forEach((o: OfferingItem) => {
         list.push({
@@ -72,8 +93,8 @@ export default function Transactions() {
           date: o.receiptDate,
           type: "income",
           category: o.category,
-          fund: "บัญชีทั่วไป",
-          ministry: "ฝ่ายการเงิน",
+          fund: fundName(o.fundId),
+          categoryLabel: offeringCategoryLabel(o.category),
           amount: Number(o.amount),
           status: "approved",
           icon: Heart,
@@ -91,8 +112,8 @@ export default function Transactions() {
           date: e.expenseDate,
           type: "expense",
           category: e.category,
-          fund: "บัญชีทั่วไป",
-          ministry: "พันธกิจนมัสการ",
+          fund: fundName(e.fundId),
+          categoryLabel: expenseCategoryLabel(e.category),
           amount: Number(e.amount),
           status: e.status || "approved",
           icon: Landmark,
@@ -106,14 +127,15 @@ export default function Transactions() {
     return list.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [offeringsData, expensesData]);
+  }, [offeringsData, expensesData, fundNameById]);
 
   // Filtered transactions
   const filtered = useMemo(() => {
     return transactions.filter(t => {
       const matchSearch =
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchTerm.toLowerCase());
+        t.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.fund.toLowerCase().includes(searchTerm.toLowerCase());
       const matchType = typeFilter === "all" || t.type === typeFilter;
       const matchFund = fundFilter === "all" || t.fund === fundFilter;
       return matchSearch && matchType && matchFund;
@@ -261,7 +283,6 @@ export default function Transactions() {
                   <th className="p-4">รายการ</th>
                   <th className="p-4">ประเภท</th>
                   <th className="p-4">กองทุน</th>
-                  <th className="p-4">พันธกิจ</th>
                   <th className="p-4 text-right">จำนวนเงิน</th>
                   <th className="p-4 text-center">สถานะ</th>
                 </tr>
@@ -274,20 +295,15 @@ export default function Transactions() {
                     className="hover:bg-[#FFF9EE]/70 cursor-pointer transition-colors"
                   >
                     <td className="p-4 text-[#927D6D] whitespace-nowrap font-medium">
-                      {new Intl.DateTimeFormat("th-TH", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      }).format(new Date(tx.date))}
+                      {formatThaiDate(tx.date)}
                     </td>
                     <td className="p-4 font-bold text-[#38251B]">{tx.title}</td>
                     <td className="p-4">
                       <span className="px-2.5 py-0.5 rounded-full bg-[#FFF4DF] text-[#70452E] text-xs font-medium">
-                        {tx.category}
+                        {tx.categoryLabel}
                       </span>
                     </td>
                     <td className="p-4 text-[#70452E]">{tx.fund}</td>
-                    <td className="p-4 text-[#927D6D]">{tx.ministry}</td>
                     <td className="p-4 text-right font-black">
                       <MoneyDisplay
                         amount={tx.amount}
@@ -325,12 +341,7 @@ export default function Transactions() {
                         {tx.title}
                       </p>
                       <p className="text-sm text-[#674F42] pt-0.5">
-                        {new Intl.DateTimeFormat("th-TH", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        }).format(new Date(tx.date))}{" "}
-                        · {tx.fund}
+                        {formatThaiDate(tx.date)} · {tx.fund}
                       </p>
                     </div>
                   </div>

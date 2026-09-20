@@ -30,7 +30,10 @@ export default function Updates() {
     return (
       <div className="min-h-screen bg-[#fbf7ee] px-5 py-8">
         <div className="mx-auto max-w-lg">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-[#8d5e30] hover:underline">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#8d5e30] hover:underline"
+          >
             <ArrowLeft className="size-4" />
             กลับหน้าหลัก
           </Link>
@@ -38,7 +41,9 @@ export default function Updates() {
             <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#f8eddb] text-[#bd7b42]">
               <Bell className="size-8" />
             </div>
-            <h1 className="mt-5 font-display text-2xl font-bold text-[#4c392e]">ติดตามข่าวสารคริสตจักร</h1>
+            <h1 className="mt-5 font-display text-2xl font-bold text-[#4c392e]">
+              ติดตามข่าวสารคริสตจักร
+            </h1>
             <p className="mt-2 text-sm leading-6 text-[#6a5649]">
               เข้าสู่ระบบเพื่อดูประกาศ กิจกรรม และข้อมูลอัปเดตสำหรับสมาชิก
             </p>
@@ -57,12 +62,12 @@ export default function Updates() {
 
   return (
     <div className="min-h-screen bg-[#fbf7ee] pb-16 text-[#3a2d26]">
-      <div className="mx-auto max-w-[1100px] px-5 py-6 sm:px-8 lg:py-10">
+      <div className="mx-auto max-w-[var(--content-max)] px-5 py-6 sm:px-8 lg:py-10">
         <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div>
             <Link
               href="/"
-              className="inline-flex min-h-[36px] items-center gap-2 text-xs font-bold text-[#8d5e30] hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#8d5e30] hover:underline"
             >
               <ArrowLeft className="size-4" />
               กลับหน้าหลัก
@@ -75,7 +80,9 @@ export default function Updates() {
                 <h1 className="font-display text-3xl font-bold tracking-tight text-[#4b382e]">
                   ข่าวสาร & กิจกรรม
                 </h1>
-                <p className="mt-1 text-sm text-[#6a5649]">ติดตามสิ่งที่เกิดขึ้นในคริสตจักรบ้านแห่งพระคุณ</p>
+                <p className="mt-1 text-sm text-[#6a5649]">
+                  ติดตามสิ่งที่เกิดขึ้นในคริสตจักรบ้านแห่งพระคุณ
+                </p>
               </div>
             </div>
           </div>
@@ -88,8 +95,10 @@ export default function Updates() {
         <div className="mt-8 flex gap-2 rounded-2xl bg-[#f3eadf] p-1.5 sm:w-fit">
           <button
             onClick={() => setActiveTab("feed")}
-            className={`min-h-[40px] rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-              activeTab === "feed" ? "bg-white text-[#8d5e30] shadow-sm" : "text-[#786455] hover:text-[#4c392e]"
+            className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+              activeTab === "feed"
+                ? "bg-white text-[#8d5e30] shadow-sm"
+                : "text-[#786455] hover:text-[#4c392e]"
             }`}
           >
             สำหรับสมาชิก
@@ -97,8 +106,10 @@ export default function Updates() {
           {canManage && (
             <button
               onClick={() => setActiveTab("manage")}
-              className={`min-h-[40px] rounded-xl px-5 py-2 text-sm font-bold transition-all ${
-                activeTab === "manage" ? "bg-white text-[#8d5e30] shadow-sm" : "text-[#786455] hover:text-[#4c392e]"
+              className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
+                activeTab === "manage"
+                  ? "bg-white text-[#8d5e30] shadow-sm"
+                  : "text-[#786455] hover:text-[#4c392e]"
               }`}
             >
               <Settings2 className="mr-1.5 inline size-4" />

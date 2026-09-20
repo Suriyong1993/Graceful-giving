@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/common/CommonUI";
 import { fmtBaht, Variance } from "./countingUtils";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface BankRecordsTabProps {
   sessionId: number;
@@ -78,20 +79,18 @@ export function BankRecordsTab({
         }}
         className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
       >
-        <h2 className="mb-4 font-bold text-foreground">
-          บันทึกรายการธนาคาร
-        </h2>
+        <h2 className="mb-4 font-bold text-foreground">บันทึกรายการธนาคาร</h2>
         <div className="grid gap-4 md:grid-cols-4">
           <label className="text-sm font-semibold text-[#674F42]">
             ประเภท
-            <select
+            <NativeSelect
               value={bType}
               onChange={e => setBType(e.target.value as typeof bType)}
-              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+              className="mt-1"
             >
               <option value="cash_deposit">นำเงินสดเข้าฝาก</option>
               <option value="transfer_in">สมาชิกโอนเข้าบัญชี</option>
-            </select>
+            </NativeSelect>
           </label>
           <label className="text-sm font-semibold text-[#674F42]">
             จำนวนเงิน *
@@ -135,11 +134,7 @@ export function BankRecordsTab({
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4">
           <p className="text-sm text-[#674F42]">เงินโอนเข้าบัญชีจริง</p>
-          <MoneyDisplay
-            amount={actualTransferIn}
-            type="income"
-            size="lg"
-          />
+          <MoneyDisplay amount={actualTransferIn} type="income" size="lg" />
           <p className="mt-1 text-sm text-[#674F42]">
             เทียบซองโอน {fmtBaht(envelopeTransferTotal)}
           </p>

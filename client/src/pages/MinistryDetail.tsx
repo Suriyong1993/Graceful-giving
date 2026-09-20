@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
+import { BackLink, EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canManageMinistries } from "@shared/roles";
-import { ArrowLeft, CalendarClock, Save, UserRound } from "lucide-react";
+import { CalendarClock, Save, UserRound } from "lucide-react";
 import { Swal } from "@/lib/sweetalert";
 import {
   confirmDiscardChanges,
@@ -106,14 +106,7 @@ export default function MinistryDetail() {
   return (
     <AppLayout title="รายละเอียดฝ่ายงาน" subtitle="ข้อมูลจากฐานข้อมูลจริง">
       <div className="max-w-3xl space-y-6">
-        <button
-          type="button"
-          onClick={goBack}
-          className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-[#70452E]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          กลับหน้ารวมฝ่ายงาน
-        </button>
+        <BackLink label="กลับหน้ารวมฝ่ายงาน" onClick={goBack} />
 
         {query.isLoading ? (
           <LoadingSkeleton count={3} />

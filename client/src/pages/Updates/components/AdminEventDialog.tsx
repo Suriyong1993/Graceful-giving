@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, SubmitButtons } from "./updatesUtils";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface AdminEventDialogProps {
   open: boolean;
@@ -73,7 +74,9 @@ export function AdminEventDialog({
                 required
                 maxLength={180}
                 value={eventForm.title}
-                onChange={(event) => setEventForm({ ...eventForm, title: event.target.value })}
+                onChange={event =>
+                  setEventForm({ ...eventForm, title: event.target.value })
+                }
                 placeholder="เช่น ค่ายครอบครัวบ้านแห่งพระคุณ"
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
@@ -83,7 +86,9 @@ export function AdminEventDialog({
                 required
                 maxLength={280}
                 value={eventForm.summary}
-                onChange={(event) => setEventForm({ ...eventForm, summary: event.target.value })}
+                onChange={event =>
+                  setEventForm({ ...eventForm, summary: event.target.value })
+                }
                 placeholder="ข้อความสั้นสำหรับการ์ดกิจกรรม"
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
@@ -93,7 +98,12 @@ export function AdminEventDialog({
                 required
                 rows={4}
                 value={eventForm.description}
-                onChange={(event) => setEventForm({ ...eventForm, description: event.target.value })}
+                onChange={event =>
+                  setEventForm({
+                    ...eventForm,
+                    description: event.target.value,
+                  })
+                }
                 placeholder="รายละเอียดกิจกรรม..."
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
@@ -104,7 +114,9 @@ export function AdminEventDialog({
                   required
                   type="datetime-local"
                   value={eventForm.startsAt}
-                  onChange={(event) => setEventForm({ ...eventForm, startsAt: event.target.value })}
+                  onChange={event =>
+                    setEventForm({ ...eventForm, startsAt: event.target.value })
+                  }
                   className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
                 />
               </Field>
@@ -112,7 +124,9 @@ export function AdminEventDialog({
                 <input
                   type="datetime-local"
                   value={eventForm.endsAt}
-                  onChange={(event) => setEventForm({ ...eventForm, endsAt: event.target.value })}
+                  onChange={event =>
+                    setEventForm({ ...eventForm, endsAt: event.target.value })
+                  }
                   className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
                 />
               </Field>
@@ -121,7 +135,9 @@ export function AdminEventDialog({
               <Field label="สถานที่">
                 <input
                   value={eventForm.location}
-                  onChange={(event) => setEventForm({ ...eventForm, location: event.target.value })}
+                  onChange={event =>
+                    setEventForm({ ...eventForm, location: event.target.value })
+                  }
                   placeholder="เช่น อาคารคริสตจักร"
                   className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
                 />
@@ -130,24 +146,32 @@ export function AdminEventDialog({
                 <input
                   type="url"
                   value={eventForm.registrationUrl}
-                  onChange={(event) => setEventForm({ ...eventForm, registrationUrl: event.target.value })}
+                  onChange={event =>
+                    setEventForm({
+                      ...eventForm,
+                      registrationUrl: event.target.value,
+                    })
+                  }
                   placeholder="https://..."
                   className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
                 />
               </Field>
             </div>
             <Field label="สถานะ">
-              <select
+              <NativeSelect
                 value={eventForm.status}
-                onChange={(event) =>
-                  setEventForm({ ...eventForm, status: event.target.value as typeof eventForm.status })
+                onChange={event =>
+                  setEventForm({
+                    ...eventForm,
+                    status: event.target.value as typeof eventForm.status,
+                  })
                 }
-                className="w-full rounded-xl border border-[#e5d8c8] bg-white px-3.5 py-2.5 text-sm text-[#4c392e]"
+                className="border-[#e5d8c8] text-[#4c392e]"
               >
                 <option value="draft">ฉบับร่าง</option>
                 <option value="published">เผยแพร่ทันที</option>
                 <option value="cancelled">ยกเลิก</option>
-              </select>
+              </NativeSelect>
             </Field>
           </div>
           <SubmitButtons

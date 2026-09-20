@@ -18,16 +18,12 @@ import {
   type TransactionItem,
 } from "./Home/components/RecentTransactions";
 import { ChurchNewsSheet } from "./Home/components/ChurchNewsSheet";
+import { formatBaht, formatThaiDateTime } from "@/lib/format";
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
-function fmtBaht(n: number) {
-  return `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtShortBaht(n: number) {
-  return `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-}
+const fmtBaht = (n: number) => formatBaht(n);
+const fmtShortBaht = (n: number) => formatBaht(n, 0);
 
 function pctChange(current: number, prev: number) {
   if (prev === 0) return current > 0 ? "+∞%" : "0%";
@@ -43,15 +39,7 @@ function trendValue(trend: string) {
   return trend.replace(/^[+\-↑↓]\s*/, "");
 }
 
-function fmtThaiDate(d: Date | string) {
-  return new Intl.DateTimeFormat("th-TH", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(d));
-}
+const fmtThaiDate = (d: Date | string) => formatThaiDateTime(d);
 
 // ─── Balance count-up (first-impression polish) ─────────────────────────────
 function useCountUp(target: number, durationMs = 900): number {

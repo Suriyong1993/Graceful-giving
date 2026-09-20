@@ -8,7 +8,6 @@ import {
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
 import {
-  ArrowLeft,
   Building,
   CheckCircle2,
   Cross,
@@ -25,6 +24,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from "@shared/categories";
+import { NativeSelect } from "@/components/ui/native-select";
+import { BackLink, Chip } from "@/components/common/CommonUI";
+import { formatBaht } from "@/lib/format";
 
 export default function NewExpense() {
   const [, setLocation] = useLocation();
@@ -162,7 +164,13 @@ export default function NewExpense() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+    ];
     if (!allowedTypes.includes(file.type)) {
       toast.error("รองรับเฉพาะไฟล์ JPG, PNG, WEBP, GIF หรือ PDF เท่านั้น");
       return;
@@ -197,13 +205,7 @@ export default function NewExpense() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Navigation & Header */}
         <div className="flex items-center justify-between">
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#70452E] hover:text-[#38251B] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>กลับหน้ารายการรายจ่าย</span>
-          </button>
+          <BackLink label="กลับหน้ารายการรายจ่าย" onClick={goBack} />
           <span className="text-xs text-[#70452E]/60 bg-[#FFF4DF] border border-[#E9D9BF] px-3 py-1 rounded-full font-medium">
             ใบเบิกจ่าย / ใบสำคัญจ่าย
           </span>
@@ -267,14 +269,9 @@ export default function NewExpense() {
                   จำนวนเงินแนะนำ:
                 </span>
                 {amountPresets.map(val => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => handlePreset(val)}
-                    className="px-3 py-1 rounded-xl bg-[#FFF4DF] hover:bg-[#DCECC5] border border-[#E9D9BF] text-xs font-semibold text-[#70452E] transition-colors"
-                  >
-                    +฿{val.toLocaleString()}
-                  </button>
+                  <Chip key={val} onClick={() => handlePreset(val)}>
+                    +{formatBaht(val, 0)}
+                  </Chip>
                 ))}
               </div>
             </div>
@@ -368,11 +365,11 @@ export default function NewExpense() {
                 <label className="text-sm font-semibold text-[#38251B]">
                   ตัดจ่ายจากกองทุน <span className="text-red-500">*</span>
                 </label>
-                <select
+                <NativeSelect
                   required
                   value={fundId ?? ""}
                   onChange={e => setFundId(Number(e.target.value))}
-                  className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
+                  className="bg-[#FFF9EE]/20 font-medium"
                 >
                   <option value="" disabled>
                     — เลือกกองทุน —
@@ -382,7 +379,7 @@ export default function NewExpense() {
                       {f.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
 
               <div className="space-y-2">
@@ -436,7 +433,9 @@ export default function NewExpense() {
               <div className="p-6 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] flex items-center gap-4">
                 <div className="w-8 h-8 border-4 border-[#E99A4A] border-t-transparent rounded-full animate-spin flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold text-[#38251B]">กำลังอัปโหลดไฟล์...</p>
+                  <p className="text-sm font-semibold text-[#38251B]">
+                    กำลังอัปโหลดไฟล์...
+                  </p>
                   <p className="text-xs text-[#70452E]/70">{receiptFileName}</p>
                 </div>
               </div>
@@ -459,14 +458,22 @@ export default function NewExpense() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-[#38251B]">
-                        {receiptUrl ? "✅ อัปโหลดสำเร็จแล้ว" : "แนบไฟล์เรียบร้อย"}
+                        {receiptUrl
+                          ? "✅ อัปโหลดสำเร็จแล้ว"
+                          : "แนบไฟล์เรียบร้อย"}
                       </p>
-                      <p className="text-xs text-[#70452E]/70 truncate max-w-[160px]">{receiptFileName}</p>
+                      <p className="text-xs text-[#70452E]/70 truncate max-w-[160px]">
+                        {receiptFileName}
+                      </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setReceiptFile(null); setReceiptUrl(null); setReceiptFileName(""); }}
+                    onClick={() => {
+                      setReceiptFile(null);
+                      setReceiptUrl(null);
+                      setReceiptFileName("");
+                    }}
                     className="text-xs text-red-600 hover:underline font-medium px-3 py-1.5"
                   >
                     ลบไฟล์
@@ -493,7 +500,8 @@ export default function NewExpense() {
                   คลิกเพื่ออัปโหลด หรือลากไฟล์มาวางที่นี่
                 </p>
                 <p className="text-xs text-[#70452E]/60 mt-1">
-                  รองรับไฟล์ภาพ JPG, PNG, WEBP หรือเอกสาร PDF (ขนาดไม่เกิน 10 MB)
+                  รองรับไฟล์ภาพ JPG, PNG, WEBP หรือเอกสาร PDF (ขนาดไม่เกิน 10
+                  MB)
                 </p>
                 <input
                   type="file"
@@ -520,7 +528,13 @@ export default function NewExpense() {
               className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
-              <span>{isSubmitting ? "กำลังบันทึก..." : isUploading ? "กำลังอัปโหลด..." : "บันทึกรายจ่าย"}</span>
+              <span>
+                {isSubmitting
+                  ? "กำลังบันทึก..."
+                  : isUploading
+                    ? "กำลังอัปโหลด..."
+                    : "บันทึกรายจ่าย"}
+              </span>
             </button>
           </div>
         </form>

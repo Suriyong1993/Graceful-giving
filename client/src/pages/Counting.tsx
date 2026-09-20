@@ -107,7 +107,10 @@ export default function Counting() {
       toast.error("รีเซ็ตรอบไม่สำเร็จ", { description: error.message }),
   });
 
-  const handleDeleteSession = async (session: { id: number; serviceDate: Date | string }) => {
+  const handleDeleteSession = async (session: {
+    id: number;
+    serviceDate: Date | string;
+  }) => {
     const dateStr = fmtThaiDate(session.serviceDate);
     const confirmed = await Swal.confirm(
       "ยืนยันการลบรอบนับเงิน?",
@@ -125,7 +128,10 @@ export default function Counting() {
     }
   };
 
-  const handleResetSession = async (session: { id: number; serviceDate: Date | string }) => {
+  const handleResetSession = async (session: {
+    id: number;
+    serviceDate: Date | string;
+  }) => {
     const dateStr = fmtThaiDate(session.serviceDate);
     const confirmed = await Swal.confirm(
       "ล้างข้อมูลเพื่อนับใหม่?",
@@ -148,16 +154,18 @@ export default function Counting() {
   const openCount = useMemo(
     () =>
       sessions.filter(
-        s => s.status === "counting" || s.status === "counted" || s.status === "verified"
+        s =>
+          s.status === "counting" ||
+          s.status === "counted" ||
+          s.status === "verified"
       ).length,
     [sessions]
   );
 
   const completedCount = useMemo(
     () =>
-      sessions.filter(
-        s => s.status === "posted" || s.status === "closed"
-      ).length,
+      sessions.filter(s => s.status === "posted" || s.status === "closed")
+        .length,
     [sessions]
   );
 
@@ -177,7 +185,9 @@ export default function Counting() {
         const dateStr = fmtThaiDate(session.serviceDate).toLowerCase();
         const notesStr = (session.notes ?? "").toLowerCase();
         const varStr = (session.varianceNote ?? "").toLowerCase();
-        return dateStr.includes(q) || notesStr.includes(q) || varStr.includes(q);
+        return (
+          dateStr.includes(q) || notesStr.includes(q) || varStr.includes(q)
+        );
       }
       return true;
     });
@@ -245,7 +255,9 @@ export default function Counting() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E99A4A]/15 text-[#D47012]">
                   <Calendar className="h-4 w-4" />
                 </div>
-                <h2 className="font-bold text-[#38251B]">เปิดรอบนับเงินถวายใหม่</h2>
+                <h2 className="font-bold text-[#38251B]">
+                  เปิดรอบนับเงินถวายใหม่
+                </h2>
               </div>
               <button
                 type="button"
@@ -291,7 +303,9 @@ export default function Counting() {
                 disabled={createSession.isPending}
                 className="min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#43752c] transition-colors disabled:opacity-50"
               >
-                {createSession.isPending ? "กำลังเปิดรอบ…" : "เปิดรอบและเริ่มนับ"}
+                {createSession.isPending
+                  ? "กำลังเปิดรอบ…"
+                  : "เปิดรอบและเริ่มนับ"}
               </button>
             </div>
           </form>
@@ -304,7 +318,7 @@ export default function Counting() {
             <button
               type="button"
               onClick={() => setActiveTab("all")}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "all"
                   ? "bg-white text-[#38251B] shadow-xs"
                   : "text-[#674F42] hover:text-[#38251B]"
@@ -319,7 +333,7 @@ export default function Counting() {
             <button
               type="button"
               onClick={() => setActiveTab("pending")}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "pending"
                   ? "bg-white text-[#C26B1E] shadow-xs"
                   : "text-[#674F42] hover:text-[#C26B1E]"
@@ -337,7 +351,7 @@ export default function Counting() {
             <button
               type="button"
               onClick={() => setActiveTab("completed")}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "completed"
                   ? "bg-white text-[#4F8B33] shadow-xs"
                   : "text-[#674F42] hover:text-[#4F8B33]"
@@ -359,7 +373,7 @@ export default function Counting() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="ค้นหาวันที่, บันทึก..."
-              className="w-full rounded-2xl border border-[#E9D9BF] bg-white pl-9 pr-3 py-2 text-xs text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
+              className="min-h-11 w-full rounded-2xl border border-[#E9D9BF] bg-white pl-9 pr-3 py-2 text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
             />
             {searchQuery && (
               <button
@@ -401,8 +415,8 @@ export default function Counting() {
               {searchQuery
                 ? `ไม่พบผลการค้นหาสำหรับ "${searchQuery}"`
                 : activeTab === "pending"
-                ? "ไม่มีรอบที่ค้างอยู่ ทุกรอบได้รับการปิดรอบเรียบร้อยแล้ว"
-                : "ยังไม่มีรอบที่ปิดบัญชีเสร็จสมบูรณ์"}
+                  ? "ไม่มีรอบที่ค้างอยู่ ทุกรอบได้รับการปิดรอบเรียบร้อยแล้ว"
+                  : "ยังไม่มีรอบที่ปิดบัญชีเสร็จสมบูรณ์"}
             </p>
             {activeTab !== "all" && (
               <button
@@ -469,7 +483,9 @@ export default function Counting() {
                       <span>•</span>
                       <span>
                         สร้างเมื่อ{" "}
-                        {new Date(session.createdAt).toLocaleDateString("th-TH")}
+                        {new Date(session.createdAt).toLocaleDateString(
+                          "th-TH"
+                        )}
                       </span>
                     </div>
                   </div>
@@ -534,4 +550,3 @@ export default function Counting() {
     </AppLayout>
   );
 }
-

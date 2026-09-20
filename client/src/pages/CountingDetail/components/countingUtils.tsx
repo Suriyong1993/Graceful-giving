@@ -1,8 +1,8 @@
 import React from "react";
 import { Check } from "lucide-react";
+import { formatBaht } from "@/lib/format";
 
-export const fmtBaht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const fmtBaht = (n: number) => formatBaht(n);
 
 /** Shows a variance with its sign and the Thai word for over or short. */
 export function Variance({ amount }: { amount: number }) {

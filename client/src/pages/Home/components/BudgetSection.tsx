@@ -5,7 +5,10 @@ interface BudgetSectionProps {
   onOpenReports: () => void;
 }
 
-export function BudgetSection({ canOpenReports, onOpenReports }: BudgetSectionProps) {
+export function BudgetSection({
+  canOpenReports,
+  onOpenReports,
+}: BudgetSectionProps) {
   return (
     <section
       aria-label="แผนการใช้จ่ายงบประมาณ"
@@ -18,7 +21,7 @@ export function BudgetSection({ canOpenReports, onOpenReports }: BudgetSectionPr
         {canOpenReports && (
           <button
             onClick={onOpenReports}
-            className="text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
+            className="min-h-11 -mr-2 px-2 text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
           >
             <span>ดูรายงาน</span>
             <ChevronRight className="w-5 h-5" />

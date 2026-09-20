@@ -3,6 +3,7 @@ import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
+  BackLink,
   EmptyState,
   ErrorState,
   LoadingSkeleton,
@@ -11,7 +12,6 @@ import {
 } from "@/components/common/CommonUI";
 import { THB_DENOMINATIONS, reconcile } from "@shared/counting";
 import {
-  ArrowLeft,
   Banknote,
   BookCheck,
   Calculator,
@@ -317,14 +317,7 @@ export default function CountingDetail() {
               </button>
             </>
           )}
-          <button
-            type="button"
-            onClick={() => setLocation("/counting")}
-            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-white px-3.5 py-2 text-xs font-bold text-[#674F42] hover:bg-background"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            ทุกรอบ
-          </button>
+          <BackLink label="ทุกรอบ" onClick={() => setLocation("/counting")} />
         </div>
       }
     >

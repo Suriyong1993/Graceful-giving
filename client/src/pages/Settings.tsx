@@ -30,6 +30,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { LogOut } from "lucide-react";
 import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
 import { isSuperAdmin, getChurchRoleInfo, CHURCH_ROLES } from "@shared/roles";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -298,7 +299,8 @@ export default function Settings() {
             <strong className="text-amber-800 font-bold">
               ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)
             </strong>{" "}
-            เท่านั้น เพื่อความปลอดภัยของข้อมูลคริสตจักรและการกำหนดสิทธิ์ผู้ใช้งาน
+            เท่านั้น
+            เพื่อความปลอดภัยของข้อมูลคริสตจักรและการกำหนดสิทธิ์ผู้ใช้งาน
           </p>
           <div className="pt-2">
             <Link
@@ -337,7 +339,7 @@ export default function Settings() {
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-[#E9D9BF] pb-1 overflow-x-auto no-scrollbar -mx-1 px-1 touch-pan-x">
           <button
             onClick={() => setActiveTab("church")}
-            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+            className={`min-h-11 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "church"
                 ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
@@ -348,7 +350,7 @@ export default function Settings() {
           </button>
           <button
             onClick={() => setActiveTab("roles")}
-            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+            className={`min-h-11 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "roles"
                 ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
@@ -359,7 +361,7 @@ export default function Settings() {
           </button>
           <button
             onClick={() => setActiveTab("categories")}
-            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+            className={`min-h-11 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "categories"
                 ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
@@ -370,7 +372,7 @@ export default function Settings() {
           </button>
           <button
             onClick={() => setActiveTab("payment")}
-            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+            className={`min-h-11 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "payment"
                 ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
@@ -381,7 +383,7 @@ export default function Settings() {
           </button>
           <button
             onClick={() => setActiveTab("audit")}
-            className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+            className={`min-h-11 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               activeTab === "audit"
                 ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF] shadow-2xs"
                 : "text-[#70452E]/70 hover:text-[#38251B]"
@@ -552,10 +554,12 @@ export default function Settings() {
                     จัดการบทบาทและสิทธิ์ผู้ใช้งานในระบบ
                   </h3>
                   <p className="text-xs text-[#70452E]/80 mt-1">
-                    กำหนดบทบาทให้ผู้ที่เข้าสู่ระบบ เพื่อให้ได้รับสิทธิ์การใช้งานตรงตามตำแหน่งหน้าที่จริง
+                    กำหนดบทบาทให้ผู้ที่เข้าสู่ระบบ
+                    เพื่อให้ได้รับสิทธิ์การใช้งานตรงตามตำแหน่งหน้าที่จริง
                   </p>
                 </div>
-                {user?.churchRole === "SUPER_ADMIN" || user?.role === "admin" ? (
+                {user?.churchRole === "SUPER_ADMIN" ||
+                user?.role === "admin" ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-auto">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     คุณมีสิทธิ์กำหนดบทบาท
@@ -581,10 +585,10 @@ export default function Settings() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-[#70452E]/60 shrink-0" />
-                  <select
+                  <NativeSelect
                     value={roleFilter}
                     onChange={e => setRoleFilter(e.target.value)}
-                    className="px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                    className="font-semibold focus:ring-2 focus:ring-[#E99A4A]/20"
                   >
                     <option value="ALL">บทบาททั้งหมด</option>
                     <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด</option>
@@ -593,7 +597,7 @@ export default function Settings() {
                     <option value="DEACON">🤝 มัคนายก</option>
                     <option value="COUNTER">📝 ทีมนับเงิน</option>
                     <option value="MEMBER">👤 สมาชิกทั่วไป</option>
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
 
@@ -619,20 +623,32 @@ export default function Settings() {
                     </thead>
                     <tbody className="divide-y divide-[#E9D9BF]/40">
                       {(() => {
-                        const filteredUsers = (usersQuery.data || []).filter(u => {
-                          const matchesSearch =
-                            !roleSearch ||
-                            (u.name && u.name.toLowerCase().includes(roleSearch.toLowerCase())) ||
-                            (u.email && u.email.toLowerCase().includes(roleSearch.toLowerCase()));
-                          const matchesFilter =
-                            roleFilter === "ALL" || (u.churchRole || "MEMBER") === roleFilter;
-                          return matchesSearch && matchesFilter;
-                        });
+                        const filteredUsers = (usersQuery.data || []).filter(
+                          u => {
+                            const matchesSearch =
+                              !roleSearch ||
+                              (u.name &&
+                                u.name
+                                  .toLowerCase()
+                                  .includes(roleSearch.toLowerCase())) ||
+                              (u.email &&
+                                u.email
+                                  .toLowerCase()
+                                  .includes(roleSearch.toLowerCase()));
+                            const matchesFilter =
+                              roleFilter === "ALL" ||
+                              (u.churchRole || "MEMBER") === roleFilter;
+                            return matchesSearch && matchesFilter;
+                          }
+                        );
 
                         if (filteredUsers.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={4} className="py-8 text-center text-xs text-[#70452E]/70 bg-[#FFF9EE]/30">
+                              <td
+                                colSpan={4}
+                                className="py-8 text-center text-xs text-[#70452E]/70 bg-[#FFF9EE]/30"
+                              >
                                 ไม่พบผู้ใช้งานที่ตรงกับเงื่อนไขการค้นหา
                               </td>
                             </tr>
@@ -666,13 +682,16 @@ export default function Settings() {
                               </td>
                               <td className="py-3.5 px-3 text-xs text-[#927D6D]">
                                 {u.lastSignedIn
-                                  ? new Date(u.lastSignedIn).toLocaleDateString("th-TH", {
-                                      year: "numeric",
-                                      month: "short",
-                                      day: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })
+                                  ? new Date(u.lastSignedIn).toLocaleDateString(
+                                      "th-TH",
+                                      {
+                                        year: "numeric",
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      }
+                                    )
                                   : "-"}
                               </td>
                               <td className="py-3.5 px-3 text-right">
@@ -681,21 +700,33 @@ export default function Settings() {
                                     {isUpdating && (
                                       <Loader2 className="w-4 h-4 animate-spin text-[#E99A4A]" />
                                     )}
-                                    <select
+                                    <NativeSelect
                                       value={u.churchRole || "MEMBER"}
                                       disabled={isUpdating}
                                       onChange={e =>
                                         handleRoleChange(u.id, e.target.value)
                                       }
-                                      className="px-3 py-1.5 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] shadow-sm hover:border-[#E99A4A] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20 transition-all cursor-pointer disabled:opacity-50"
+                                      className="font-semibold shadow-sm hover:border-[#E99A4A] focus:ring-2 focus:ring-[#E99A4A]/20 transition-all"
                                     >
-                                      <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)</option>
-                                      <option value="PASTOR">✝️ ศิษยาภิบาล (PASTOR)</option>
-                                      <option value="TREASURER">💰 เหรัญญิกคริสตจักร (TREASURER)</option>
-                                      <option value="DEACON">🤝 มัคนายก / คณะกรรมการ (DEACON)</option>
-                                      <option value="COUNTER">📝 ทีมนับเงินถวาย (COUNTER)</option>
-                                      <option value="MEMBER">👤 สมาชิกคริสตจักร (MEMBER)</option>
-                                    </select>
+                                      <option value="SUPER_ADMIN">
+                                        👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)
+                                      </option>
+                                      <option value="PASTOR">
+                                        ✝️ ศิษยาภิบาล (PASTOR)
+                                      </option>
+                                      <option value="TREASURER">
+                                        💰 เหรัญญิกคริสตจักร (TREASURER)
+                                      </option>
+                                      <option value="DEACON">
+                                        🤝 มัคนายก / คณะกรรมการ (DEACON)
+                                      </option>
+                                      <option value="COUNTER">
+                                        📝 ทีมนับเงินถวาย (COUNTER)
+                                      </option>
+                                      <option value="MEMBER">
+                                        👤 สมาชิกคริสตจักร (MEMBER)
+                                      </option>
+                                    </NativeSelect>
                                   </div>
                                 ) : (
                                   <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#FFF4DF] text-[#70452E] border border-[#E9D9BF]">
@@ -721,7 +752,8 @@ export default function Settings() {
                   โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
                 </h3>
                 <p className="text-xs text-[#70452E]/80 mt-1">
-                  กำหนดบทบาท หน้าที่ความรับผิดชอบ และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
+                  กำหนดบทบาท หน้าที่ความรับผิดชอบ
+                  และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
                 </p>
               </div>
 
@@ -741,7 +773,10 @@ export default function Settings() {
                         </span>
                       </div>
                       <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-white text-[#38251B] border-[#E9D9BF] self-start sm:self-auto">
-                        ผู้รับผิดชอบ: <span className="text-[#E99A4A] font-bold">{r.appointee}</span>
+                        ผู้รับผิดชอบ:{" "}
+                        <span className="text-[#E99A4A] font-bold">
+                          {r.appointee}
+                        </span>
                       </div>
                     </div>
 
@@ -750,11 +785,15 @@ export default function Settings() {
                     </p>
 
                     <div className="pt-1">
-                      <p className="text-xs font-bold text-[#38251B] mb-1.5">ขอบเขตหน้าที่ในระบบ:</p>
+                      <p className="text-xs font-bold text-[#38251B] mb-1.5">
+                        ขอบเขตหน้าที่ในระบบ:
+                      </p>
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-[#674F42]">
                         {r.duties.map((duty, idx) => (
                           <li key={idx} className="flex items-start gap-1.5">
-                            <span className="text-emerald-600 font-bold">•</span>
+                            <span className="text-emerald-600 font-bold">
+                              •
+                            </span>
                             <span>{duty}</span>
                           </li>
                         ))}
@@ -866,7 +905,8 @@ export default function Settings() {
                   บันทึกประวัติการดำเนินงาน (Audit Log)
                 </h3>
                 <p className="text-xs text-[#70452E]/80 mt-1">
-                  ตรวจสอบความปลอดภัย การปรับเปลี่ยนบทบาทผู้ใช้ และการแก้ไขข้อมูลสำคัญทั้งหมดในระบบ
+                  ตรวจสอบความปลอดภัย การปรับเปลี่ยนบทบาทผู้ใช้
+                  และการแก้ไขข้อมูลสำคัญทั้งหมดในระบบ
                 </p>
               </div>
               <button
@@ -898,10 +938,10 @@ export default function Settings() {
               </div>
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-[#70452E]/60 shrink-0" />
-                <select
+                <NativeSelect
                   value={auditActionFilter}
                   onChange={e => setAuditActionFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-[#E9D9BF] bg-white text-xs font-semibold text-[#38251B] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20"
+                  className="font-semibold focus:ring-2 focus:ring-[#E99A4A]/20"
                 >
                   <option value="ALL">กิจกรรมทั้งหมด</option>
                   <option value="AUTH_SET_CHURCH_ROLE">
@@ -913,7 +953,7 @@ export default function Settings() {
                   <option value="CHURCH_UPDATE_PROFILE">
                     🏛️ แก้ไขข้อมูลคริสตจักร (CHURCH_UPDATE_PROFILE)
                   </option>
-                </select>
+                </NativeSelect>
               </div>
             </div>
 
@@ -922,7 +962,8 @@ export default function Settings() {
                 <Loader2 className="w-6 h-6 animate-spin text-[#E99A4A]" />
                 <span>กำลังโหลด Audit Log...</span>
               </div>
-            ) : (() => {
+            ) : (
+              (() => {
                 const logs = (auditQuery.data || []).filter(log => {
                   const matchesSearch =
                     !auditSearch ||
@@ -934,7 +975,9 @@ export default function Settings() {
                       log.userEmail
                         .toLowerCase()
                         .includes(auditSearch.toLowerCase())) ||
-                    log.action.toLowerCase().includes(auditSearch.toLowerCase());
+                    log.action
+                      .toLowerCase()
+                      .includes(auditSearch.toLowerCase());
                   const matchesFilter =
                     auditActionFilter === "ALL" ||
                     log.action === auditActionFilter;
@@ -1022,7 +1065,11 @@ export default function Settings() {
                                 {log.metadata ? (
                                   <div
                                     className="font-mono text-[11px] bg-slate-50 p-1.5 rounded-lg border border-slate-200 truncate max-w-[280px]"
-                                    title={JSON.stringify(log.metadata, null, 2)}
+                                    title={JSON.stringify(
+                                      log.metadata,
+                                      null,
+                                      2
+                                    )}
                                   >
                                     {JSON.stringify(log.metadata)}
                                   </div>
@@ -1037,7 +1084,8 @@ export default function Settings() {
                     </table>
                   </div>
                 );
-              })()}
+              })()
+            )}
           </div>
         )}
       </div>
