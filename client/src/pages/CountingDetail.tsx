@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -11,16 +11,10 @@ import {
 } from "@/components/common/CommonUI";
 import { THB_DENOMINATIONS, reconcile } from "@shared/counting";
 import {
-  EXPENSE_CATEGORIES,
-  OFFERING_CATEGORIES,
-  offeringCategoryLabel,
-} from "@shared/categories";
-import {
   ArrowLeft,
   Banknote,
   BookCheck,
   Calculator,
-  Check,
   Landmark,
   RotateCcw,
   Scissors,
@@ -28,6 +22,12 @@ import {
 } from "lucide-react";
 import { Swal } from "@/lib/sweetalert";
 import { toast } from "sonner";
+import { Variance } from "./CountingDetail/components/countingUtils";
+import { EnvelopesTab } from "./CountingDetail/components/EnvelopesTab";
+import { CashCountTab } from "./CountingDetail/components/CashCountTab";
+import { BankRecordsTab } from "./CountingDetail/components/BankRecordsTab";
+import { DeductionsTab } from "./CountingDetail/components/DeductionsTab";
+import { ReconciliationSummaryTab } from "./CountingDetail/components/ReconciliationSummaryTab";
 
 type TabId = "envelopes" | "cash" | "bank" | "deductions" | "summary";
 
@@ -38,30 +38,6 @@ const TABS: Array<{ id: TabId; label: string; icon: typeof Banknote }> = [
   { id: "deductions", label: "หักเบิก", icon: Scissors },
   { id: "summary", label: "สรุป & ปิดรอบ", icon: BookCheck },
 ];
-
-const fmtBaht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-/** Shows a variance with its sign and the Thai word for over or short. */
-function Variance({ amount }: { amount: number }) {
-  if (amount === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 font-bold text-[#4F8B33]">
-        <Check className="h-4 w-4" />
-        ตรงกัน
-      </span>
-    );
-  }
-  const over = amount > 0;
-  return (
-    <span
-      className={`font-bold tabular-nums ${over ? "text-[#C26B1E]" : "text-[#D45945]"}`}
-    >
-      {over ? "เกิน " : "ขาด "}
-      {fmtBaht(Math.abs(amount))}
-    </span>
-  );
-}
 
 export default function CountingDetail() {
   const params = useParams();
@@ -82,7 +58,6 @@ export default function CountingDetail() {
   const funds = fundsQuery.data ?? [];
   const members = membersQuery.data ?? [];
 
-  /** Every write refreshes the ledger figures this session feeds. */
   const refreshAll = async () => {
     await Promise.all([
       utils.counting.get.invalidate({ id: sessionId }),
@@ -184,37 +159,7 @@ export default function CountingDetail() {
     onError: onError("รีเซ็ตรอบ"),
   });
 
-  // ── Envelope entry form ──────────────────────────────────────────────────
-  const [envelopeNo, setEnvelopeNo] = useState("");
-  const [memberId, setMemberId] = useState("");
-  const [donorName, setDonorName] = useState("");
-  const [isAnonymous, setIsAnonymous] = useState(false);
-  const [category, setCategory] = useState<string>("general");
-  const [fundId, setFundId] = useState("");
-  const [method, setMethod] = useState<"cash" | "transfer" | "check">("cash");
-  const [amount, setAmount] = useState("");
-  const amountRef = useRef<HTMLInputElement>(null);
-
-  // ── Deduction form ───────────────────────────────────────────────────────
-  const [dPurpose, setDPurpose] = useState("");
-  const [dReason, setDReason] = useState("");
-  const [dPaidTo, setDPaidTo] = useState("");
-  const [dAmount, setDAmount] = useState("");
-  const [dCategory, setDCategory] = useState<string>("other");
-  const [dFundId, setDFundId] = useState("");
-
-  // ── Bank form ────────────────────────────────────────────────────────────
-  const [bType, setBType] = useState<"transfer_in" | "cash_deposit">(
-    "cash_deposit"
-  );
-  const [bAmount, setBAmount] = useState("");
-  const [bName, setBName] = useState("");
-  const [bRef, setBRef] = useState("");
-
-  // ── Variance note ────────────────────────────────────────────────────────
   const [varianceNote, setVarianceNote] = useState("");
-
-  /** Live totals while the counters type, from the same function the server uses. */
   const [draftCounts, setDraftCounts] = useState<Record<string, string>>({});
 
   const detail = detailQuery.data;
@@ -338,43 +283,6 @@ export default function CountingDetail() {
     }
   };
 
-  const submitEnvelope = (event: React.FormEvent) => {
-    event.preventDefault();
-    const value = Number(amount);
-    if (!Number.isFinite(value) || value <= 0) {
-      toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
-      return;
-    }
-    if (!fundId) {
-      toast.error("กรุณาเลือกกองทุน");
-      return;
-    }
-    addEnvelope.mutate(
-      {
-        sessionId,
-        envelopeNo: envelopeNo.trim() || undefined,
-        memberId: memberId ? Number(memberId) : undefined,
-        donorName: donorName.trim() || undefined,
-        isAnonymous,
-        category: category as "general",
-        fundId: Number(fundId),
-        method,
-        amount: value,
-      },
-      {
-        onSuccess: () => {
-          // Keep fund, category and method for the next envelope in the stack.
-          setEnvelopeNo("");
-          setMemberId("");
-          setDonorName("");
-          setIsAnonymous(false);
-          setAmount("");
-          amountRef.current?.focus();
-        },
-      }
-    );
-  };
-
   const unapprovedDeductions = detail.deductions.filter(d => !d.approvedBy);
 
   return (
@@ -473,912 +381,81 @@ export default function CountingDetail() {
           </p>
         )}
 
-        {/* ── Tab: envelopes ────────────────────────────────────────────── */}
         {tab === "envelopes" && (
-          <section className="space-y-4">
-            {editable && (
-              <form
-                onSubmit={submitEnvelope}
-                className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
-              >
-                <h2 className="mb-4 font-bold text-[#38251B]">บันทึกซองถวาย</h2>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    เลขซอง
-                    <input
-                      value={envelopeNo}
-                      onChange={e => setEnvelopeNo(e.target.value)}
-                      placeholder="เช่น 012 (เว้นว่างได้)"
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    สมาชิก
-                    <select
-                      value={memberId}
-                      onChange={e => setMemberId(e.target.value)}
-                      disabled={isAnonymous}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
-                    >
-                      <option value="">— ไม่ระบุสมาชิก —</option>
-                      {members.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.envelopeNo ? `[${m.envelopeNo}] ` : ""}
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    ชื่อผู้ถวาย (ถ้าไม่ใช่สมาชิก)
-                    <input
-                      value={donorName}
-                      onChange={e => setDonorName(e.target.value)}
-                      disabled={isAnonymous}
-                      placeholder={
-                        isAnonymous ? "ไม่เปิดเผยนาม" : "ชื่อ-นามสกุล"
-                      }
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    ประเภทถวาย
-                    <select
-                      value={category}
-                      onChange={e => setCategory(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    >
-                      {OFFERING_CATEGORIES.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    เข้ากองทุน *
-                    <select
-                      required
-                      value={fundId}
-                      onChange={e => setFundId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    >
-                      <option value="" disabled>
-                        — เลือกกองทุน —
-                      </option>
-                      {funds.map(f => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    ช่องทาง
-                    <select
-                      value={method}
-                      onChange={e => setMethod(e.target.value as typeof method)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    >
-                      <option value="cash">เงินสด</option>
-                      <option value="transfer">เงินโอน</option>
-                      <option value="check">เช็ค</option>
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    จำนวนเงิน (บาท) *
-                    <input
-                      ref={amountRef}
-                      type="number"
-                      required
-                      min="0.25"
-                      step="0.25"
-                      value={amount}
-                      onChange={e => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#1b5e3a]"
-                    />
-                  </label>
-                  <div className="flex items-end gap-2">
-                    <label className="flex items-center gap-2 text-sm text-[#674F42]">
-                      <input
-                        type="checkbox"
-                        checked={isAnonymous}
-                        onChange={e => {
-                          setIsAnonymous(e.target.checked);
-                          if (e.target.checked) {
-                            setMemberId("");
-                            setDonorName("");
-                          }
-                        }}
-                        className="size-4 rounded border-[#E9D9BF]"
-                      />
-                      ไม่ระบุนาม
-                    </label>
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      disabled={addEnvelope.isPending || !fundId}
-                      className="min-h-11 w-full rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                    >
-                      {addEnvelope.isPending ? "กำลังบันทึก…" : "เพิ่มซอง"}
-                    </button>
-                  </div>
-                </div>
-                {funds.length === 0 && (
-                  <p className="mt-3 text-sm text-[#D45945]">
-                    ยังไม่มีกองทุนในระบบ ต้องสร้างกองทุนก่อนบันทึกซองถวาย
-                  </p>
-                )}
-              </form>
-            )}
-
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
-                <h2 className="font-bold text-[#38251B]">
-                  ซองในรอบนี้ ({detail.envelopes.length})
-                </h2>
-                <span className="text-sm font-bold text-[#674F42]">
-                  รวม {fmtBaht(r.offeringTotal)}
-                </span>
-              </div>
-              {detail.envelopes.length === 0 ? (
-                <p className="p-8 text-center text-sm text-[#674F42]">
-                  ยังไม่มีซองในรอบนี้
-                </p>
-              ) : (
-                <ul className="divide-y divide-[#F0E6D8]">
-                  {detail.envelopes.map(envelope => {
-                    const member = members.find(
-                      m => m.id === envelope.memberId
-                    );
-                    const who = envelope.isAnonymous
-                      ? "ไม่ระบุนาม"
-                      : (member?.name ?? envelope.donorName ?? "ไม่ระบุชื่อ");
-                    const categoryLabel = offeringCategoryLabel(
-                      envelope.category
-                    );
-                    const fundName =
-                      funds.find(f => f.id === envelope.fundId)?.name ??
-                      "ไม่ระบุกองทุน";
-                    return (
-                      <li
-                        key={envelope.id}
-                        className="flex items-center justify-between gap-4 p-4"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-bold text-[#38251B]">
-                            {envelope.envelopeNo
-                              ? `ซอง ${envelope.envelopeNo} · `
-                              : ""}
-                            {who}
-                          </p>
-                          <p className="text-sm text-[#674F42]">
-                            {categoryLabel} · {fundName} ·{" "}
-                            {envelope.method === "cash"
-                              ? "เงินสด"
-                              : envelope.method === "transfer"
-                                ? "เงินโอน"
-                                : "เช็ค"}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-3">
-                          <MoneyDisplay
-                            amount={envelope.amount}
-                            type="income"
-                          />
-                          {editable && (
-                            <button
-                              type="button"
-                              aria-label="ลบซองนี้"
-                              onClick={() =>
-                                removeEnvelope.mutate({
-                                  id: envelope.id,
-                                  sessionId,
-                                })
-                              }
-                              disabled={removeEnvelope.isPending}
-                              className="flex size-11 items-center justify-center rounded-xl text-[#D45945] hover:bg-[#FFEBE5] disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          </section>
+          <EnvelopesTab
+            sessionId={sessionId}
+            editable={editable}
+            envelopes={detail.envelopes}
+            funds={funds}
+            members={members}
+            offeringTotal={r.offeringTotal}
+            addEnvelope={addEnvelope}
+            removeEnvelope={removeEnvelope}
+          />
         )}
 
-        {/* ── Tab: cash count ──────────────────────────────────────────── */}
         {tab === "cash" && (
-          <section className="space-y-4">
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <div className="border-b border-[#E9D9BF] p-4">
-                <h2 className="font-bold text-[#38251B]">
-                  ใบนับธนบัตรและเหรียญ
-                </h2>
-                <p className="mt-1 text-sm text-[#674F42]">
-                  กรอกจำนวนใบหรือเหรียญ ระบบคูณและรวมยอดให้ทันที
-                </p>
-              </div>
-              <ul className="divide-y divide-[#F0E6D8]">
-                {THB_DENOMINATIONS.map(denomination => {
-                  const key = `${denomination.value}-${denomination.kind}`;
-                  const saved = detail.cashCounts.find(
-                    row =>
-                      row.denomination === denomination.value &&
-                      row.kind === denomination.kind
-                  );
-                  const draft = draftCounts[key];
-                  const quantity =
-                    draft !== undefined ? draft : String(saved?.quantity ?? "");
-                  const subtotal = denomination.value * (Number(quantity) || 0);
-                  return (
-                    <li
-                      key={key}
-                      className="flex items-center gap-3 p-3 md:p-4"
-                    >
-                      <span className="w-28 shrink-0 text-sm font-bold text-[#38251B] md:w-40">
-                        {denomination.label}
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="numeric"
-                        disabled={!editable}
-                        value={quantity}
-                        onChange={e =>
-                          setDraftCounts(prev => ({
-                            ...prev,
-                            [key]: e.target.value,
-                          }))
-                        }
-                        onBlur={e => {
-                          if (!editable) return;
-                          const next = Number(e.target.value || 0);
-                          if (!Number.isFinite(next) || next < 0) return;
-                          if (next === (saved?.quantity ?? 0)) return;
-                          setCashCount.mutate({
-                            sessionId,
-                            denomination: denomination.value,
-                            kind: denomination.kind,
-                            quantity: next,
-                          });
-                        }}
-                        placeholder="0"
-                        aria-label={`จำนวน ${denomination.label}`}
-                        className="w-24 rounded-xl border border-[#E9D9BF] p-2.5 text-right text-base font-bold tabular-nums text-[#38251B] disabled:opacity-60"
-                      />
-                      <span className="ml-auto text-right text-sm font-bold tabular-nums text-[#674F42]">
-                        {fmtBaht(subtotal)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="flex items-center justify-between border-t-2 border-[#E9D9BF] bg-[#FFF9EE] p-4">
-                <div>
-                  <p className="font-bold text-[#38251B]">รวมนับได้</p>
-                  <p className="text-sm text-[#674F42]">
-                    เทียบซองเงินสด {fmtBaht(r.envelopeCashTotal)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <MoneyDisplay amount={r.countedCashTotal} size="xl" />
-                  <div className="mt-1">
-                    <Variance amount={r.cashVariance} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
+          <CashCountTab
+            sessionId={sessionId}
+            editable={editable}
+            cashCounts={detail.cashCounts}
+            draftCounts={draftCounts}
+            setDraftCounts={setDraftCounts}
+            envelopeCashTotal={r.envelopeCashTotal}
+            countedCashTotal={r.countedCashTotal}
+            cashVariance={r.cashVariance}
+            setCashCount={setCashCount}
+          />
         )}
 
-        {/* ── Tab: bank ────────────────────────────────────────────────── */}
         {tab === "bank" && (
-          <section className="space-y-4">
-            <form
-              onSubmit={event => {
-                event.preventDefault();
-                const value = Number(bAmount);
-                if (!Number.isFinite(value) || value <= 0) {
-                  toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
-                  return;
-                }
-                addBankRecord.mutate(
-                  {
-                    sessionId,
-                    type: bType,
-                    amount: value,
-                    transferredByName: bName.trim() || undefined,
-                    bankRef: bRef.trim() || undefined,
-                  },
-                  {
-                    onSuccess: () => {
-                      setBAmount("");
-                      setBName("");
-                      setBRef("");
-                    },
-                  }
-                );
-              }}
-              className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
-            >
-              <h2 className="mb-4 font-bold text-[#38251B]">
-                บันทึกรายการธนาคาร
-              </h2>
-              <div className="grid gap-4 md:grid-cols-4">
-                <label className="text-sm font-semibold text-[#674F42]">
-                  ประเภท
-                  <select
-                    value={bType}
-                    onChange={e => setBType(e.target.value as typeof bType)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                  >
-                    <option value="cash_deposit">นำเงินสดเข้าฝาก</option>
-                    <option value="transfer_in">สมาชิกโอนเข้าบัญชี</option>
-                  </select>
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  จำนวนเงิน *
-                  <input
-                    type="number"
-                    required
-                    min="0.25"
-                    step="0.25"
-                    value={bAmount}
-                    onChange={e => setBAmount(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#38251B]"
-                  />
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  ผู้โอน
-                  <input
-                    value={bName}
-                    onChange={e => setBName(e.target.value)}
-                    placeholder="เว้นว่างได้ถ้าเป็นการนำฝาก"
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                  />
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  เลขอ้างอิง
-                  <input
-                    value={bRef}
-                    onChange={e => setBRef(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-mono text-sm font-normal text-[#38251B]"
-                  />
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={addBankRecord.isPending}
-                className="mt-4 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-              >
-                {addBankRecord.isPending ? "กำลังบันทึก…" : "เพิ่มรายการ"}
-              </button>
-            </form>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4">
-                <p className="text-sm text-[#674F42]">เงินโอนเข้าบัญชีจริง</p>
-                <MoneyDisplay
-                  amount={r.actualTransferIn}
-                  type="income"
-                  size="lg"
-                />
-                <p className="mt-1 text-sm text-[#674F42]">
-                  เทียบซองโอน {fmtBaht(r.envelopeTransferTotal)}
-                </p>
-                <div className="mt-1">
-                  <Variance amount={r.transferVariance} />
-                </div>
-              </div>
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4">
-                <p className="text-sm text-[#674F42]">นำเงินสดเข้าฝากจริง</p>
-                <MoneyDisplay amount={r.actualCashDeposit} size="lg" />
-                <p className="mt-1 text-sm text-[#674F42]">
-                  ต้องนำฝาก {fmtBaht(r.expectedDeposit)}
-                </p>
-                <div className="mt-1">
-                  <Variance amount={r.depositVariance} />
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
-                รายการธนาคาร ({detail.bankRecords.length})
-              </h2>
-              {detail.bankRecords.length === 0 ? (
-                <p className="p-8 text-center text-sm text-[#674F42]">
-                  ยังไม่มีรายการธนาคารในรอบนี้
-                </p>
-              ) : (
-                <ul className="divide-y divide-[#F0E6D8]">
-                  {detail.bankRecords.map(record => (
-                    <li
-                      key={record.id}
-                      className="flex items-center justify-between gap-4 p-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-bold text-[#38251B]">
-                          {record.type === "cash_deposit"
-                            ? "นำเงินสดเข้าฝาก"
-                            : "สมาชิกโอนเข้าบัญชี"}
-                        </p>
-                        <p className="text-sm text-[#674F42]">
-                          {record.transferredByName || "ไม่ระบุผู้โอน"}
-                          {record.bankRef ? ` · ${record.bankRef}` : ""}
-                        </p>
-                        <p className="mt-1 text-sm">
-                          {record.passbookMatched ? (
-                            <span className="font-bold text-[#4F8B33]">
-                              กระทบสมุดบัญชีแล้ว
-                            </span>
-                          ) : (
-                            <span className="text-[#C26B1E]">
-                              ยังไม่กระทบสมุดบัญชี
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <MoneyDisplay amount={record.amount} />
-                        {!record.passbookMatched && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              matchPassbook.mutate({
-                                id: record.id,
-                                passbookDate: new Date(),
-                              })
-                            }
-                            disabled={matchPassbook.isPending}
-                            className="min-h-11 rounded-xl border border-[#A8C978] bg-[#EAF5E4] px-3 py-2 text-xs font-bold text-[#4F8B33] disabled:opacity-50"
-                          >
-                            กระทบสมุด
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+          <BankRecordsTab
+            sessionId={sessionId}
+            bankRecords={detail.bankRecords}
+            actualTransferIn={r.actualTransferIn}
+            envelopeTransferTotal={r.envelopeTransferTotal}
+            transferVariance={r.transferVariance}
+            actualCashDeposit={r.actualCashDeposit}
+            expectedDeposit={r.expectedDeposit}
+            depositVariance={r.depositVariance}
+            addBankRecord={addBankRecord}
+            matchPassbook={matchPassbook}
+          />
         )}
 
-        {/* ── Tab: deductions ──────────────────────────────────────────── */}
         {tab === "deductions" && (
-          <section className="space-y-4">
-            <p className="rounded-2xl border border-[#E9D9BF] bg-[#FFF9EE] p-4 text-sm text-[#674F42]">
-              เงินที่เบิกจากถุงถวายก่อนนำฝาก ยอดถวายจะไม่หายจากระบบ —
-              ระบบตรวจว่า นับเงินสดได้ − หักเบิก = ยอดนำฝาก
-            </p>
-
-            {editable && (
-              <form
-                onSubmit={event => {
-                  event.preventDefault();
-                  const value = Number(dAmount);
-                  if (!Number.isFinite(value) || value <= 0) {
-                    toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
-                    return;
-                  }
-                  if (!dFundId) {
-                    toast.error("กรุณาเลือกกองทุนที่ตัดรายการนี้");
-                    return;
-                  }
-                  addDeduction.mutate(
-                    {
-                      sessionId,
-                      purpose: dPurpose.trim(),
-                      reason: dReason.trim(),
-                      amount: value,
-                      paidTo: dPaidTo.trim(),
-                      category: dCategory as "other",
-                      fundId: Number(dFundId),
-                    },
-                    {
-                      onSuccess: () => {
-                        setDPurpose("");
-                        setDReason("");
-                        setDPaidTo("");
-                        setDAmount("");
-                      },
-                    }
-                  );
-                }}
-                className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
-              >
-                <h2 className="mb-4 font-bold text-[#38251B]">
-                  บันทึกรายการหักเบิก
-                </h2>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    รายการที่เบิก *
-                    <input
-                      required
-                      minLength={2}
-                      value={dPurpose}
-                      onChange={e => setDPurpose(e.target.value)}
-                      placeholder="เช่น ค่าน้ำดื่มวันอาทิตย์"
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    เบิกให้ใคร *
-                    <input
-                      required
-                      minLength={2}
-                      value={dPaidTo}
-                      onChange={e => setDPaidTo(e.target.value)}
-                      placeholder="ชื่อผู้รับเงิน"
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    จำนวนเงิน *
-                    <input
-                      type="number"
-                      required
-                      min="0.25"
-                      step="0.25"
-                      value={dAmount}
-                      onChange={e => setDAmount(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#D45945]"
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    หมวดหมู่รายจ่าย
-                    <select
-                      value={dCategory}
-                      onChange={e => setDCategory(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    >
-                      {EXPENSE_CATEGORIES.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42]">
-                    ตัดจากกองทุน *
-                    <select
-                      required
-                      value={dFundId}
-                      onChange={e => setDFundId(e.target.value)}
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    >
-                      <option value="" disabled>
-                        — เลือกกองทุน —
-                      </option>
-                      {funds.map(f => (
-                        <option key={f.id} value={f.id}>
-                          {f.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-[#674F42] md:col-span-2">
-                    เหตุผล *
-                    <textarea
-                      required
-                      minLength={2}
-                      rows={2}
-                      value={dReason}
-                      onChange={e => setDReason(e.target.value)}
-                      placeholder="อธิบายเหตุผลที่ต้องเบิกจากถุงถวายทันที"
-                      className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                    />
-                  </label>
-                </div>
-                <button
-                  type="submit"
-                  disabled={addDeduction.isPending || !dFundId}
-                  className="mt-4 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  {addDeduction.isPending ? "กำลังบันทึก…" : "เพิ่มรายการเบิก"}
-                </button>
-              </form>
-            )}
-
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
-                <h2 className="font-bold text-[#38251B]">
-                  รายการหักเบิก ({detail.deductions.length})
-                </h2>
-                <span className="text-sm font-bold text-[#D45945]">
-                  รวม {fmtBaht(r.deductionTotal)}
-                </span>
-              </div>
-              {detail.deductions.length === 0 ? (
-                <p className="p-8 text-center text-sm text-[#674F42]">
-                  ไม่มีการหักเบิกในรอบนี้ เงินถวายทั้งหมดจะถูกนำฝาก
-                </p>
-              ) : (
-                <ul className="divide-y divide-[#F0E6D8]">
-                  {detail.deductions.map(deduction => (
-                    <li key={deduction.id} className="space-y-2 p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="font-bold text-[#38251B]">
-                            {deduction.purpose}
-                          </p>
-                          <p className="text-sm text-[#674F42]">
-                            เบิกให้ {deduction.paidTo}
-                          </p>
-                          <p className="mt-1 text-sm text-[#674F42]">
-                            {deduction.reason}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-3">
-                          <MoneyDisplay
-                            amount={deduction.amount}
-                            type="expense"
-                          />
-                          {editable && (
-                            <button
-                              type="button"
-                              aria-label="ลบรายการเบิกนี้"
-                              onClick={() =>
-                                removeDeduction.mutate({
-                                  id: deduction.id,
-                                  sessionId,
-                                })
-                              }
-                              disabled={removeDeduction.isPending}
-                              className="flex size-11 items-center justify-center rounded-xl text-[#D45945] hover:bg-[#FFEBE5] disabled:opacity-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {deduction.approvedBy ? (
-                          <StatusBadge status="approved" label="อนุมัติแล้ว" />
-                        ) : (
-                          <>
-                            <StatusBadge status="pending" label="รออนุมัติ" />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                approveDeduction.mutate({ id: deduction.id })
-                              }
-                              disabled={approveDeduction.isPending}
-                              className="min-h-11 rounded-xl border border-[#A8C978] bg-[#EAF5E4] px-3 py-2 text-xs font-bold text-[#4F8B33] disabled:opacity-50"
-                            >
-                              อนุมัติรายการนี้
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+          <DeductionsTab
+            sessionId={sessionId}
+            editable={editable}
+            deductions={detail.deductions}
+            funds={funds}
+            deductionTotal={r.deductionTotal}
+            addDeduction={addDeduction}
+            removeDeduction={removeDeduction}
+            approveDeduction={approveDeduction}
+          />
         )}
 
-        {/* ── Tab: summary ─────────────────────────────────────────────── */}
         {tab === "summary" && (
-          <section className="space-y-4">
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
-                ตารางกระทบยอด
-              </h2>
-              <dl className="divide-y divide-[#F0E6D8]">
-                {[
-                  {
-                    label: "ยอดถวายตามซอง (ทุกช่องทาง)",
-                    value: fmtBaht(r.offeringTotal),
-                  },
-                  {
-                    label: "— ซองเงินสด",
-                    value: fmtBaht(r.envelopeCashTotal),
-                  },
-                  {
-                    label: "— ซองเงินโอน",
-                    value: fmtBaht(r.envelopeTransferTotal),
-                  },
-                  {
-                    label: "— ซองเช็ค",
-                    value: fmtBaht(r.envelopeCheckTotal),
-                  },
-                ].map(row => (
-                  <div
-                    key={row.label}
-                    className="flex items-center justify-between gap-4 p-4"
-                  >
-                    <dt className="text-sm text-[#674F42]">{row.label}</dt>
-                    <dd className="text-sm font-bold tabular-nums text-[#38251B]">
-                      {row.value}
-                    </dd>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between gap-4 bg-[#FFF9EE] p-4">
-                  <dt className="text-sm font-bold text-[#38251B]">
-                    ผลต่างเงินสด (นับได้ − ซองเงินสด)
-                  </dt>
-                  <dd>
-                    <Variance amount={r.cashVariance} />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4 bg-[#FFF9EE] p-4">
-                  <dt className="text-sm font-bold text-[#38251B]">
-                    ผลต่างเงินโอน (เข้าบัญชี − ซองโอน)
-                  </dt>
-                  <dd>
-                    <Variance amount={r.transferVariance} />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4 bg-[#FFF9EE] p-4">
-                  <dt className="text-sm font-bold text-[#38251B]">
-                    ผลต่างการฝาก (ฝากจริง − ที่ต้องนำฝาก)
-                  </dt>
-                  <dd>
-                    <Variance amount={r.depositVariance} />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-4 border-t-2 border-[#E9D9BF] p-4">
-                  <dt className="font-bold text-[#38251B]">
-                    นับเงินสดได้ − หักเบิก = ยอดนำฝาก
-                  </dt>
-                  <dd className="text-sm font-bold tabular-nums text-[#38251B]">
-                    {fmtBaht(r.countedCashTotal)} − {fmtBaht(r.deductionTotal)}{" "}
-                    = {fmtBaht(r.expectedDeposit)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            {!r.isBalanced && (
-              <div className="rounded-3xl border border-[#F6E1BF] bg-[#FFF3DF] p-5">
-                <h3 className="font-bold text-[#8A5A1E]">ยอดยังไม่ตรงกัน</h3>
-                <p className="mt-1 text-sm text-[#8A5A1E]">
-                  ปิดรอบได้เมื่อยอดตรง หรือบันทึกคำอธิบายผลต่างไว้เป็นหลักฐาน
-                </p>
-                <textarea
-                  rows={2}
-                  value={varianceNote}
-                  onChange={e => setVarianceNote(e.target.value)}
-                  placeholder="เช่น เงินสดขาด 20 บาท นับซ้ำสองครั้งแล้ว แจ้งที่ประชุมมัคนายกวันที่…"
-                  className="mt-3 w-full rounded-xl border border-[#E9D9BF] bg-white p-3 text-sm text-[#38251B]"
-                />
-                {detail.session.varianceNote && (
-                  <p className="mt-2 text-sm text-[#674F42]">
-                    คำอธิบายที่บันทึกไว้: {detail.session.varianceNote}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {unapprovedDeductions.length > 0 && (
-              <p className="rounded-2xl border border-[#F7D5CD] bg-[#FFEBE5] p-4 text-sm font-bold text-[#A33B2A]">
-                มีรายการหักเบิกที่ยังไม่ได้รับอนุมัติ{" "}
-                {unapprovedDeductions.length} รายการ — ต้องอนุมัติก่อนลงบัญชี
-              </p>
-            )}
-
-            <div className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm">
-              <h3 className="font-bold text-[#38251B]">ดำเนินการกับรอบนี้</h3>
-              <p className="mt-1 text-sm text-[#674F42]">
-                ลำดับงาน: นับ → ส่งตรวจ → ตรวจสอบ → ลงบัญชี → ปิดรอบ
-                (ผู้นับไม่สามารถตรวจสอบรอบของตัวเองได้)
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {status === "counting" && (
-                  <button
-                    type="button"
-                    onClick={() => submitCount.mutate({ id: sessionId })}
-                    disabled={submitCount.isPending}
-                    className="min-h-11 rounded-2xl bg-[#E99A4A] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                  >
-                    ส่งนับให้ตรวจสอบ
-                  </button>
-                )}
-                {(status === "counted" || status === "verified") && (
-                  <button
-                    type="button"
-                    onClick={() => reopenCount.mutate({ id: sessionId })}
-                    disabled={reopenCount.isPending}
-                    className="min-h-11 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-5 py-2.5 text-sm font-bold text-[#674F42] disabled:opacity-50"
-                  >
-                    ส่งกลับไปนับใหม่
-                  </button>
-                )}
-                {status === "counted" && (
-                  <button
-                    type="button"
-                    onClick={() => verify.mutate({ id: sessionId })}
-                    disabled={verify.isPending}
-                    className="min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                  >
-                    ตรวจสอบและรับรองยอด
-                  </button>
-                )}
-                {status === "verified" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      post.mutate({
-                        id: sessionId,
-                        varianceNote: varianceNote.trim() || undefined,
-                      })
-                    }
-                    disabled={
-                      post.isPending ||
-                      unapprovedDeductions.length > 0 ||
-                      (!r.isBalanced &&
-                        !varianceNote.trim() &&
-                        !detail.session.varianceNote)
-                    }
-                    className="min-h-11 rounded-2xl bg-[#1b5e3a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                  >
-                    ลงบัญชีเข้าระบบ
-                  </button>
-                )}
-                {status === "posted" && (
-                  <button
-                    type="button"
-                    onClick={() => close.mutate({ id: sessionId })}
-                    disabled={close.isPending}
-                    className="min-h-11 rounded-2xl bg-[#674F42] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                  >
-                    ปิดรอบถาวร
-                  </button>
-                )}
-                {status === "closed" && (
-                  <p className="text-sm font-bold text-[#4F8B33]">
-                    รอบนี้ปิดเรียบร้อยแล้ว ข้อมูลถูกล็อกเพื่อการตรวจสอบ
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {isUnposted && (
-              <div className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
-                  <h4 className="font-bold text-[#38251B]">
-                    การจัดการรอบนับเงิน (งานค้าง / เริ่มนับใหม่)
-                  </h4>
-                </div>
-                <p className="text-xs sm:text-sm text-[#674F42] leading-relaxed mb-4">
-                  หากพบว่ากรอกข้อมูลผิดพลาด หรือเป็นรอบที่เปิดทิ้งไว้ไม่ได้ใช้งาน สามารถเลือกล้างเพื่อนับใหม่ หรือลบรอบนี้ออกจากระบบได้
-                </p>
-                <div className="flex flex-wrap gap-2.5">
-                  <button
-                    type="button"
-                    onClick={handleResetThisSession}
-                    disabled={resetSession.isPending}
-                    className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-4 py-2 text-xs font-bold text-[#8A5A1E] shadow-2xs hover:bg-[#FFE8C2] transition-colors disabled:opacity-50"
-                  >
-                    <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
-                    <span>ล้างข้อมูลเพื่อนับใหม่ (Recount)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteThisSession}
-                    disabled={deleteSession.isPending}
-                    className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-[#D45945] shadow-2xs hover:bg-rose-100 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>ลบรอบนี้ (Delete Session)</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
+          <ReconciliationSummaryTab
+            sessionId={sessionId}
+            status={status}
+            varianceNote={varianceNote}
+            setVarianceNote={setVarianceNote}
+            sessionVarianceNote={detail.session.varianceNote}
+            r={r}
+            unapprovedDeductions={unapprovedDeductions}
+            isUnposted={isUnposted}
+            submitCount={submitCount}
+            reopenCount={reopenCount}
+            verify={verify}
+            post={post}
+            close={close}
+            handleResetThisSession={handleResetThisSession}
+            handleDeleteThisSession={handleDeleteThisSession}
+            resetSessionPending={resetSession.isPending}
+            deleteSessionPending={deleteSession.isPending}
+          />
         )}
       </div>
     </AppLayout>

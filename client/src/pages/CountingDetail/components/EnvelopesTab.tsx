@@ -1,0 +1,300 @@
+import React, { useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { MoneyDisplay } from "@/components/common/CommonUI";
+import { OFFERING_CATEGORIES, offeringCategoryLabel } from "@shared/categories";
+import { fmtBaht } from "./countingUtils";
+
+interface EnvelopesTabProps {
+  sessionId: number;
+  editable: boolean;
+  envelopes: Array<{
+    id: number;
+    sessionId: number;
+    envelopeNo?: string | null;
+    memberId?: number | null;
+    donorName?: string | null;
+    isAnonymous?: boolean | null;
+    category: string;
+    fundId?: number | null;
+    method: "cash" | "transfer" | "check" | string;
+    amount: number;
+  }>;
+  funds: Array<{ id: number; name: string }>;
+  members: Array<{ id: number; name: string; envelopeNo?: string | null }>;
+  offeringTotal: number;
+  addEnvelope: {
+    mutate: (vars: any, options?: any) => void;
+    isPending: boolean;
+  };
+  removeEnvelope: {
+    mutate: (vars: { id: number; sessionId: number }) => void;
+    isPending: boolean;
+  };
+}
+
+export function EnvelopesTab({
+  sessionId,
+  editable,
+  envelopes,
+  funds,
+  members,
+  offeringTotal,
+  addEnvelope,
+  removeEnvelope,
+}: EnvelopesTabProps) {
+  const [envelopeNo, setEnvelopeNo] = useState("");
+  const [memberId, setMemberId] = useState("");
+  const [donorName, setDonorName] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [category, setCategory] = useState<string>("general");
+  const [fundId, setFundId] = useState("");
+  const [method, setMethod] = useState<"cash" | "transfer" | "check">("cash");
+  const [amount, setAmount] = useState("");
+  const amountRef = useRef<HTMLInputElement>(null);
+
+  const submitEnvelope = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
+      return;
+    }
+    if (!fundId) {
+      toast.error("กรุณาเลือกกองทุน");
+      return;
+    }
+    addEnvelope.mutate(
+      {
+        sessionId,
+        envelopeNo: envelopeNo.trim() || undefined,
+        memberId: memberId ? Number(memberId) : undefined,
+        donorName: donorName.trim() || undefined,
+        isAnonymous,
+        category: category as "general",
+        fundId: Number(fundId),
+        method,
+        amount: value,
+      },
+      {
+        onSuccess: () => {
+          setEnvelopeNo("");
+          setMemberId("");
+          setDonorName("");
+          setIsAnonymous(false);
+          setAmount("");
+          amountRef.current?.focus();
+        },
+      }
+    );
+  };
+
+  return (
+    <section className="space-y-4">
+      {editable && (
+        <form
+          onSubmit={submitEnvelope}
+          className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
+        >
+          <h2 className="mb-4 font-bold text-[#38251B]">บันทึกซองถวาย</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="text-sm font-semibold text-[#674F42]">
+              เลขซอง
+              <input
+                value={envelopeNo}
+                onChange={e => setEnvelopeNo(e.target.value)}
+                placeholder="เช่น 012 (เว้นว่างได้)"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              />
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              สมาชิก
+              <select
+                value={memberId}
+                onChange={e => setMemberId(e.target.value)}
+                disabled={isAnonymous}
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
+              >
+                <option value="">— ไม่ระบุสมาชิก —</option>
+                {members.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.envelopeNo ? `[${m.envelopeNo}] ` : ""}
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              ชื่อผู้ถวาย (ถ้าไม่ใช่สมาชิก)
+              <input
+                value={donorName}
+                onChange={e => setDonorName(e.target.value)}
+                disabled={isAnonymous}
+                placeholder={isAnonymous ? "ไม่เปิดเผยนาม" : "ชื่อ-นามสกุล"}
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
+              />
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              ประเภทถวาย
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              >
+                {OFFERING_CATEGORIES.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              เข้ากองทุน *
+              <select
+                required
+                value={fundId}
+                onChange={e => setFundId(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              >
+                <option value="" disabled>
+                  — เลือกกองทุน —
+                </option>
+                {funds.map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              ช่องทาง
+              <select
+                value={method}
+                onChange={e => setMethod(e.target.value as typeof method)}
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              >
+                <option value="cash">เงินสด</option>
+                <option value="transfer">เงินโอน</option>
+                <option value="check">เช็ค</option>
+              </select>
+            </label>
+            <label className="text-sm font-semibold text-[#674F42]">
+              จำนวนเงิน (บาท) *
+              <input
+                ref={amountRef}
+                type="number"
+                required
+                min="0.25"
+                step="0.25"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#1b5e3a]"
+              />
+            </label>
+            <div className="flex items-end gap-2">
+              <label className="flex items-center gap-2 text-sm text-[#674F42]">
+                <input
+                  type="checkbox"
+                  checked={isAnonymous}
+                  onChange={e => {
+                    setIsAnonymous(e.target.checked);
+                    if (e.target.checked) {
+                      setMemberId("");
+                      setDonorName("");
+                    }
+                  }}
+                  className="size-4 rounded border-[#E9D9BF]"
+                />
+                ไม่ระบุนาม
+              </label>
+            </div>
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={addEnvelope.isPending || !fundId}
+                className="min-h-11 w-full rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {addEnvelope.isPending ? "กำลังบันทึก…" : "เพิ่มซอง"}
+              </button>
+            </div>
+          </div>
+          {funds.length === 0 && (
+            <p className="mt-3 text-sm text-[#D45945]">
+              ยังไม่มีกองทุนในระบบ ต้องสร้างกองทุนก่อนบันทึกซองถวาย
+            </p>
+          )}
+        </form>
+      )}
+
+      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
+          <h2 className="font-bold text-[#38251B]">
+            ซองในรอบนี้ ({envelopes.length})
+          </h2>
+          <span className="text-sm font-bold text-[#674F42]">
+            รวม {fmtBaht(offeringTotal)}
+          </span>
+        </div>
+        {envelopes.length === 0 ? (
+          <p className="p-8 text-center text-sm text-[#674F42]">
+            ยังไม่มีซองในรอบนี้
+          </p>
+        ) : (
+          <ul className="divide-y divide-[#F0E6D8]">
+            {envelopes.map(envelope => {
+              const member = members.find(m => m.id === envelope.memberId);
+              const who = envelope.isAnonymous
+                ? "ไม่ระบุนาม"
+                : (member?.name ?? envelope.donorName ?? "ไม่ระบุชื่อ");
+              const categoryLabel = offeringCategoryLabel(envelope.category);
+              const fundName =
+                funds.find(f => f.id === envelope.fundId)?.name ??
+                "ไม่ระบุกองทุน";
+              return (
+                <li
+                  key={envelope.id}
+                  className="flex items-center justify-between gap-4 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#38251B]">
+                      {envelope.envelopeNo ? `ซอง ${envelope.envelopeNo} · ` : ""}
+                      {who}
+                    </p>
+                    <p className="text-sm text-[#674F42]">
+                      {categoryLabel} · {fundName} ·{" "}
+                      {envelope.method === "cash"
+                        ? "เงินสด"
+                        : envelope.method === "transfer"
+                          ? "เงินโอน"
+                          : "เช็ค"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <MoneyDisplay amount={envelope.amount} type="income" />
+                    {editable && (
+                      <button
+                        type="button"
+                        aria-label="ลบซองนี้"
+                        onClick={() =>
+                          removeEnvelope.mutate({
+                            id: envelope.id,
+                            sessionId,
+                          })
+                        }
+                        disabled={removeEnvelope.isPending}
+                        className="flex size-11 items-center justify-center rounded-xl text-[#D45945] hover:bg-[#FFEBE5] disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
