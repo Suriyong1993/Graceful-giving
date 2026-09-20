@@ -1,6 +1,7 @@
 import React from "react";
 import { Illustration } from "@/components/Illustration";
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+import { formatAmount } from "@/lib/format";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +76,7 @@ export const EmptyState: React.FC<{
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="mt-2 px-5 py-2.5 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+          className="min-h-11 mt-2 px-5 py-2.5 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
         >
           {actionText}
         </button>
@@ -226,10 +227,13 @@ export const MoneyDisplay: React.FC<{
     return "text-[#38251B]";
   };
 
+  // Each size carries its own weight. The base class used to set font-bold
+  // as well, so two font-weight utilities landed on the same element and the
+  // winner depended on Tailwind's output order rather than on this switch.
   const getSize = () => {
     switch (size) {
       case "sm":
-        return "text-sm";
+        return "text-sm font-bold";
       case "lg":
         return "text-2xl md:text-3xl font-black";
       case "xl":
@@ -241,16 +245,18 @@ export const MoneyDisplay: React.FC<{
   };
 
   const prefix = type === "income" ? "+" : type === "expense" ? "-" : "";
-  const formatted = Math.abs(amount).toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const formatted = formatAmount(Math.abs(amount));
 
+  // The "฿" is its own element with a small gap. Run together with the
+  // digits, the glyph's ink overlaps the first numeral, and separating it
+  // also keeps the digits themselves aligned down a table column.
   return (
     <span
-      className={`tracking-tight tabular-nums font-sans font-bold ${getColor()} ${getSize()} ${className}`}
+      className={`tracking-tight tabular-nums font-sans ${getColor()} ${getSize()} ${className}`}
     >
-      {prefix}฿{formatted}
+      {prefix}
+      <span className="mr-1">฿</span>
+      {formatted}
     </span>
   );
 };
@@ -286,7 +292,41 @@ export const PageHeader: React.FC<{
   );
 };
 
-// ─── 6. Search and Filter Bar ────────────────────────────────────────────────
+// ─── 6. Chip ─────────────────────────────────────────────────────────────────
+
+/**
+ * The small pill used for filters and for quick-amount presets.
+ *
+ * Several screens had their own copy of this button, and most of those copies
+ * were 26–36px tall — under the 44px the rest of the app uses as its minimum
+ * touch target, and awkward to hit on a phone. Defining it once keeps the
+ * height, the radius and the selected state the same everywhere.
+ */
+export const Chip: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    active?: boolean;
+    /** Right-hand count, e.g. the number of rows a filter would keep. */
+    count?: number;
+  }
+> = ({ active = false, count, className = "", children, ...props }) => (
+  <button
+    type="button"
+    aria-pressed={active}
+    className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
+      active
+        ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"
+        : "bg-white text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"
+    } ${className}`}
+    {...props}
+  >
+    {children}
+    {count !== undefined && (
+      <span className="ml-1.5 text-[10px] opacity-75">({count})</span>
+    )}
+  </button>
+);
+
+// ─── 7. Search and Filter Bar ────────────────────────────────────────────────
 
 export const FilterBar: React.FC<{
   searchPlaceholder?: string;
@@ -333,10 +373,10 @@ export const FilterBar: React.FC<{
           {filters.map(f => {
             const isActive = activeFilter === f.id;
             return (
-              <button
+              <Chip
                 key={f.id}
-                type="button"
-                aria-pressed={isActive}
+                active={isActive}
+                count={f.count}
                 onClick={() => onFilterChange(f.id)}
                 onFocus={e =>
                   e.currentTarget.scrollIntoView({
@@ -344,19 +384,9 @@ export const FilterBar: React.FC<{
                     inline: "nearest",
                   })
                 }
-                className={`min-h-11 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                  isActive
-                    ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"
-                    : "bg-white text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"
-                }`}
               >
                 {f.label}
-                {f.count !== undefined && (
-                  <span className="ml-1.5 text-[10px] opacity-75">
-                    ({f.count})
-                  </span>
-                )}
-              </button>
+              </Chip>
             );
           })}
         </div>
@@ -365,7 +395,38 @@ export const FilterBar: React.FC<{
   );
 };
 
-// ─── 7. Confirm Dialog ───────────────────────────────────────────────────────
+// ─── 8. Back Link ────────────────────────────────────────────────────────────
+
+/**
+ * "Back to the list" control, shown at the top of every detail and entry page.
+ *
+ * Ten pages each wrote their own, in six different styles — three shapes, two
+ * type sizes, and four of them below the 44px minimum touch target. Because
+ * this is the control a user reaches for after deciding not to save, it has
+ * to look and behave the same wherever it appears.
+ */
+export const BackLink: React.FC<{
+  label: string;
+  onClick: () => void;
+  /** "plain" drops the pill for pages that sit it beside a status tag. */
+  variant?: "pill" | "plain";
+  className?: string;
+}> = ({ label, onClick, variant = "pill", className = "" }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`min-h-11 inline-flex items-center gap-1.5 text-xs font-bold transition-all ${
+      variant === "pill"
+        ? "rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-3.5 py-2 text-[#70452E] hover:bg-[#FBE9CD]"
+        : "text-sm font-medium text-[#70452E] hover:text-[#38251B]"
+    } ${className}`}
+  >
+    <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+    <span>{label}</span>
+  </button>
+);
+
+// ─── 9. Confirm Dialog ───────────────────────────────────────────────────────
 
 export const ConfirmDialog: React.FC<{
   open: boolean;

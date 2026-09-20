@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, SubmitButtons } from "./updatesUtils";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface AdminNewsDialogProps {
   open: boolean;
@@ -67,7 +68,9 @@ export function AdminNewsDialog({
                 required
                 maxLength={180}
                 value={newsForm.title}
-                onChange={(event) => setNewsForm({ ...newsForm, title: event.target.value })}
+                onChange={event =>
+                  setNewsForm({ ...newsForm, title: event.target.value })
+                }
                 placeholder="เช่น เชิญร่วมอธิษฐานประจำสัปดาห์"
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
@@ -77,7 +80,9 @@ export function AdminNewsDialog({
                 required
                 maxLength={280}
                 value={newsForm.summary}
-                onChange={(event) => setNewsForm({ ...newsForm, summary: event.target.value })}
+                onChange={event =>
+                  setNewsForm({ ...newsForm, summary: event.target.value })
+                }
                 placeholder="ข้อความที่จะแสดงในการ์ดข่าวสาร"
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
@@ -87,38 +92,46 @@ export function AdminNewsDialog({
                 required
                 rows={5}
                 value={newsForm.body}
-                onChange={(event) => setNewsForm({ ...newsForm, body: event.target.value })}
+                onChange={event =>
+                  setNewsForm({ ...newsForm, body: event.target.value })
+                }
                 placeholder="เขียนรายละเอียดข่าวสาร..."
                 className="w-full rounded-xl border border-[#e5d8c8] px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="หมวดหมู่">
-                <select
+                <NativeSelect
                   value={newsForm.category}
-                  onChange={(event) =>
-                    setNewsForm({ ...newsForm, category: event.target.value as typeof newsForm.category })
+                  onChange={event =>
+                    setNewsForm({
+                      ...newsForm,
+                      category: event.target.value as typeof newsForm.category,
+                    })
                   }
-                  className="w-full rounded-xl border border-[#e5d8c8] bg-white px-3.5 py-2.5 text-sm text-[#4c392e]"
+                  className="border-[#e5d8c8] text-[#4c392e]"
                 >
                   <option value="announcement">ประกาศ</option>
                   <option value="ministry">พันธกิจ</option>
                   <option value="finance">การเงิน</option>
                   <option value="pastoral">การอภิบาล</option>
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="สถานะ">
-                <select
+                <NativeSelect
                   value={newsForm.status}
-                  onChange={(event) =>
-                    setNewsForm({ ...newsForm, status: event.target.value as typeof newsForm.status })
+                  onChange={event =>
+                    setNewsForm({
+                      ...newsForm,
+                      status: event.target.value as typeof newsForm.status,
+                    })
                   }
-                  className="w-full rounded-xl border border-[#e5d8c8] bg-white px-3.5 py-2.5 text-sm text-[#4c392e]"
+                  className="border-[#e5d8c8] text-[#4c392e]"
                 >
                   <option value="draft">ฉบับร่าง</option>
                   <option value="published">เผยแพร่ทันที</option>
                   <option value="archived">เก็บถาวร</option>
-                </select>
+                </NativeSelect>
               </Field>
             </div>
           </div>

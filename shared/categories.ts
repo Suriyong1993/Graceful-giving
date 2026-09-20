@@ -82,3 +82,33 @@ export function isExpenseCategory(id: string): id is ExpenseCategory {
 export function isOfferingCategory(id: string): id is OfferingCategory {
   return (OFFERING_CATEGORY_IDS as readonly string[]).includes(id);
 }
+
+/**
+ * Payment methods, mirroring the Postgres enum `offering_method`
+ * (drizzle/schema.ts). Screens used to print the stored id straight into the
+ * page, so a Thai ledger row read "· cash ·".
+ */
+export const PAYMENT_METHOD_IDS = [
+  "cash",
+  "transfer",
+  "check",
+] as const satisfies readonly string[];
+
+export type PaymentMethod = (typeof PAYMENT_METHOD_IDS)[number];
+
+export const PAYMENT_METHODS: ReadonlyArray<CategoryOption<PaymentMethod>> = [
+  { id: "cash", label: "เงินสด" },
+  { id: "transfer", label: "โอนเงิน" },
+  { id: "check", label: "เช็ค" },
+];
+
+/**
+ * Extra ids that reach the UI without being part of the column enum:
+ * "promptpay" is a transfer the entry form distinguishes, and some rows hold
+ * the Thai label itself (NewOffering submits the label, not the id). A value
+ * that matches neither returns unchanged, same rule as the category helpers.
+ */
+export function paymentMethodLabel(value: string): string {
+  if (value === "promptpay") return "QR พร้อมเพย์";
+  return PAYMENT_METHODS.find(m => m.id === value)?.label ?? value;
+}

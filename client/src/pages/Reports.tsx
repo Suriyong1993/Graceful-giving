@@ -13,6 +13,8 @@ import {
 } from "@shared/categories";
 import { BarChart3, Download, Landmark, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { formatBaht } from "@/lib/format";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type ReportTab = "cashflow" | "funds";
 
@@ -59,8 +61,7 @@ function resolvePeriod(id: PeriodId, now = new Date()) {
   }
 }
 
-const fmtBaht = (n: number) =>
-  `฿${n.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtBaht = (n: number) => formatBaht(n);
 
 const fmtThaiDate = (iso: string) =>
   new Intl.DateTimeFormat("th-TH", {
@@ -182,18 +183,18 @@ export default function Reports() {
 
           <label className="text-sm font-semibold text-[#674F42]">
             <span className="sr-only">ช่วงเวลา</span>
-            <select
+            <NativeSelect
               value={period}
               onChange={event => setPeriod(event.target.value as PeriodId)}
               aria-label="ช่วงเวลาของรายงาน"
-              className="min-h-11 w-full rounded-2xl border border-[#E9D9BF] bg-white px-3 py-2 text-sm font-bold text-[#38251B] sm:w-auto"
+              wrapperClassName="sm:w-auto"
             >
               {PERIODS.map(p => (
                 <option key={p.id} value={p.id}>
                   {p.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </label>
         </div>
 

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/common/CommonUI";
 import { OFFERING_CATEGORIES, offeringCategoryLabel } from "@shared/categories";
 import { fmtBaht } from "./countingUtils";
+import { NativeSelect } from "@/components/ui/native-select";
 
 interface EnvelopesTabProps {
   sessionId: number;
@@ -109,11 +110,11 @@ export function EnvelopesTab({
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               สมาชิก
-              <select
+              <NativeSelect
                 value={memberId}
                 onChange={e => setMemberId(e.target.value)}
                 disabled={isAnonymous}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground disabled:opacity-50"
+                className="mt-1"
               >
                 <option value="">— ไม่ระบุสมาชิก —</option>
                 {members.map(m => (
@@ -122,7 +123,7 @@ export function EnvelopesTab({
                     {m.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               ชื่อผู้ถวาย (ถ้าไม่ใช่สมาชิก)
@@ -136,25 +137,25 @@ export function EnvelopesTab({
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               ประเภทถวาย
-              <select
+              <NativeSelect
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1"
               >
                 {OFFERING_CATEGORIES.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               เข้ากองทุน *
-              <select
+              <NativeSelect
                 required
                 value={fundId}
                 onChange={e => setFundId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -164,19 +165,19 @@ export function EnvelopesTab({
                     {f.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               ช่องทาง
-              <select
+              <NativeSelect
                 value={method}
                 onChange={e => setMethod(e.target.value as typeof method)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1"
               >
                 <option value="cash">เงินสด</option>
                 <option value="transfer">เงินโอน</option>
                 <option value="check">เช็ค</option>
-              </select>
+              </NativeSelect>
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
               จำนวนเงิน (บาท) *
@@ -258,7 +259,9 @@ export function EnvelopesTab({
                 >
                   <div className="min-w-0">
                     <p className="font-bold text-foreground">
-                      {envelope.envelopeNo ? `ซอง ${envelope.envelopeNo} · ` : ""}
+                      {envelope.envelopeNo
+                        ? `ซอง ${envelope.envelopeNo} · `
+                        : ""}
                       {who}
                     </p>
                     <p className="text-sm text-[#674F42]">

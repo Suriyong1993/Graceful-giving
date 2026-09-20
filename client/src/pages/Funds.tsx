@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/common/CommonUI";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type AccountItem = RouterOutputs["finance"]["accounts"][number];
 
@@ -245,10 +246,11 @@ export default function Funds() {
                   <label className="text-xs font-semibold text-foreground">
                     ประเภทกองทุน
                   </label>
-                  <select
+                  <NativeSelect
                     value={newFundType}
-                    onChange={e => setNewFundType(e.target.value as typeof newFundType)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-primary focus:outline-none"
+                    onChange={e =>
+                      setNewFundType(e.target.value as typeof newFundType)
+                    }
                   >
                     <option value="mission">พันธกิจและประกาศ (Mission)</option>
                     <option value="building">อาคารและบูรณะ (Building)</option>
@@ -259,7 +261,7 @@ export default function Funds() {
                       กองทุนโครงการพิเศษ (Special)
                     </option>
                     <option value="general">ดำเนินงานทั่วไป (General)</option>
-                  </select>
+                  </NativeSelect>
                 </div>
 
                 <div className="space-y-1.5">

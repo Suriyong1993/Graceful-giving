@@ -3,12 +3,13 @@ import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
+  BackLink,
   EmptyState,
   LoadingSkeleton,
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import { ArrowLeft, ArrowRightLeft, Download, Wallet } from "lucide-react";
+import { ArrowRightLeft, Download, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FundDetail() {
@@ -44,13 +45,10 @@ export default function FundDetail() {
     <AppLayout title="รายละเอียดกองทุน" subtitle={fund.name}>
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <button
+          <BackLink
+            label="กลับหน้ารายการกองทุน"
             onClick={() => setLocation("/funds")}
-            className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-[#70452E]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            กลับหน้ารายการกองทุน
-          </button>
+          />
           <span className="font-mono text-xs text-[#70452E]/70 bg-[#FFF4DF] px-3 py-1 rounded-full border border-[#E9D9BF]">
             FD-{String(fund.id).padStart(3, "0")}
           </span>

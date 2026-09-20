@@ -8,8 +8,10 @@ import {
   confirmDiscardChanges,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
-import { ArrowLeft, Banknote, CheckCircle2 } from "lucide-react";
+import { Banknote, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { NativeSelect } from "@/components/ui/native-select";
+import { BackLink } from "@/components/common/CommonUI";
 
 // withdrawals.create caps details at 1000 chars, and an urgent request spends
 // part of that budget on the prefix below, so the field stops short of both.
@@ -96,13 +98,7 @@ export default function NewWithdrawal() {
     <AppLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#70452E] hover:text-[#38251B] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>กลับ{returnLabel}</span>
-          </button>
+          <BackLink label={`กลับ${returnLabel}`} onClick={goBack} />
           <span className="text-xs text-[#70452E]/60 bg-[#FFF4DF] border border-[#E9D9BF] px-3 py-1 rounded-full font-medium">
             คำขอเบิกเงิน
           </span>
@@ -162,16 +158,16 @@ export default function NewWithdrawal() {
                 <label className="text-sm font-semibold text-[#38251B]">
                   ความเร่งด่วน
                 </label>
-                <select
+                <NativeSelect
                   value={urgency}
                   onChange={e =>
                     setUrgency(e.target.value as "normal" | "urgent")
                   }
-                  className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
+                  className="bg-[#FFF9EE]/20 font-medium"
                 >
                   <option value="normal">ปกติ (ตามรอบ)</option>
                   <option value="urgent">เร่งด่วน</option>
-                </select>
+                </NativeSelect>
               </div>
             </div>
 
@@ -179,11 +175,11 @@ export default function NewWithdrawal() {
               <label className="text-sm font-semibold text-[#38251B]">
                 เบิกจากกองทุน <span className="text-red-500">*</span>
               </label>
-              <select
+              <NativeSelect
                 required
                 value={fundId ?? ""}
                 onChange={e => setFundId(Number(e.target.value))}
-                className="w-full px-4 py-3 rounded-2xl border border-[#E9D9BF] focus:border-[#E99A4A] focus:outline-none bg-[#FFF9EE]/20 text-sm font-medium text-[#38251B]"
+                className="bg-[#FFF9EE]/20 font-medium"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -193,7 +189,7 @@ export default function NewWithdrawal() {
                     {f.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               {funds.length === 0 && (
                 <p className="text-sm font-bold text-[#D45945] mt-2">
                   ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนยื่นคำขอเบิกเงิน

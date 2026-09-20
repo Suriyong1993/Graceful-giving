@@ -137,7 +137,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         </aside>
 
         {/* MAIN CONTAINER (Auto-filling 100% available space across all screens) */}
-        <main className="flex-1 w-full max-w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 flex flex-col pb-[calc(var(--mobile-nav-clearance)+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
+        {/* The column is capped at --content-max and centred in whatever space
+            is left beside the sidebar, so a row's date and its amount stay
+            within reading distance of each other on a wide monitor. */}
+        <main className="flex-1 w-full max-w-[var(--content-max)] mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 sm:py-6 md:py-8 flex flex-col pb-[calc(var(--mobile-nav-clearance)+env(safe-area-inset-bottom))] lg:pb-16 min-w-0">
           {/* Top Bar for Desktop and Mobile */}
           <header className="flex flex-wrap items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-[#E9D9BF]/60">
             <div className="flex w-full items-center justify-between lg:hidden">
@@ -150,38 +153,24 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 <Bell className="size-5" aria-hidden="true" />
               </GuardedLink>
             </div>
-            {/* Left: Page Title or Mobile Branding */}
-            <div className="min-w-0 flex-1 basis-full sm:basis-0">
-              {title ? (
-                <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#2C1810] tracking-tight break-words">
-                    {title}
-                  </h1>
-                  {subtitle && (
-                    <p className="text-sm sm:text-base leading-relaxed text-[#4A2E1B] font-bold mt-1">
-                      {subtitle}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <GuardedLink
-                  href="/"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#D47012]/15 border border-[#D47012]/30 flex items-center justify-center">
-                    <Sprout className="w-6 h-6 text-[#2C1810]" />
-                  </div>
-                  <div>
-                    <span className="text-lg font-black text-[#2C1810]">
-                      Grace{" "}
-                    </span>
-                    <span className="text-lg font-black text-[#D47012]">
-                      Ledger
-                    </span>
-                  </div>
-                </GuardedLink>
-              )}
-            </div>
+            {/* Left: Page Title */}
+            {title && (
+              <div className="min-w-0 flex-1 basis-full sm:basis-0">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#2C1810] tracking-tight break-words">
+                  {title}
+                </h1>
+                {subtitle && (
+                  <p className="text-sm sm:text-base leading-relaxed text-[#4A2E1B] font-bold mt-1">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+            )}
+            {/* No brand lockup here when a page passes no title. The sidebar
+                already carries it on lg:, and every title-less page (Home,
+                Funds, Expenses, Approvals, Settings and the two entry forms)
+                opens with its own hero or banner, so the fallback only ever
+                repeated a mark the user could already see. */}
 
             {/* Right: Actions and Notification */}
             <div className="flex max-w-full flex-wrap items-center gap-2.5">
