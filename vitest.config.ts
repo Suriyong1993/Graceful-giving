@@ -1,9 +1,11 @@
 import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import path from "path";
 
 const templateRoot = path.resolve(import.meta.dirname);
 
 export default defineConfig({
+  plugins: [react()],
   root: templateRoot,
   resolve: {
     alias: {
@@ -14,9 +16,17 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    environmentMatchGlobs: [
+      ["client/**", "jsdom"],
+      ["server/**", "node"],
+    ],
+    include: [
+      "server/**/*.test.ts",
+      "server/**/*.spec.ts",
+      "client/**/*.{test,spec}.{ts,tsx}",
+    ],
     // Must run before each test file's modules load: it assigns the throwaway
     // CHURCH_ID that server/db.ts reads at module scope.
-    setupFiles: ["server/test/setupTenant.ts"],
+    setupFiles: ["server/test/setupTenant.ts", "client/test/setup.ts"],
   },
 });
