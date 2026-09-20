@@ -78,7 +78,7 @@ export function BankRecordsTab({
         }}
         className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
       >
-        <h2 className="mb-4 font-bold text-[#38251B]">
+        <h2 className="mb-4 font-bold text-foreground">
           บันทึกรายการธนาคาร
         </h2>
         <div className="grid gap-4 md:grid-cols-4">
@@ -87,7 +87,7 @@ export function BankRecordsTab({
             <select
               value={bType}
               onChange={e => setBType(e.target.value as typeof bType)}
-              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
             >
               <option value="cash_deposit">นำเงินสดเข้าฝาก</option>
               <option value="transfer_in">สมาชิกโอนเข้าบัญชี</option>
@@ -102,7 +102,7 @@ export function BankRecordsTab({
               step="0.25"
               value={bAmount}
               onChange={e => setBAmount(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#38251B]"
+              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-foreground"
             />
           </label>
           <label className="text-sm font-semibold text-[#674F42]">
@@ -111,7 +111,7 @@ export function BankRecordsTab({
               value={bName}
               onChange={e => setBName(e.target.value)}
               placeholder="เว้นว่างได้ถ้าเป็นการนำฝาก"
-              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
             />
           </label>
           <label className="text-sm font-semibold text-[#674F42]">
@@ -119,7 +119,7 @@ export function BankRecordsTab({
             <input
               value={bRef}
               onChange={e => setBRef(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-mono text-sm font-normal text-[#38251B]"
+              className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-mono text-sm font-normal text-foreground"
             />
           </label>
         </div>
@@ -160,7 +160,7 @@ export function BankRecordsTab({
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-        <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
+        <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-foreground">
           รายการธนาคาร ({bankRecords.length})
         </h2>
         {bankRecords.length === 0 ? (
@@ -175,7 +175,7 @@ export function BankRecordsTab({
                 className="flex items-center justify-between gap-4 p-4"
               >
                 <div className="min-w-0">
-                  <p className="font-bold text-[#38251B]">
+                  <p className="font-bold text-foreground">
                     {record.type === "cash_deposit"
                       ? "นำเงินสดเข้าฝาก"
                       : "สมาชิกโอนเข้าบัญชี"}

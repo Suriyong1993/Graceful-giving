@@ -5,7 +5,7 @@ export function HeroSection() {
   return (
     <section
       aria-label="Grace-giving ส่วนต้อนรับ"
-      className="animate-fade-up relative rounded-[32px] sm:rounded-[40px] md:rounded-[48px] overflow-hidden bg-gradient-to-br from-[#FFFDF9] via-[#FFF9EE] to-[#FFF1DA] border-2 border-[#E9D9BF] shadow-sm p-6 sm:p-8 md:p-10 lg:p-12 w-full"
+      className="animate-fade-up relative rounded-[32px] sm:rounded-[40px] md:rounded-[48px] overflow-hidden bg-gradient-to-br from-[#FFFDF9] via-background to-[#FFF1DA] border-2 border-[#E9D9BF] shadow-sm p-6 sm:p-8 md:p-10 lg:p-12 w-full"
     >
       {/* Decorative soft depth aura — spacious and gentle */}
       <div
@@ -46,7 +46,7 @@ export function HeroSection() {
             <span className="whitespace-nowrap font-black text-[#B85E0E] shrink-0">
               2 โครินธ์ 9:7
             </span>
-            <span className="text-[#38251B] font-bold">
+            <span className="text-foreground font-bold">
               “ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก”
             </span>
           </div>

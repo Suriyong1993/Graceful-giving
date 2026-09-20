@@ -320,7 +320,7 @@ export default function CountingDetail() {
           <button
             type="button"
             onClick={() => setLocation("/counting")}
-            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-white px-3.5 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE]"
+            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-white px-3.5 py-2 text-xs font-bold text-[#674F42] hover:bg-background"
           >
             <ArrowLeft className="h-4 w-4" />
             ทุกรอบ
@@ -364,8 +364,8 @@ export default function CountingDetail() {
               onClick={() => setTab(id)}
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${
                 tab === id
-                  ? "bg-[#E99A4A] text-white shadow-sm"
-                  : "border border-[#E9D9BF] bg-white text-[#674F42] hover:bg-[#FFF9EE]"
+                  ? "bg-primary text-white shadow-sm"
+                  : "border border-[#E9D9BF] bg-white text-[#674F42] hover:bg-background"
               }`}
             >
               <Icon className="h-4 w-4" />

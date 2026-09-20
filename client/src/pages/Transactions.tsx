@@ -160,7 +160,7 @@ export default function Transactions() {
           </button>
           <button
             onClick={() => setLocation("/offerings/new")}
-            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-2xl bg-primary hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>บันทึกใหม่</span>

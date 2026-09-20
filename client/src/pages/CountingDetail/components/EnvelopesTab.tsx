@@ -96,7 +96,7 @@ export function EnvelopesTab({
           onSubmit={submitEnvelope}
           className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
         >
-          <h2 className="mb-4 font-bold text-[#38251B]">บันทึกซองถวาย</h2>
+          <h2 className="mb-4 font-bold text-foreground">บันทึกซองถวาย</h2>
           <div className="grid gap-4 md:grid-cols-3">
             <label className="text-sm font-semibold text-[#674F42]">
               เลขซอง
@@ -104,7 +104,7 @@ export function EnvelopesTab({
                 value={envelopeNo}
                 onChange={e => setEnvelopeNo(e.target.value)}
                 placeholder="เช่น 012 (เว้นว่างได้)"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               />
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
@@ -113,7 +113,7 @@ export function EnvelopesTab({
                 value={memberId}
                 onChange={e => setMemberId(e.target.value)}
                 disabled={isAnonymous}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground disabled:opacity-50"
               >
                 <option value="">— ไม่ระบุสมาชิก —</option>
                 {members.map(m => (
@@ -131,7 +131,7 @@ export function EnvelopesTab({
                 onChange={e => setDonorName(e.target.value)}
                 disabled={isAnonymous}
                 placeholder={isAnonymous ? "ไม่เปิดเผยนาม" : "ชื่อ-นามสกุล"}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] disabled:opacity-50"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground disabled:opacity-50"
               />
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
@@ -139,7 +139,7 @@ export function EnvelopesTab({
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               >
                 {OFFERING_CATEGORIES.map(c => (
                   <option key={c.id} value={c.id}>
@@ -154,7 +154,7 @@ export function EnvelopesTab({
                 required
                 value={fundId}
                 onChange={e => setFundId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -171,7 +171,7 @@ export function EnvelopesTab({
               <select
                 value={method}
                 onChange={e => setMethod(e.target.value as typeof method)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               >
                 <option value="cash">เงินสด</option>
                 <option value="transfer">เงินโอน</option>
@@ -229,7 +229,7 @@ export function EnvelopesTab({
 
       <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
-          <h2 className="font-bold text-[#38251B]">
+          <h2 className="font-bold text-foreground">
             ซองในรอบนี้ ({envelopes.length})
           </h2>
           <span className="text-sm font-bold text-[#674F42]">
@@ -257,7 +257,7 @@ export function EnvelopesTab({
                   className="flex items-center justify-between gap-4 p-4"
                 >
                   <div className="min-w-0">
-                    <p className="font-bold text-[#38251B]">
+                    <p className="font-bold text-foreground">
                       {envelope.envelopeNo ? `ซอง ${envelope.envelopeNo} · ` : ""}
                       {who}
                     </p>

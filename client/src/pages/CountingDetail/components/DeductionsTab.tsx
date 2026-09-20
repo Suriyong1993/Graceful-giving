@@ -52,7 +52,7 @@ export function DeductionsTab({
 
   return (
     <section className="space-y-4">
-      <p className="rounded-2xl border border-[#E9D9BF] bg-[#FFF9EE] p-4 text-sm text-[#674F42]">
+      <p className="rounded-2xl border border-[#E9D9BF] bg-background p-4 text-sm text-[#674F42]">
         เงินที่เบิกจากถุงถวายก่อนนำฝาก ยอดถวายจะไม่หายจากระบบ —
         ระบบตรวจว่า นับเงินสดได้ − หักเบิก = ยอดนำฝาก
       </p>
@@ -92,7 +92,7 @@ export function DeductionsTab({
           }}
           className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
         >
-          <h2 className="mb-4 font-bold text-[#38251B]">
+          <h2 className="mb-4 font-bold text-foreground">
             บันทึกรายการหักเบิก
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
@@ -104,7 +104,7 @@ export function DeductionsTab({
                 value={dPurpose}
                 onChange={e => setDPurpose(e.target.value)}
                 placeholder="เช่น ค่าน้ำดื่มวันอาทิตย์"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               />
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
@@ -115,7 +115,7 @@ export function DeductionsTab({
                 value={dPaidTo}
                 onChange={e => setDPaidTo(e.target.value)}
                 placeholder="ชื่อผู้รับเงิน"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               />
             </label>
             <label className="text-sm font-semibold text-[#674F42]">
@@ -135,7 +135,7 @@ export function DeductionsTab({
               <select
                 value={dCategory}
                 onChange={e => setDCategory(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               >
                 {EXPENSE_CATEGORIES.map(c => (
                   <option key={c.id} value={c.id}>
@@ -150,7 +150,7 @@ export function DeductionsTab({
                 required
                 value={dFundId}
                 onChange={e => setDFundId(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -171,7 +171,7 @@ export function DeductionsTab({
                 value={dReason}
                 onChange={e => setDReason(e.target.value)}
                 placeholder="อธิบายเหตุผลที่ต้องเบิกจากถุงถวายทันที"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
+                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
               />
             </label>
           </div>
@@ -187,7 +187,7 @@ export function DeductionsTab({
 
       <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
-          <h2 className="font-bold text-[#38251B]">
+          <h2 className="font-bold text-foreground">
             รายการหักเบิก ({deductions.length})
           </h2>
           <span className="text-sm font-bold text-[#D45945]">
@@ -204,7 +204,7 @@ export function DeductionsTab({
               <li key={deduction.id} className="space-y-2 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="font-bold text-[#38251B]">
+                    <p className="font-bold text-foreground">
                       {deduction.purpose}
                     </p>
                     <p className="text-sm text-[#674F42]">

@@ -111,7 +111,7 @@ export default function Approvals() {
               <ShieldCheck className="w-3.5 h-3.5 text-[#A8C978]" />
               ระบบควบคุมภายในและการลงนามอนุมัติ
             </span>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#38251B]">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               การอนุมัติการเบิกจ่าย (Approvals)
             </h1>
             <p className="text-sm text-[#70452E]/80 max-w-xl">
@@ -121,7 +121,7 @@ export default function Approvals() {
           </div>
           <button
             onClick={() => setLocation("/withdrawals/new")}
-            className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-sm transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-semibold text-sm shadow-sm transition-colors"
           >
             <Banknote className="w-4 h-4" />
             <span>ยื่นคำขอเบิกเงินใหม่</span>
@@ -134,11 +134,11 @@ export default function Approvals() {
             onClick={() => setActiveTab("pending")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "pending"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-[#38251B]"
+                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
+                : "text-[#70452E]/70 hover:text-foreground"
             }`}
           >
-            <Clock className="w-4 h-4 text-[#E99A4A]" />
+            <Clock className="w-4 h-4 text-primary" />
             <span>
               รอดำเนินการ ({requests.filter(r => r.status === "pending").length}
               )
@@ -148,8 +148,8 @@ export default function Approvals() {
             onClick={() => setActiveTab("approved")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "approved"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-[#38251B]"
+                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
+                : "text-[#70452E]/70 hover:text-foreground"
             }`}
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -162,8 +162,8 @@ export default function Approvals() {
             onClick={() => setActiveTab("rejected")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "rejected"
-                ? "bg-[#FFF4DF] text-[#38251B] border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-[#38251B]"
+                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
+                : "text-[#70452E]/70 hover:text-foreground"
             }`}
           >
             <XCircle className="w-4 h-4 text-rose-600" />
@@ -189,7 +189,7 @@ export default function Approvals() {
               >
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-[#70452E]/60 bg-[#FFF9EE] px-2.5 py-0.5 rounded-full border border-[#E9D9BF]">
+                    <span className="text-xs font-mono text-[#70452E]/60 bg-background px-2.5 py-0.5 rounded-full border border-[#E9D9BF]">
                       REQ-2026-00{req.id}
                     </span>
                     <span className="text-xs font-medium text-[#70452E] bg-[#FFF4DF] px-2.5 py-0.5 rounded-full border border-[#E9D9BF]/60">
@@ -206,7 +206,7 @@ export default function Approvals() {
                     />
                   </div>
 
-                  <h3 className="text-base font-bold text-[#38251B]">
+                  <h3 className="text-base font-bold text-foreground">
                     {req.purpose}
                   </h3>
 
@@ -216,7 +216,7 @@ export default function Approvals() {
 
                   <div className="flex items-center gap-4 text-xs text-[#70452E]/70 pt-1">
                     <span className="flex items-center gap-1">
-                      <User className="w-3.5 h-3.5 text-[#E99A4A]" />
+                      <User className="w-3.5 h-3.5 text-primary" />
                       {req.requester}
                     </span>
                     <span>•</span>
@@ -268,14 +268,14 @@ export default function Approvals() {
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
-                <h3 className="text-lg font-bold text-[#38251B]">
+                <h3 className="text-lg font-bold text-foreground">
                   ระบุเหตุผลที่ไม่อนุมัติ
                 </h3>
                 <button
                   onClick={() => setShowRejectModal(false)}
                   type="button"
                   aria-label="ปิด"
-                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-foreground"
                 >
                   ×
                 </button>
@@ -291,7 +291,7 @@ export default function Approvals() {
                   placeholder="เช่น เอกสารใบเสนอราคาไม่ครบถ้วน, เกินงบประมาณที่จัดสรรไว้..."
                   value={rejectReason}
                   onChange={e => setRejectReason(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#E9D9BF] text-xs text-[#38251B] focus:outline-none focus:border-rose-400"
+                  className="w-full p-3 rounded-2xl border border-[#E9D9BF] text-xs text-foreground focus:outline-none focus:border-rose-400"
                 />
               </div>
 

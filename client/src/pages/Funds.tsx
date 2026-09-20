@@ -94,7 +94,7 @@ export default function Funds() {
               <Wallet className="w-3.5 h-3.5 text-[#A8C978]" />
               การบริหารเงินกองทุนเฉพาะทาง
             </span>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#38251B]">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               กองทุนคริสตจักร (Funds & Accounts)
             </h1>
             <p className="text-sm text-[#70452E]/80 max-w-xl">
@@ -117,7 +117,7 @@ export default function Funds() {
             <p className="text-xs font-semibold text-[#70452E]/70 uppercase tracking-wider">
               ยอดเงินรวมทุกกองทุน (Total Fund Reserves)
             </p>
-            <div className="text-3xl md:text-4xl font-extrabold text-[#38251B]">
+            <div className="text-3xl md:text-4xl font-extrabold text-foreground">
               ฿
               {totalFundsBalance.toLocaleString("th-TH", {
                 minimumFractionDigits: 2,
@@ -130,7 +130,7 @@ export default function Funds() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowNewFundModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>สร้างกองทุนใหม่</span>
@@ -159,16 +159,16 @@ export default function Funds() {
                   {/* Top Bar */}
                   <div className="flex items-center justify-between">
                     <div className="w-12 h-12 rounded-2xl bg-[#FFF4DF] flex items-center justify-center text-[#70452E] group-hover:scale-105 transition-transform">
-                      <Icon className="w-6 h-6 text-[#E99A4A]" />
+                      <Icon className="w-6 h-6 text-primary" />
                     </div>
-                    <span className="text-xs font-mono text-[#70452E]/60 bg-[#FFF9EE] px-2.5 py-1 rounded-full border border-[#E9D9BF]">
+                    <span className="text-xs font-mono text-[#70452E]/60 bg-background px-2.5 py-1 rounded-full border border-[#E9D9BF]">
                       {f.code}
                     </span>
                   </div>
 
                   {/* Title & Desc */}
                   <div>
-                    <h3 className="text-base font-bold text-[#38251B] group-hover:text-[#E99A4A] transition-colors">
+                    <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
                       {f.name}
                     </h3>
                     <p className="text-xs text-[#70452E]/70 line-clamp-2 mt-1 leading-relaxed">
@@ -179,7 +179,7 @@ export default function Funds() {
                   {/* Balance Display */}
                   <div className="pt-2">
                     <p className="text-xs text-[#70452E]/60">ยอดคงเหลือสุทธิ</p>
-                    <div className="text-2xl font-bold text-[#38251B]">
+                    <div className="text-2xl font-bold text-foreground">
                       ฿
                       {f.balance.toLocaleString("th-TH", {
                         minimumFractionDigits: 2,
@@ -199,7 +199,7 @@ export default function Funds() {
                 </div>
 
                 {/* Bottom Action */}
-                <div className="pt-5 mt-4 border-t border-[#E9D9BF]/50 flex items-center justify-between text-xs font-semibold text-[#70452E] group-hover:text-[#E99A4A]">
+                <div className="pt-5 mt-4 border-t border-[#E9D9BF]/50 flex items-center justify-between text-xs font-semibold text-[#70452E] group-hover:text-primary">
                   <span>ดูสเตทเมนต์และรายละเอียด</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
@@ -213,14 +213,14 @@ export default function Funds() {
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
-                <h3 className="text-lg font-bold text-[#38251B]">
+                <h3 className="text-lg font-bold text-foreground">
                   สร้างกองทุนใหม่
                 </h3>
                 <button
                   onClick={() => setShowNewFundModal(false)}
                   type="button"
                   aria-label="ปิด"
-                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-[#38251B]"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-foreground"
                 >
                   ×
                 </button>
@@ -228,7 +228,7 @@ export default function Funds() {
 
               <form onSubmit={handleCreateFund} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-[#38251B]">
+                  <label className="text-xs font-semibold text-foreground">
                     ชื่อกองทุน <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -237,18 +237,18 @@ export default function Funds() {
                     placeholder="เช่น กองทุนทุนการศึกษาบุตรศิษยาภิบาล"
                     value={newFundName}
                     onChange={e => setNewFundName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-[#38251B]">
+                  <label className="text-xs font-semibold text-foreground">
                     ประเภทกองทุน
                   </label>
                   <select
                     value={newFundType}
                     onChange={e => setNewFundType(e.target.value as typeof newFundType)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-primary focus:outline-none"
                   >
                     <option value="mission">พันธกิจและประกาศ (Mission)</option>
                     <option value="building">อาคารและบูรณะ (Building)</option>
@@ -263,7 +263,7 @@ export default function Funds() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-[#38251B]">
+                  <label className="text-xs font-semibold text-foreground">
                     คำอธิบายและวัตถุประสงค์
                   </label>
                   <textarea
@@ -271,7 +271,7 @@ export default function Funds() {
                     placeholder="ระบุวัตถุประสงค์ของการรับและจ่ายเงินกองทุนนี้..."
                     value={newFundDesc}
                     onChange={e => setNewFundDesc(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-[#E99A4A] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
 
@@ -285,7 +285,7 @@ export default function Funds() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#E99A4A] text-white text-xs font-semibold hover:bg-[#d88939]"
+                    className="px-6 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-[#d88939]"
                   >
                     สร้างกองทุน
                   </button>

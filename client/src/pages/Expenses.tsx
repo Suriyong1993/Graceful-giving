@@ -150,7 +150,7 @@ export default function Expenses() {
               <TrendingDown className="w-3.5 h-3.5 text-[#F7B6A6]" />
               การเบิกจ่ายและค่าใช้จ่ายคริสตจักร
             </span>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#38251B]">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               บันทึกรายจ่าย (Expenses)
             </h1>
             <p className="text-sm text-[#70452E]/80 max-w-xl">
@@ -180,7 +180,7 @@ export default function Expenses() {
               amount={totalAmount}
               type="expense"
               size="lg"
-              className="font-bold text-[#38251B]"
+              className="font-bold text-foreground"
             />
             <p className="text-xs text-[#70452E]/60 mt-1">
               {filteredExpenses.length} รายการที่แสดง
@@ -196,7 +196,7 @@ export default function Expenses() {
                 <Receipt className="w-4 h-4" />
               </div>
             </div>
-            <p className="text-xl font-bold text-[#38251B]">
+            <p className="text-xl font-bold text-foreground">
               สาธารณูปโภค & พันธกิจ
             </p>
             <p className="text-xs text-[#70452E]/60 mt-1">
@@ -212,8 +212,8 @@ export default function Expenses() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-[#38251B]">100%</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#A8C978]/20 text-[#38251B] font-medium">
+              <span className="text-xl font-bold text-foreground">100%</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-[#A8C978]/20 text-foreground font-medium">
                 มีใบเสร็จครบ
               </span>
             </div>
@@ -250,7 +250,7 @@ export default function Expenses() {
             </button>
             <button
               onClick={() => setLocation("/expenses/new")}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>บันทึกรายจ่าย</span>
@@ -279,8 +279,8 @@ export default function Expenses() {
           <div className="bg-white rounded-3xl border border-[#E9D9BF] overflow-hidden shadow-sm">
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-sm text-[#38251B]">
-                <thead className="bg-[#FFF9EE] border-b border-[#E9D9BF] text-xs font-semibold text-[#70452E]">
+              <table className="w-full text-left text-sm text-foreground">
+                <thead className="bg-background border-b border-[#E9D9BF] text-xs font-semibold text-[#70452E]">
                   <tr>
                     <th className="py-4 px-6">วันที่</th>
                     <th className="py-4 px-6">รายการ</th>
@@ -313,7 +313,7 @@ export default function Expenses() {
                             day: "numeric",
                           })}
                         </td>
-                        <td className="py-4 px-6 font-medium text-[#38251B] max-w-xs truncate">
+                        <td className="py-4 px-6 font-medium text-foreground max-w-xs truncate">
                           {e.description}
                         </td>
                         <td className="py-4 px-6 whitespace-nowrap">
@@ -379,10 +379,10 @@ export default function Expenses() {
                                 receiptUrl: e.receiptUrl,
                               })
                             }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-[#E99A4A] text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-primary text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
                             title="พิมพ์ใบสำคัญจ่าย"
                           >
-                            <Printer className="w-3.5 h-3.5 text-[#E99A4A]" />
+                            <Printer className="w-3.5 h-3.5 text-primary" />
                             <span>พิมพ์ใบสำคัญ</span>
                           </button>
                         </td>
@@ -417,7 +417,7 @@ export default function Expenses() {
                             {e.receiptRef}
                           </span>
                         </div>
-                        <p className="font-medium text-[#38251B] text-sm truncate">
+                        <p className="font-medium text-foreground text-sm truncate">
                           {e.description}
                         </p>
                         <p className="text-xs text-[#70452E]/70">
@@ -471,7 +471,7 @@ export default function Expenses() {
                         }
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
                       >
-                        <Printer className="w-3 h-3 text-[#E99A4A]" />
+                        <Printer className="w-3 h-3 text-primary" />
                         <span>พิมพ์ใบสำคัญ</span>
                       </button>
                     </div>
