@@ -31,7 +31,16 @@ import {
   HelpCircle,
   X,
   Zap,
+  Loader2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { OFFERING_CATEGORIES, type OfferingCategory } from "@shared/categories";
 import { NativeSelect } from "@/components/ui/native-select";
 
@@ -116,6 +125,8 @@ export default function GivingInbox() {
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showLineInfoModal, setShowLineInfoModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Upload Form State
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
@@ -159,7 +170,18 @@ export default function GivingInbox() {
       }
     },
     onError: err => {
-      Swal.error("เกิดข้อผิดพลาด", err.message);
+      const msg = err.message || "เกิดข้อผิดพลาดในการอนุมัติสลิป";
+      if (msg.includes("ได้รับการอนุมัติไปแล้ว") || msg.includes("CONFLICT")) {
+        Swal.warning(
+          "รายการถูกดำเนินการแล้ว",
+          "สลิปนี้ได้รับการอนุมัติโดยเจ้าหน้าที่ท่านอื่นไปแล้ว ระบบกำลังรีเฟรชข้อมูลล่าสุด"
+        );
+        utils.givingInbox.invalidate();
+        utils.finance.invalidate();
+        setSelectedSlipId(null);
+      } else {
+        Swal.error("เกิดข้อผิดพลาด", msg);
+      }
     },
   });
 
@@ -167,10 +189,27 @@ export default function GivingInbox() {
     onSuccess: () => {
       toast.success("ปฏิเสธสลิปเรียบร้อยแล้ว");
       utils.givingInbox.invalidate();
-      setSelectedSlipId(null);
+      setShowRejectModal(false);
+      setRejectReason("");
+
+      // Auto-advance to next slip
+      const currentList = slipsQuery.data ?? [];
+      const currentIndex = currentList.findIndex(s => s.id === selectedSlipId);
+      if (currentIndex >= 0 && currentIndex < currentList.length - 1) {
+        handleSelectSlip(currentList[currentIndex + 1]);
+      } else {
+        setSelectedSlipId(null);
+      }
     },
     onError: err => {
-      Swal.error("เกิดข้อผิดพลาด", err.message);
+      const msg = err.message || "เกิดข้อผิดพลาดในการปฏิเสธสลิป";
+      if (msg.includes("อนุมัติ") || msg.includes("CONFLICT")) {
+        toast.error("สลิปนี้ได้รับการดำเนินการแล้ว ระบบกำลังอัปเดตข้อมูลล่าสุด");
+        utils.givingInbox.invalidate();
+        setShowRejectModal(false);
+      } else {
+        Swal.error("เกิดข้อผิดพลาด", msg);
+      }
     },
   });
 
@@ -323,22 +362,19 @@ export default function GivingInbox() {
     });
   };
 
-  const handleReject = async () => {
+  const handleOpenReject = () => {
     if (!currentSlip) return;
-    const confirmed = await Swal.confirm(
-      "ปฏิเสธสลิปนี้?",
-      "กรุณาระบุเหตุผลการปฏิเสธ (เช่น รูปไม่ชัด, ข้อมูลไม่ถูกต้อง หรือรายการซ้ำ)",
-      "ปฏิเสธสลิป"
-    );
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
 
-    if (!confirmed) return;
-
-    const reason =
-      prompt("ระบุเหตุผลการปฏิเสธสลิป:") ||
-      "ข้อมูลไม่ถูกต้องหรือไม่ตรงตามเงื่อนไข";
+  const handleConfirmReject = () => {
+    if (!currentSlip) return;
+    const finalReason =
+      rejectReason.trim() || "ข้อมูลไม่ถูกต้องหรือไม่ตรงตามเงื่อนไข";
     rejectMutation.mutate({
       slipId: currentSlip.id,
-      reason,
+      reason: finalReason,
     });
   };
 
@@ -429,7 +465,7 @@ export default function GivingInbox() {
           <button
             type="button"
             onClick={() => setShowUploadModal(true)}
-            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-black clay-button-shadow transition-all flex items-center gap-1.5 shadow-xs"
+            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-black button-elevation transition-all flex items-center gap-1.5 shadow-xs"
           >
             <UploadCloud className="w-4 h-4" />
             <span>อัปโหลดสลิป</span>
@@ -959,6 +995,30 @@ export default function GivingInbox() {
                       หมายเลขอ้างอิงสลิป: {currentSlip.extractedRef}
                     </div>
                   )}
+
+                  {!currentSlip.extractedAmount && (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2 font-medium">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        AI ไม่สามารถระบุยอดเงินจากสลิปนี้ได้ชัดเจน
+                        กรุณาตรวจดูภาพสลิปแล้วกรอกจำนวนเงินด้วยตนเอง
+                      </span>
+                    </div>
+                  )}
+
+                  {currentSlip.extractedAmountConfidence &&
+                    Number(currentSlip.extractedAmountConfidence) < 0.85 && (
+                      <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-800 text-xs flex items-center gap-2 font-medium">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>
+                          ความมั่นใจของ AI ต่ำกว่าเกณฑ์ (
+                          {(
+                            Number(currentSlip.extractedAmountConfidence) * 100
+                          ).toFixed(0)}
+                          %) กรุณาตรวจทานยอดเงินและวันที่จากภาพสลิป
+                        </span>
+                      </div>
+                    )}
                 </div>
 
                 {/* ── 3. ข้อมูลที่จะบันทึกบัญชี (Ledger Record) ── */}
@@ -1100,25 +1160,51 @@ export default function GivingInbox() {
                 {/* ── 4. Action ── */}
                 {currentSlip.status !== "approved" &&
                 currentSlip.status !== "rejected" ? (
-                  <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4 border-t border-[#E9D9BF]">
-                    <button
-                      type="button"
-                      onClick={handleReject}
-                      disabled={rejectMutation.isPending}
-                      className="min-h-11 w-full sm:w-auto px-5 py-2.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-sm transition-colors"
-                    >
-                      ปฏิเสธรายการ
-                    </button>
+                  <div className="space-y-3 pt-4 border-t border-[#E9D9BF]">
+                    {currentSlip.status === "duplicate" && (
+                      <div className="p-3 rounded-xl bg-purple-50 border border-purple-300 text-purple-900 text-xs flex items-center gap-2">
+                        <ShieldAlert className="w-4 h-4 text-purple-600 shrink-0" />
+                        <span>
+                          สลิปนี้ได้รับการระบุว่าเป็นสลิปซ้ำ (Duplicate)
+                          ระบบไม่อนุญาตให้อนุมัติเพื่อป้องกันการลงบัญชีซ้อน
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={handleOpenReject}
+                        disabled={
+                          approveMutation.isPending || rejectMutation.isPending
+                        }
+                        className="min-h-11 w-full sm:w-auto px-5 py-2.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        ปฏิเสธสลิป
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={handleApprove}
-                      disabled={approveMutation.isPending}
-                      className="min-h-11 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-[#2D6A2E] hover:bg-[#235324] text-white font-bold text-sm shadow-xs transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>อนุมัติและบันทึกบัญชี</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        disabled={
+                          approveMutation.isPending ||
+                          rejectMutation.isPending ||
+                          currentSlip.status === "duplicate"
+                        }
+                        className="min-h-11 w-full sm:w-auto px-7 py-2.5 rounded-xl bg-[#2D6A2E] hover:bg-[#235324] text-white font-bold text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {approveMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>กำลังบันทึกบัญชี...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>อนุมัติและบันทึกบัญชี</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-4 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-600 flex items-center justify-between">
@@ -1331,6 +1417,95 @@ export default function GivingInbox() {
           </div>
         </div>
       )}
+
+      {/* ── Custom Reject Dialog (Phase 5) ── */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent className="max-w-md bg-white border border-[#E9D9BF] rounded-3xl p-6 text-[#38251B] space-y-4 shadow-xl">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="text-lg font-black text-[#2C1810] flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-rose-600" />
+              <span>ปฏิเสธสลิป #{currentSlip?.id}</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-500">
+              ระบุเหตุผลการปฏิเสธเพื่อบันทึกประวัติการตรวจสอบ (Audit Trail)
+              ในระบบ
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Quick Preset Reason Chips */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-[#70452E] block">
+              เลือกเหตุผลด่วน:
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                "ภาพสลิปไม่ชัดเจน / เบลอ",
+                "ยอดเงินไม่ตรงกับสลิป",
+                "สลิปซ้ำ / โอนซ้ำ",
+                "ไม่ใช่บัญชีของคริสตจักร",
+                "วันที่โอนไม่ถูกต้อง",
+              ].map(preset => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setRejectReason(preset)}
+                  className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
+                    rejectReason === preset
+                      ? "bg-rose-100 border-rose-400 text-rose-800 font-bold"
+                      : "bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100"
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Detailed Reason Textarea */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="reject-reason"
+              className="text-xs font-bold text-[#70452E] block"
+            >
+              ระบุเหตุผล <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              id="reject-reason"
+              rows={3}
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="ระบุรายละเอียดเหตุผลการปฏิเสธสลิปนี้..."
+              className="w-full text-sm rounded-xl border border-[#E9D9BF] p-3 focus:outline-none focus:ring-2 focus:ring-rose-400 resize-none"
+            />
+          </div>
+
+          <DialogFooter className="flex flex-row items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowRejectModal(false)}
+              disabled={rejectMutation.isPending}
+              className="px-4 py-2 text-xs font-bold rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 transition-colors"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmReject}
+              disabled={rejectMutation.isPending || !rejectReason.trim()}
+              className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {rejectMutation.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังปฏิเสธ...</span>
+                </>
+              ) : (
+                <span>ปฏิเสธรายการ</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -5,7 +5,7 @@ export function HeroSection() {
   return (
     <section
       aria-label="Grace-giving ส่วนต้อนรับ"
-      className="animate-fade-up relative rounded-3xl overflow-hidden bg-white border border-[#E9D9BF] clay-card-shadow p-6 sm:p-8 md:p-10 w-full"
+      className="animate-fade-up relative rounded-3xl overflow-hidden bg-white border border-[#E9D9BF] card-elevation-sm p-6 sm:p-8 md:p-10 w-full"
     >
       {/* Hero Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-center relative z-10 w-full">

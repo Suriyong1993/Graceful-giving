@@ -58,7 +58,7 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-2xl bg-white border border-[#E9D9BF] clay-card-shadow flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-white border border-[#E9D9BF] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
       <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#FFF4DF] p-1 border border-[#E9D9BF] shadow-xs shrink-0">
         <Illustration
@@ -76,7 +76,7 @@ export const EmptyState: React.FC<{
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold button-elevation transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
         >
           {actionText}
         </button>
@@ -271,7 +271,7 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E9D9BF] clay-card-shadow ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E9D9BF] card-elevation-sm ${className}`}
     >
       <div className="min-w-0">
         <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight break-words">
@@ -473,7 +473,7 @@ export const ConfirmDialog: React.FC<{
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs clay-button-shadow transition-all ${
+            className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs button-elevation transition-all ${
               variant === "danger"
                 ? "bg-[#D45945] hover:bg-[#C24D3A]"
                 : "bg-[#E99A4A] hover:bg-[#DE8640]"

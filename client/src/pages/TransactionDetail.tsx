@@ -293,7 +293,7 @@ export default function TransactionDetail() {
           onAction={() => setLocation("/transactions")}
         />
       ) : (
-        <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] clay-card-shadow space-y-6">
+        <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] card-elevation-sm space-y-6">
           {isEditing && (
             <form
               onSubmit={submitEdit}

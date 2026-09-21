@@ -3773,7 +3773,7 @@ function registerLineWebhook(app2) {
   app2.post("/api/line/webhook", (req, res) => {
     const chunks = [];
     req.on("data", (chunk) => chunks.push(chunk));
-    req.on("end", () => {
+    req.on("end", async () => {
       const rawBody = Buffer.concat(chunks);
       const signature = req.headers["x-line-signature"];
       if (!signature || !validateSignature(rawBody, signature)) {
@@ -3788,15 +3788,21 @@ function registerLineWebhook(app2) {
         res.status(400).json({ error: "Invalid JSON body" });
         return;
       }
-      res.status(200).json({ ok: true });
       const churchId = DEFAULT_CHURCH_ID;
+      const tasks = [];
       for (const event of body.events ?? []) {
         if (event.type === "message" && event.message?.type === "image") {
-          processImageEvent(event, churchId).catch(
-            (err) => console.error("[LINE Webhook] processImageEvent error:", err)
+          tasks.push(
+            processImageEvent(event, churchId).catch(
+              (err) => console.error("[LINE Webhook] processImageEvent error:", err)
+            )
           );
         }
       }
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+      res.status(200).json({ ok: true });
     });
     req.on("error", (err) => {
       console.error("[LINE Webhook] Request error:", err);

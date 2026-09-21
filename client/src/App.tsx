@@ -235,6 +235,14 @@ function Router() {
           <GivingInbox />
         </RoleGuard>
       </Route>
+      <Route path="/giving-inbox">
+        <RoleGuard
+          canAccess={u => canAccessRoute("/giving/inbox", u)}
+          message="ส่วนกล่องข้อความสลิปสงวนไว้สำหรับเหรัญญิกหรือผู้มีสิทธิ์จัดการการเงินเท่านั้น"
+        >
+          <GivingInbox />
+        </RoleGuard>
+      </Route>
 
       {/* Expenses */}
       <Route path="/expenses">

@@ -39,7 +39,7 @@ export function BalanceCard({
     <section
       aria-label="ยอดเงินคงเหลือรวม"
       style={{ animationDelay: "90ms" }}
-      className={`animate-fade-up bg-white rounded-3xl p-6 sm:p-8 md:p-10 border relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D] clay-balance-glow" : "border-[#F2C9BE] clay-card-shadow"}`}
+      className={`animate-fade-up bg-white rounded-3xl p-6 sm:p-8 md:p-10 border relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D] card-elevation-focus" : "border-[#F2C9BE] card-elevation-sm"}`}
     >
       <div className="flex items-center justify-between gap-6">
         {/* Left: Prominent financial figures */}

@@ -78,7 +78,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           {/* Quick Offering Action Button */}
           <button
             onClick={() => navigate("/offerings/new")}
-            className="w-full mb-6 py-3.5 px-5 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-base xl:text-lg flex items-center justify-center gap-2.5 clay-button-shadow transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#D47012] min-h-[54px]"
+            className="w-full mb-6 py-3.5 px-5 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-base xl:text-lg flex items-center justify-center gap-2.5 button-elevation transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#D47012] min-h-[54px]"
             aria-label="บันทึกการถวายใหม่"
           >
             <Plus className="w-6 h-6 stroke-[3]" />
@@ -239,7 +239,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="relative -top-6 flex flex-col items-center">
             <button
               onClick={() => navigate("/offerings/new")}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-4 border-background focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#D47012] hover:bg-[#BA5E0B] text-white flex items-center justify-center button-elevation transition-transform active:scale-95 border-4 border-background focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-lg"
               aria-label="บันทึกการถวายใหม่"
             >
               <Plus className="w-8 h-8 stroke-[3]" />

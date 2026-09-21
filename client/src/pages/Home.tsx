@@ -85,7 +85,7 @@ export default function Home() {
   const canOpenReports = canAccessRoute("/reports", user);
   const canOpenMembers = canAccessRoute("/members", user);
   const canRecordExpense = canAccessRoute("/expenses", user);
-  const canAccessInbox = canAccessRoute("/giving-inbox", user);
+  const canAccessInbox = canAccessRoute("/giving/inbox", user);
 
   // Three tiles always show (กิจกรรม, ขอเบิกเงิน, เพิ่มเติม); the two gated
   // ones change the count, so match the column count to what is actually
@@ -215,7 +215,7 @@ export default function Home() {
               </div>
             </div>
             <button
-              onClick={() => setLocation("/giving-inbox")}
+              onClick={() => setLocation("/giving/inbox")}
               className="min-h-11 px-4 py-2 rounded-xl bg-[#D47012] hover:bg-[#B85E0E] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012]"
             >
               <span>ตรวจสอบสลิป</span>
