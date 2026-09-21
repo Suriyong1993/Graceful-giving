@@ -12,10 +12,10 @@ export function BudgetSection({
   return (
     <section
       aria-label="แผนการใช้จ่ายงบประมาณ"
-      className="bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border-2 border-[#E9D9BF] shadow-xs space-y-4 w-full"
+      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E9D9BF] shadow-xs space-y-4 w-full"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-xl sm:text-2xl font-black text-[#2C1810]">
+        <h2 className="text-lg sm:text-xl font-bold text-[#2C1810]">
           แผนการใช้จ่าย
         </h2>
         {canOpenReports && (

@@ -146,7 +146,7 @@ export default function NewOffering() {
         {/* Main Step Form Card */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] clay-card-shadow space-y-6"
+          className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] card-elevation-sm space-y-6"
         >
           {/* 1. ประเภทถวาย */}
           <div className="space-y-2.5">
@@ -323,7 +323,7 @@ export default function NewOffering() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="w-full py-4 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm clay-button-shadow transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold text-sm button-elevation transition-all flex items-center justify-center gap-2"
           >
             <HandCoins className="w-5 h-5" />
             <span>
@@ -380,7 +380,7 @@ export default function NewOffering() {
               setIsSuccessOpen(false);
               setLocation("/offerings");
             }}
-            className="w-full py-3.5 rounded-2xl bg-[#A8C978] hover:bg-[#96C764] text-white font-bold text-sm clay-button-shadow transition-all"
+            className="w-full py-3.5 rounded-2xl bg-[#A8C978] hover:bg-[#96C764] text-white font-bold text-sm button-elevation transition-all"
           >
             ดูรายการถวายทั้งหมด
           </button>

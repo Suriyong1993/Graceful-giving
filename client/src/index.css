@@ -35,18 +35,31 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Custom Grace-giving Brand Colors */
-  --color-clay-bg: var(--background);
-  --color-clay-cream: #fff4df;
-  --color-clay-sage: #a8c978;
-  --color-clay-lightsage: #dcecc5;
-  --color-clay-peach: #f7b6a6;
-  --color-clay-orange: var(--primary);
-  --color-clay-sky: #a9d4ed;
-  --color-clay-brown: #70452e;
-  --color-clay-dark: var(--foreground);
-  --color-clay-muted: #927d6d;
-  --color-clay-border: #e9d9bf;
+  /* Custom Grace-giving Brand Colors (Semantic Tokens) */
+  --color-brand-bg: var(--background);
+  --color-brand-cream: #fff4df;
+  --color-brand-sage: #a8c978;
+  --color-brand-lightsage: #dcecc5;
+  --color-brand-peach: #f7b6a6;
+  --color-brand-orange: var(--primary);
+  --color-brand-sky: #a9d4ed;
+  --color-brand-brown: #70452e;
+  --color-brand-dark: var(--foreground);
+  --color-brand-muted: #927d6d;
+  --color-brand-border: #e9d9bf;
+
+  /* Legacy aliases maintained for backward safety */
+  --color-clay-bg: var(--color-brand-bg);
+  --color-clay-cream: var(--color-brand-cream);
+  --color-clay-sage: var(--color-brand-sage);
+  --color-clay-lightsage: var(--color-brand-lightsage);
+  --color-clay-peach: var(--color-brand-peach);
+  --color-clay-orange: var(--color-brand-orange);
+  --color-clay-sky: var(--color-brand-sky);
+  --color-clay-brown: var(--color-brand-brown);
+  --color-clay-dark: var(--color-brand-dark);
+  --color-clay-muted: var(--color-brand-muted);
+  --color-clay-border: var(--color-brand-border);
 }
 
 :root {
@@ -120,30 +133,30 @@ select:focus-visible {
   }
 }
 
-/* Soft 3D Clay Card Shadow */
+/* Professional Financial Card & Elevation Shadows */
+.card-elevation-sm,
 .clay-card-shadow {
   box-shadow:
-    0 10px 30px -5px rgba(112, 69, 46, 0.06),
-    0 2px 8px -2px rgba(112, 69, 46, 0.04);
+    0 1px 3px 0 rgba(112, 69, 46, 0.05),
+    0 1px 2px -1px rgba(112, 69, 46, 0.05);
 }
 
+.button-elevation,
 .clay-button-shadow {
-  box-shadow: 0 8px 20px -4px rgba(233, 154, 74, 0.35);
+  box-shadow: 0 2px 6px -1px rgba(233, 154, 74, 0.25);
 }
 
+.inset-bevel-subtle,
 .clay-inset-bevel {
-  box-shadow:
-    inset 0 2px 4px rgba(255, 255, 255, 0.8),
-    0 4px 12px rgba(112, 69, 46, 0.05);
+  box-shadow: 0 1px 2px 0 rgba(112, 69, 46, 0.04);
 }
 
-/* Elevated glow for the single most important figure on the page (the
-   total balance) — stronger and warmer than clay-card-shadow so it reads
-   as the focal point at a glance, not just another card. */
+/* Clear, balanced elevation for the primary financial focal point */
+.card-elevation-focus,
 .clay-balance-glow {
   box-shadow:
-    0 20px 45px -12px rgba(168, 201, 120, 0.35),
-    0 8px 20px -6px rgba(112, 69, 46, 0.08);
+    0 4px 16px -2px rgba(112, 69, 46, 0.08),
+    0 2px 6px -2px rgba(112, 69, 46, 0.04);
 }
 
 /* Staggered entrance for above-the-fold Home sections (hero, balance,

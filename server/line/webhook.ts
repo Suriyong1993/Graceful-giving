@@ -281,7 +281,7 @@ export function registerLineWebhook(app: Express): void {
 
     req.on("data", (chunk: Buffer) => chunks.push(chunk));
 
-    req.on("end", () => {
+    req.on("end", async () => {
       const rawBody = Buffer.concat(chunks);
       const signature = req.headers["x-line-signature"] as string | undefined;
 
@@ -301,19 +301,25 @@ export function registerLineWebhook(app: Express): void {
         return;
       }
 
-      // Return 200 immediately — LINE requirement: response < 5 seconds
-      res.status(200).json({ ok: true });
-
-      // Process events asynchronously AFTER response is flushed
-      // Each event is independent; errors don't affect other events
+      // Process events before returning 200 so serverless execution environment does not freeze
       const churchId = DEFAULT_CHURCH_ID;
+      const tasks: Promise<void>[] = [];
       for (const event of body.events ?? []) {
         if (event.type === "message" && event.message?.type === "image") {
-          processImageEvent(event, churchId).catch((err: unknown) =>
-            console.error("[LINE Webhook] processImageEvent error:", err)
+          tasks.push(
+            processImageEvent(event, churchId).catch((err: unknown) =>
+              console.error("[LINE Webhook] processImageEvent error:", err)
+            )
           );
         }
       }
+
+      if (tasks.length > 0) {
+        await Promise.all(tasks);
+      }
+
+      // Return 200 to LINE
+      res.status(200).json({ ok: true });
     });
 
     req.on("error", (err: Error) => {

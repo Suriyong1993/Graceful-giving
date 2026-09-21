@@ -121,7 +121,7 @@ export default function Offerings() {
           </button>
           <button
             onClick={() => setLocation("/offerings/new")}
-            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold button-elevation transition-all flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>บันทึกถวายใหม่</span>
@@ -156,7 +156,7 @@ export default function Offerings() {
       </div>
 
       {/* 2. Filter Bar */}
-      <div className="bg-white rounded-[28px] p-4 md:p-5 border border-[#E9D9BF] clay-card-shadow">
+      <div className="bg-white rounded-[28px] p-4 md:p-5 border border-[#E9D9BF] card-elevation-sm">
         <FilterBar
           searchPlaceholder="ค้นหาประเภทถวายหรือกองทุน..."
           searchValue={searchTerm}
@@ -207,7 +207,7 @@ export default function Offerings() {
           onAction={() => setLocation("/offerings/new")}
         />
       ) : (
-        <div className="bg-white rounded-[28px] border border-[#E9D9BF] clay-card-shadow divide-y divide-[#F0E6D8]/60 overflow-hidden">
+        <div className="bg-white rounded-[28px] border border-[#E9D9BF] card-elevation-sm divide-y divide-[#F0E6D8]/60 overflow-hidden">
           {filtered.map(o => (
             <div
               key={o.id}

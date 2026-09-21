@@ -29,24 +29,24 @@ export function RecentTransactions({
   return (
     <section
       aria-label="รายการธุรกรรมล่าสุด"
-      className="bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border-2 border-[#E9D9BF] shadow-xs space-y-4 w-full"
+      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E9D9BF] shadow-xs space-y-4 w-full"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-xl sm:text-2xl font-black text-[#2C1810]">
+        <h2 className="text-lg sm:text-xl font-bold text-[#2C1810]">
           รายการล่าสุด
         </h2>
         <button
           onClick={onViewAll}
-          className="min-h-11 -mr-2 px-2 text-sm sm:text-base font-black text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
+          className="min-h-11 -mr-2 px-2 text-sm font-bold text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
         >
           <span>ดูทั้งหมด</span>
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="divide-y-2 divide-[#F0E6D8]/60">
+      <div className="divide-y divide-[#F0E6D8]">
         {allTransactions.length === 0 && (
-          <p className="py-8 text-center text-sm sm:text-base text-[#4A2E1B] font-bold">
+          <p className="py-8 text-center text-sm text-[#4A2E1B] font-medium">
             ยังไม่มีรายการธุรกรรมล่าสุดจากระบบ
           </p>
         )}
@@ -56,23 +56,19 @@ export function RecentTransactions({
           return (
             <div
               key={tx.id}
-              className="py-4 flex items-center justify-between gap-4"
+              className="py-3.5 flex items-center justify-between gap-4"
             >
-              <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-3.5 min-w-0">
                 <div
-                  className={`w-12 h-12 rounded-2xl ${tx.tone} flex items-center justify-center shrink-0`}
+                  className={`w-10 h-10 rounded-xl ${tx.tone} flex items-center justify-center shrink-0`}
                 >
-                  <IconComponent className="w-6 h-6 stroke-[2.4]" />
+                  <IconComponent className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-base sm:text-lg font-black text-[#2C1810] leading-tight truncate">
+                  <p className="text-sm sm:text-base font-bold text-[#2C1810] leading-tight truncate">
                     {tx.title}
                   </p>
-                  <p className="text-xs sm:text-sm text-[#4A2E1B] font-bold pt-0.5">
-                    {/* The API returns receiptDate/expenseDate as ISO strings,
-                        so the old `typeof === "string"` branch printed
-                        "2026-09-20T12:52:36.967Z" straight into the row.
-                        Format every value, whatever its type. */}
+                  <p className="text-xs text-stone-500 font-medium pt-0.5">
                     {fmtThaiDate(tx.date)}
                   </p>
                 </div>
@@ -80,12 +76,11 @@ export function RecentTransactions({
 
               <div className="text-right shrink-0">
                 <p
-                  className={`text-base sm:text-xl font-black ${isIncome ? "text-[#155724]" : "text-[#9E2D12]"}`}
+                  className={`text-base sm:text-lg font-bold tabular-nums tracking-tight ${isIncome ? "text-[#155724]" : "text-[#9E2D12]"}`}
                 >
-                  {isIncome ? "+" : "-"}
-                  {fmtBaht(tx.amount)}
+                  {isIncome ? "+" : "-"}฿{fmtBaht(tx.amount).replace(/^฿/, "")}
                 </p>
-                <p className="text-xs sm:text-sm text-[#4A2E1B] font-bold">
+                <p className="text-xs text-stone-500 font-medium">
                   {tx.subCategory}
                 </p>
               </div>
