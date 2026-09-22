@@ -16,7 +16,7 @@ describe("HeroSection", () => {
     render(<HeroSection />);
 
     expect(screen.getByText("Grace")).toBeInTheDocument();
-    expect(screen.getByText("Ledger")).toBeInTheDocument();
+    expect(screen.getByText("-giving")).toBeInTheDocument();
     expect(
       screen.getByText("การเงินเชื่อมใจ เพื่อพันธกิจของพระเจ้า")
     ).toBeInTheDocument();

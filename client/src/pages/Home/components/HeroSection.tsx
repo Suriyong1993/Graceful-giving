@@ -22,7 +22,7 @@ export function HeroSection() {
               </span>
             </span>
             <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#D47012] tracking-tight leading-none font-display mt-1">
-              Ledger
+              -giving
             </span>
           </h1>
 

@@ -12,7 +12,7 @@ export default function Register() {
             <Sprout className="size-9 text-[#70452E]" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-[#38251B]">
-            Grace <span className="text-[#E99A4A]">Ledger</span>
+            Grace<span className="text-[#E99A4A]">-giving</span>
           </h1>
           <p className="text-sm text-[#674F42]">สมัครบัญชีใหม่</p>
         </div>

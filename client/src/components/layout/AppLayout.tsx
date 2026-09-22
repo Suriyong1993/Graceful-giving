@@ -61,12 +61,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               </div>
             </div>
             <div>
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline">
                 <span className="text-2xl font-black text-[#2C1810] tracking-tight">
                   Grace
                 </span>
                 <span className="text-2xl font-black text-[#D47012] tracking-tight">
-                  Ledger
+                  -giving
                 </span>
               </div>
               <p className="text-xs text-[#523D2E] font-extrabold leading-tight mt-0.5">
