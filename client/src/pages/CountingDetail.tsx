@@ -324,22 +324,22 @@ export default function CountingDetail() {
       <div className="space-y-6">
         {/* Running totals stay visible on every tab. */}
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4 shadow-2xs">
+          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
             <p className="text-sm text-[#674F42]">ยอดถวายตามซอง</p>
             <MoneyDisplay amount={r.offeringTotal} type="income" size="lg" />
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4 shadow-2xs">
+          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
             <p className="text-sm text-[#674F42]">นับเงินสดได้</p>
             <MoneyDisplay amount={r.countedCashTotal} size="lg" />
             <div className="mt-1 text-sm">
               <Variance amount={r.cashVariance} />
             </div>
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4 shadow-2xs">
+          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
             <p className="text-sm text-[#674F42]">หักเบิก</p>
             <MoneyDisplay amount={r.deductionTotal} type="expense" size="lg" />
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4 shadow-2xs">
+          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
             <p className="text-sm text-[#674F42]">ต้องนำฝาก</p>
             <MoneyDisplay amount={r.expectedDeposit} size="lg" />
             <div className="mt-1 text-sm">
@@ -358,7 +358,7 @@ export default function CountingDetail() {
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${
                 tab === id
                   ? "bg-primary text-white shadow-sm"
-                  : "border border-[#E9D9BF] bg-white text-[#674F42] hover:bg-background"
+                  : "border border-[#E9D9BF] bg-card text-[#674F42] hover:bg-background"
               }`}
             >
               <Icon className="h-4 w-4" />

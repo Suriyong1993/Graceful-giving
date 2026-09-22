@@ -117,7 +117,7 @@ export default function MemberDetail() {
         ) : (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8"
+            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm md:p-8"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>

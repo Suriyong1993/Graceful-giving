@@ -6,12 +6,14 @@ export default function NotFound() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#fbf7ee] p-4 text-[#3a2d26]">
-      <div className="w-full max-w-md rounded-[32px] border border-[#efe2d1] bg-white p-8 sm:p-10 text-center shadow-[0_12px_36px_rgba(94,70,42,0.08)]">
+      <div className="w-full max-w-md rounded-xl border border-[#efe2d1] bg-card p-8 sm:p-10 text-center shadow-xs">
         <div className="mx-auto mb-6 grid size-20 place-items-center rounded-3xl bg-[#fdf2e2] text-[#bd7b42]">
           <Compass className="size-10 animate-pulse" strokeWidth={1.75} />
         </div>
 
-        <p className="font-display text-4xl font-bold tracking-tight text-[#bd7b42]">404</p>
+        <p className="font-display text-4xl font-bold tracking-tight text-[#bd7b42]">
+          404
+        </p>
         <h1 className="mt-2 font-display text-2xl font-bold text-[#4c392e]">
           ไม่พบหน้าที่คุณต้องการ
         </h1>
@@ -40,4 +42,3 @@ export default function NotFound() {
     </div>
   );
 }
-

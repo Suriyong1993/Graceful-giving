@@ -17,7 +17,6 @@ import {
   Image as ImageIcon,
   Plus,
   Receipt,
-  Sparkles,
   UploadCloud,
   Users,
   Zap,
@@ -54,13 +53,13 @@ export default function NewExpense() {
     !showSuccessModal &&
     Boolean(
       amount ||
-        description ||
-        payee ||
-        receiptRef ||
-        details ||
-        receiptFile ||
-        fundId ||
-        category !== "utilities"
+      description ||
+      payee ||
+      receiptRef ||
+      details ||
+      receiptFile ||
+      fundId ||
+      category !== "utilities"
     );
   useUnsavedChanges(isDirty);
   const goBack = async () => {
@@ -71,7 +70,7 @@ export default function NewExpense() {
     onSuccess: data => {
       setReceiptUrl(data.url);
       setIsUploading(false);
-      toast.success("อัปโหลดใบเสร็จเรียบร้อยแล้ว ✓");
+      toast.success("อัปโหลดใบเสร็จเรียบร้อยแล้ว");
     },
     onError: err => {
       setIsUploading(false);
@@ -215,7 +214,6 @@ export default function NewExpense() {
         <div className="bg-[#FFF4DF] border border-[#E9D9BF] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="space-y-2 text-center md:text-left">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F7B6A6]/30 text-[#70452E]">
-              <Sparkles className="w-3.5 h-3.5 text-[#E99A4A]" />
               บันทึกการใช้จ่ายคริสตจักร
             </span>
             <h1 className="text-2xl md:text-3xl font-bold text-[#38251B]">
@@ -226,7 +224,7 @@ export default function NewExpense() {
               พร้อมแนบหลักฐานเพื่อความโปร่งใสของคริสตจักร
             </p>
           </div>
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-white/60 p-1">
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
             <Illustration
               src="/illustrations/expense_hand_coin.jpg"
               alt="Record expense"
@@ -238,7 +236,7 @@ export default function NewExpense() {
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Amount & Presets */}
-          <div className="bg-white border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
+          <div className="bg-card border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
             <h2 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
               <Receipt className="w-5 h-5 text-[#E99A4A]" />
               1. จำนวนเงินและหมวดหมู่
@@ -293,7 +291,7 @@ export default function NewExpense() {
                       className={`p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                         isSelected
                           ? "border-[#E99A4A] bg-[#FFF4DF] shadow-sm ring-2 ring-[#E99A4A]/20"
-                          : "border-[#E9D9BF] hover:bg-[#FFF9EE]/50 bg-white"
+                          : "border-[#E9D9BF] hover:bg-[#FFF9EE]/50 bg-card"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -326,7 +324,7 @@ export default function NewExpense() {
           </div>
 
           {/* Section 2: Expense Details & Fund Allocation */}
-          <div className="bg-white border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
+          <div className="bg-card border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
             <h2 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
               <Building className="w-5 h-5 text-[#A8C978]" />
               2. ข้อมูลรายการและกองทุนที่จัดสรร
@@ -372,7 +370,7 @@ export default function NewExpense() {
                   className="bg-[#FFF9EE]/20 font-medium"
                 >
                   <option value="" disabled>
-                    — เลือกกองทุน —
+                    เลือกกองทุน
                   </option>
                   {funds.map(f => (
                     <option key={f.id} value={f.id}>
@@ -423,7 +421,7 @@ export default function NewExpense() {
           </div>
 
           {/* Section 3: Receipt Attachment */}
-          <div className="bg-white border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
+          <div className="bg-card border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-4">
             <h2 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
               <UploadCloud className="w-5 h-5 text-[#A9D4ED]" />
               3. แนบหลักฐานใบเสร็จ / สลิปโอนเงิน
@@ -443,7 +441,7 @@ export default function NewExpense() {
               <div className="p-4 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] space-y-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-white border border-[#E9D9BF] overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-xl bg-card border border-[#E9D9BF] overflow-hidden flex-shrink-0">
                       {receiptContentType.startsWith("image/") ? (
                         <img
                           src={receiptFile}
@@ -458,9 +456,7 @@ export default function NewExpense() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-[#38251B]">
-                        {receiptUrl
-                          ? "✅ อัปโหลดสำเร็จแล้ว"
-                          : "แนบไฟล์เรียบร้อย"}
+                        {receiptUrl ? "อัปโหลดสำเร็จแล้ว" : "แนบไฟล์เรียบร้อย"}
                       </p>
                       <p className="text-xs text-[#70452E]/70 truncate max-w-[160px]">
                         {receiptFileName}
@@ -518,14 +514,14 @@ export default function NewExpense() {
             <button
               type="button"
               onClick={goBack}
-              className="px-6 py-3 rounded-2xl border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]/50 font-medium text-sm transition-colors"
+              className="px-6 py-3 rounded-2xl border border-[#E9D9BF] bg-card text-[#70452E] hover:bg-[#FFF4DF]/50 font-medium text-sm transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isUploading}
-              className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
               <span>
@@ -541,8 +537,8 @@ export default function NewExpense() {
 
         {/* Success Modal */}
         {showSuccessModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-xs animate-in fade-in zoom-in-95 duration-200">
               <div className="w-16 h-16 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E] mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-[#70452E]" />
               </div>

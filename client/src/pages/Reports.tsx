@@ -128,7 +128,7 @@ export default function Reports() {
           type="button"
           onClick={handleExportCsv}
           disabled={!hasData}
-          className="min-h-11 inline-flex items-center gap-2 rounded-2xl border border-[#E9D9BF] bg-white px-4 py-2.5 text-sm font-bold text-[#674F42] transition-colors hover:bg-[#FFF4DF] disabled:opacity-50"
+          className="min-h-11 inline-flex items-center gap-2 rounded-2xl border border-[#E9D9BF] bg-card px-4 py-2.5 text-sm font-bold text-[#674F42] transition-colors hover:bg-[#FFF4DF] disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           ส่งออก CSV
@@ -138,7 +138,7 @@ export default function Reports() {
       <div className="space-y-6">
         <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
+            <div className="rounded-2xl bg-card p-3 text-[#E99A4A]">
               <BarChart3 className="h-6 w-6" />
             </div>
             <div>
@@ -172,7 +172,7 @@ export default function Reports() {
                 className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${
                   tab === id
                     ? "bg-[#E99A4A] text-white shadow-sm"
-                    : "border border-[#E9D9BF] bg-white text-[#674F42] hover:bg-[#FFF9EE]"
+                    : "border border-[#E9D9BF] bg-card text-[#674F42] hover:bg-[#FFF9EE]"
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -207,7 +207,7 @@ export default function Reports() {
             onRetry={() => summaryQuery.refetch()}
           />
         ) : tab === "funds" ? (
-          <section className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+          <section className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
             <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
               ยอดคงเหลือแต่ละกองทุน
             </h2>
@@ -254,7 +254,7 @@ export default function Reports() {
           <>
             {/* Totals */}
             <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-[#E9D9BF] bg-card p-5 shadow-2xs">
                 <p className="text-sm text-[#674F42]">รายรับรวม</p>
                 <MoneyDisplay
                   amount={summary!.totalIncome}
@@ -262,7 +262,7 @@ export default function Reports() {
                   size="lg"
                 />
               </div>
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-[#E9D9BF] bg-card p-5 shadow-2xs">
                 <p className="text-sm text-[#674F42]">รายจ่ายรวม</p>
                 <MoneyDisplay
                   amount={summary!.totalExpense}
@@ -270,7 +270,7 @@ export default function Reports() {
                   size="lg"
                 />
               </div>
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-5 shadow-2xs">
+              <div className="rounded-2xl border border-[#E9D9BF] bg-card p-5 shadow-2xs">
                 <p className="text-sm text-[#674F42]">คงเหลือสุทธิ</p>
                 <MoneyDisplay
                   amount={summary!.net}
@@ -284,7 +284,7 @@ export default function Reports() {
             </section>
 
             {/* Statement by category */}
-            <section className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+            <section className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
               <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
                 สรุปตามหมวดหมู่
               </h2>
@@ -365,7 +365,7 @@ export default function Reports() {
             </section>
 
             {/* Six month trend */}
-            <section className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm">
+            <section className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm">
               <div className="mb-4 flex flex-col gap-2 border-b border-[#E9D9BF]/60 pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="font-bold text-[#38251B]">
                   เปรียบเทียบ 6 เดือนล่าสุด

@@ -35,7 +35,7 @@ export function SecondaryMenu({
       {canOpenReports && (
         <button
           onClick={onOpenReports}
-          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-white border border-[#E9D9BF] hover:border-[#8E44AD] hover:bg-[#FAF5FC] transition-colors focus-visible:ring-2 focus-visible:ring-[#8E44AD] shadow-2xs"
+          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-card border border-[#E9D9BF] hover:border-[#8E44AD] hover:bg-[#FAF5FC] transition-colors focus-visible:ring-2 focus-visible:ring-[#8E44AD] shadow-2xs"
           aria-label="รายงาน"
         >
           <FileBarChart className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-[#8E44AD] mb-1.5" />
@@ -49,7 +49,7 @@ export function SecondaryMenu({
       {canOpenMembers && (
         <button
           onClick={onOpenMembers}
-          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-white border border-[#E9D9BF] hover:border-[#D47012] hover:bg-[#FFF9EE] transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-2xs"
+          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-card border border-[#E9D9BF] hover:border-[#D47012] hover:bg-[#FFF9EE] transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-2xs"
           aria-label="สมาชิก"
         >
           <UsersRound className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-[#D47012] mb-1.5" />
@@ -62,7 +62,7 @@ export function SecondaryMenu({
       {/* กิจกรรม */}
       <button
         onClick={onOpenNews}
-        className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-white border border-[#E9D9BF] hover:border-[#C9503B] hover:bg-[#FFF5F3] transition-colors focus-visible:ring-2 focus-visible:ring-[#C9503B] shadow-2xs"
+        className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-card border border-[#E9D9BF] hover:border-[#C9503B] hover:bg-[#FFF5F3] transition-colors focus-visible:ring-2 focus-visible:ring-[#C9503B] shadow-2xs"
         aria-label="กิจกรรม"
       >
         <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-[#C9503B] mb-1.5" />
@@ -74,7 +74,7 @@ export function SecondaryMenu({
       {/* ขอเบิกเงิน */}
       <button
         onClick={onOpenWithdrawals}
-        className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-white border border-[#E9D9BF] hover:border-[#E99A4A] hover:bg-[#FFF9EE] transition-colors focus-visible:ring-2 focus-visible:ring-[#E99A4A] shadow-2xs"
+        className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 rounded-2xl bg-card border border-[#E9D9BF] hover:border-[#E99A4A] hover:bg-[#FFF9EE] transition-colors focus-visible:ring-2 focus-visible:ring-[#E99A4A] shadow-2xs"
         aria-label="ยื่นคำขอเบิกเงิน"
       >
         <Banknote className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-[#E99A4A] mb-1.5" />
@@ -87,7 +87,7 @@ export function SecondaryMenu({
       <AppMenu>
         <button
           type="button"
-          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 w-full rounded-2xl bg-white border border-[#E9D9BF] hover:border-[#2A75A0] hover:bg-[#F2F8FC] transition-colors focus-visible:ring-2 focus-visible:ring-[#2A75A0] shadow-2xs"
+          className="flex flex-col items-center justify-center min-h-[82px] sm:min-h-[96px] py-3.5 px-3 w-full rounded-2xl bg-card border border-[#E9D9BF] hover:border-[#2A75A0] hover:bg-[#F2F8FC] transition-colors focus-visible:ring-2 focus-visible:ring-[#2A75A0] shadow-2xs"
           aria-label="เพิ่มเติม"
         >
           <MoreHorizontal className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2] text-[#2A75A0] mb-1.5" />

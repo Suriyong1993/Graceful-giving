@@ -47,7 +47,7 @@ export function TextField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="w-full rounded-xl border border-[#e8dccb] bg-white px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none focus:ring-2 focus:ring-[#bd7b42]/20 disabled:opacity-60"
+        className="w-full rounded-xl border border-[#e8dccb] bg-card px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none focus:ring-2 focus:ring-[#bd7b42]/20 disabled:opacity-60"
       />
     </div>
   );
@@ -76,7 +76,7 @@ export function Step1({
           onChange={e => set({ address: e.target.value })}
           placeholder="บ้านเลขที่, ถนน, แขวง/ตำบล, เขต/อำเภอ, จังหวัด, รหัสไปรษณีย์"
           rows={3}
-          className="w-full rounded-xl border border-[#e8dccb] bg-white px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none resize-none"
+          className="w-full rounded-xl border border-[#e8dccb] bg-card px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none resize-none"
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -141,13 +141,11 @@ export function Step2({
           onChange={e => set({ motto: e.target.value })}
           placeholder="เช่น 2 โครินธ์ 9:7 · ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก"
           rows={2}
-          className="w-full rounded-xl border border-[#e8dccb] bg-white px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none resize-none"
+          className="w-full rounded-xl border border-[#e8dccb] bg-card px-3.5 py-2.5 text-sm text-[#4c392e] placeholder:text-[#b8a99b] focus:border-[#bd7b42] focus:outline-none resize-none"
         />
       </div>
       <div className="rounded-2xl border border-[#dceeff] bg-[#eef7ff] p-4">
-        <p className="text-xs font-bold text-[#336a8c]">
-          💡 เกี่ยวกับบทบาทผู้ใช้
-        </p>
+        <p className="text-xs font-bold text-[#336a8c]">เกี่ยวกับบทบาทผู้ใช้</p>
         <p className="mt-1 text-xs text-[#477caa]">
           ผู้ดูแลระบบสามารถกำหนดสิทธิ์ <strong>SUPER_ADMIN</strong>,{" "}
           <strong>PASTOR</strong>, <strong>TREASURER</strong>{" "}
@@ -183,7 +181,7 @@ export function Step3({
           onChange={e => set({ bankName: e.target.value })}
           className="border-[#e8dccb] text-[#4c392e] focus:border-[#bd7b42]"
         >
-          <option value="">— เลือกธนาคาร —</option>
+          <option value="">เลือกธนาคาร</option>
           {BANKS.map(b => (
             <option key={b} value={b}>
               {b}
@@ -206,9 +204,9 @@ export function Step3({
         placeholder="คริสตจักร..."
       />
       <div className="rounded-2xl border border-[#e5f3da] bg-[#f1fae9] p-4">
-        <p className="text-xs font-bold text-[#4a7c2e]">🔒 ความปลอดภัย</p>
+        <p className="text-xs font-bold text-[#4a7c2e]">ความปลอดภัย</p>
         <p className="mt-1 text-xs text-[#6ba33e]">
-          ข้อมูลบัญชีธนาคารจะถูกเก็บเป็นความลับ — เข้าถึงได้เฉพาะ TREASURER และ
+          ข้อมูลบัญชีธนาคารจะถูกเก็บเป็นความลับ เข้าถึงได้เฉพาะ TREASURER และ
           SUPER_ADMIN เท่านั้น
         </p>
       </div>
@@ -246,7 +244,7 @@ export function Step4({
               className={`flex min-h-[48px] items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition ${
                 selected
                   ? "border-[#bd7b42] bg-[#fff3de] text-[#8d5e30]"
-                  : "border-[#e8dccb] bg-white text-[#6a5649] hover:bg-[#fdf5ea]"
+                  : "border-[#e8dccb] bg-card text-[#6a5649] hover:bg-[#fdf5ea]"
               }`}
             >
               <span
@@ -266,9 +264,7 @@ export function Step4({
         })}
       </div>
       {data.offeringCategories.length === 0 && (
-        <p className="text-xs text-[#c25a50]">
-          ⚠ กรุณาเลือกอย่างน้อย 1 หมวดหมู่
-        </p>
+        <p className="text-xs text-[#c25a50]">กรุณาเลือกอย่างน้อย 1 หมวดหมู่</p>
       )}
     </div>
   );
@@ -283,7 +279,7 @@ export function Step5({ data }: { data: SetupData }) {
       {data.funds.map((fund, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 rounded-2xl border border-[#eee4d7] bg-white p-3.5"
+          className="flex items-center gap-3 rounded-2xl border border-[#eee4d7] bg-card p-3.5"
         >
           <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fce9ce] text-[#bd7b42]">
             <WalletCards className="size-5" />
@@ -297,7 +293,7 @@ export function Step5({ data }: { data: SetupData }) {
       ))}
       <div className="rounded-2xl border border-[#fff0c9] bg-[#fffde9] p-4">
         <p className="text-xs font-bold text-[#8a6d20]">
-          💡 สามารถเพิ่มกองทุนเพิ่มเติมได้ภายหลัง
+          สามารถเพิ่มกองทุนเพิ่มเติมได้ภายหลัง
         </p>
         <p className="mt-1 text-xs text-[#a87f2e]">
           จากหน้าการเงิน → จัดการกองทุน
@@ -342,12 +338,12 @@ export function Step6({
           onChange={e => set({ budgetYear: Number(e.target.value) })}
           min={2550}
           max={2600}
-          className="w-full rounded-xl border border-[#e8dccb] bg-white px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
+          className="w-full rounded-xl border border-[#e8dccb] bg-card px-3.5 py-2.5 text-sm text-[#4c392e] focus:border-[#bd7b42] focus:outline-none"
         />
       </div>
       <div className="rounded-2xl border border-[#fff0c9] bg-[#fffde9] p-4 space-y-2">
         <p className="text-xs font-bold text-[#8a6d20]">
-          📅 ตัวอย่างรอบปีงบประมาณ
+          ตัวอย่างรอบปีงบประมาณ
         </p>
         <p className="text-xs text-[#a87f2e]">
           ปีที่ {data.budgetYear}: {THAI_MONTHS[data.fiscalYearStartMonth - 1]}{" "}
@@ -395,7 +391,7 @@ export function Step7() {
       {roles.map(({ role, label, desc, color }) => (
         <div
           key={role}
-          className="flex items-start gap-3 rounded-2xl border border-[#eee4d7] bg-white p-3.5"
+          className="flex items-start gap-3 rounded-2xl border border-[#eee4d7] bg-card p-3.5"
         >
           <span
             className={`inline-flex shrink-0 items-center rounded-lg px-2.5 py-1 text-xs font-bold ${color}`}
@@ -409,7 +405,7 @@ export function Step7() {
         </div>
       ))}
       <div className="rounded-2xl border border-[#ddf0e6] bg-[#eafaf1] p-4">
-        <p className="text-xs font-bold text-[#2c7b4c]">🔐 การกำหนดสิทธิ์</p>
+        <p className="text-xs font-bold text-[#2c7b4c]">การกำหนดสิทธิ์</p>
         <p className="mt-1 text-xs text-[#336a4f]">
           ไปที่ เมนู → โปรไฟล์ผู้ใช้ → กำหนดบทบาท
           หลังจากตั้งค่าคริสตจักรเสร็จแล้ว
@@ -421,12 +417,12 @@ export function Step7() {
 
 export function Step8({ data }: { data: SetupData }) {
   const summaryItems = [
-    { label: "ชื่อคริสตจักร", value: data.name || "—" },
-    { label: "ศิษยาภิบาล", value: data.pastorName || "—" },
-    { label: "เหรัญญิก", value: data.treasurerName || "—" },
+    { label: "ชื่อคริสตจักร", value: data.name || "-" },
+    { label: "ศิษยาภิบาล", value: data.pastorName || "-" },
+    { label: "เหรัญญิก", value: data.treasurerName || "-" },
     {
       label: "ธนาคาร",
-      value: data.bankName ? `${data.bankName} ${data.bankAccount}` : "—",
+      value: data.bankName ? `${data.bankName} ${data.bankAccount}` : "-",
     },
     {
       label: "ปีงบประมาณ",
@@ -437,7 +433,7 @@ export function Step8({ data }: { data: SetupData }) {
   ];
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[#eee4d7] bg-white overflow-hidden">
+      <div className="rounded-2xl border border-[#eee4d7] bg-card overflow-hidden">
         {summaryItems.map(({ label, value }, i) => (
           <div
             key={label}

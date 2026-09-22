@@ -39,7 +39,7 @@ export function BalanceCard({
     <section
       aria-label="ยอดเงินคงเหลือรวม"
       style={{ animationDelay: "90ms" }}
-      className={`animate-fade-up bg-white rounded-3xl p-6 sm:p-8 md:p-10 border relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D] card-elevation-focus" : "border-[#F2C9BE] card-elevation-sm"}`}
+      className={`animate-fade-up bg-card rounded-3xl p-6 sm:p-8 md:p-10 border relative overflow-hidden w-full ${isPositiveBalance ? "border-[#A8D59D] card-elevation-focus" : "border-[#F2C9BE] card-elevation-sm"}`}
     >
       <div className="flex items-center justify-between gap-6">
         {/* Left: Prominent financial figures */}
@@ -93,7 +93,7 @@ export function BalanceCard({
                  amount to lose an argument with its container. */
               className={`whitespace-nowrap text-[clamp(1.75rem,5.5vw,4.5rem)] font-black tracking-tight tabular-nums ${isPositiveBalance ? "text-[#155724]" : "text-[#9E2D12]"}`}
             >
-              {showBalance && hasSummaryData ? fmtBaht(animatedBalance) : "—"}
+              {showBalance && hasSummaryData ? fmtBaht(animatedBalance) : "-"}
             </div>
           )}
 
@@ -101,13 +101,10 @@ export function BalanceCard({
             {isBalanceLoading ? (
               <span>กำลังตรวจสอบยอดเงินล่าสุด…</span>
             ) : isPositiveBalance ? (
-              <>
-                <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
-                <span className="text-[#3D7826] text-lg">♥</span>
-              </>
+              <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
             ) : (
               <span className="text-[#9E2D12] font-black">
-                ยอดคงเหลือติดลบ — ควรตรวจสอบรายจ่าย
+                ยอดคงเหลือติดลบ ควรตรวจสอบรายจ่าย
               </span>
             )}
           </p>
@@ -116,7 +113,7 @@ export function BalanceCard({
             <div className="pt-3">
               <button
                 onClick={onOpenReports}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-bold border border-[#E9D9BF] transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-2xs hover:border-[#D47012]"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card hover:bg-[#FFF4DF] text-[#2C1810] text-sm sm:text-base font-bold border border-[#E9D9BF] transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012] shadow-2xs hover:border-[#D47012]"
               >
                 <BarChart3 className="w-4 h-4 text-[#D47012]" />
                 <span>ดูรายละเอียด</span>

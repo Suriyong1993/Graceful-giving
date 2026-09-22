@@ -84,7 +84,7 @@ export default function Members() {
       <div className="space-y-6">
         <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
+            <div className="rounded-2xl bg-card p-3 text-[#E99A4A]">
               <UsersRound className="h-6 w-6" />
             </div>
             <div>
@@ -100,7 +100,7 @@ export default function Members() {
         {showCreate && (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm"
+            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm"
           >
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-bold text-[#38251B]">เพิ่มสมาชิกใหม่</h2>
@@ -179,7 +179,7 @@ export default function Members() {
                 key={member.id}
                 type="button"
                 onClick={() => setLocation(`/members/${member.id}`)}
-                className="rounded-2xl border border-[#E9D9BF] bg-white p-5 text-left shadow-sm hover:bg-[#FFF9EE]"
+                className="rounded-2xl border border-[#E9D9BF] bg-card p-5 text-left shadow-sm hover:bg-[#FFF9EE]"
               >
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="font-bold text-[#38251B]">{member.name}</h2>

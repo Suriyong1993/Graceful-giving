@@ -25,7 +25,7 @@ export default function Budgets() {
       <div className="space-y-6">
         <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
+            <div className="rounded-2xl bg-card p-3 text-[#E99A4A]">
               <BarChart3 className="h-6 w-6" />
             </div>
             <div>

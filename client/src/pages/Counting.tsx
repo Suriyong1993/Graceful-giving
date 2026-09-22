@@ -214,7 +214,7 @@ export default function Counting() {
         <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-white p-3.5 text-[#E99A4A] shadow-xs shrink-0">
+              <div className="rounded-2xl bg-card p-3.5 text-[#E99A4A] shadow-xs shrink-0">
                 <Coins className="h-7 w-7" />
               </div>
               <div>
@@ -248,7 +248,7 @@ export default function Counting() {
                 notes: notes.trim() || undefined,
               });
             }}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm animate-in fade-in"
+            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm animate-in fade-in"
           >
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export default function Counting() {
               onClick={() => setActiveTab("all")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "all"
-                  ? "bg-white text-[#38251B] shadow-xs"
+                  ? "bg-card text-[#38251B] shadow-xs"
                   : "text-[#674F42] hover:text-[#38251B]"
               }`}
             >
@@ -335,7 +335,7 @@ export default function Counting() {
               onClick={() => setActiveTab("pending")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "pending"
-                  ? "bg-white text-[#C26B1E] shadow-xs"
+                  ? "bg-card text-[#C26B1E] shadow-xs"
                   : "text-[#674F42] hover:text-[#C26B1E]"
               }`}
             >
@@ -353,7 +353,7 @@ export default function Counting() {
               onClick={() => setActiveTab("completed")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "completed"
-                  ? "bg-white text-[#4F8B33] shadow-xs"
+                  ? "bg-card text-[#4F8B33] shadow-xs"
                   : "text-[#674F42] hover:text-[#4F8B33]"
               }`}
             >
@@ -373,7 +373,7 @@ export default function Counting() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="ค้นหาวันที่, บันทึก..."
-              className="min-h-11 w-full rounded-2xl border border-[#E9D9BF] bg-white pl-9 pr-3 py-2 text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
+              className="min-h-11 w-full rounded-2xl border border-[#E9D9BF] bg-card pl-9 pr-3 py-2 text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
             />
             {searchQuery && (
               <button
@@ -404,7 +404,7 @@ export default function Counting() {
             onAction={() => setShowCreate(true)}
           />
         ) : filteredSessions.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#E9D9BF] bg-white/60 p-12 text-center">
+          <div className="rounded-3xl border border-dashed border-[#E9D9BF] bg-card/60 p-12 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF4DF] text-[#D47012] mb-3">
               <AlertCircle className="h-7 w-7" />
             </div>
@@ -425,7 +425,7 @@ export default function Counting() {
                   setActiveTab("all");
                   setSearchQuery("");
                 }}
-                className="mt-4 rounded-xl border border-[#E9D9BF] bg-white px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE]"
+                className="mt-4 rounded-xl border border-[#E9D9BF] bg-card px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE]"
               >
                 ดูทุกรอบทั้งหมด
               </button>
@@ -445,7 +445,7 @@ export default function Counting() {
                   className={`rounded-2xl border transition-all p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                     isUnposted
                       ? "border-[#E9D9BF] bg-[#FFFDF9] shadow-xs hover:border-[#E99A4A]/60"
-                      : "border-[#E9D9BF]/80 bg-white shadow-2xs"
+                      : "border-[#E9D9BF]/80 bg-card shadow-2xs"
                   }`}
                 >
                   {/* Left: Date & Status & Notes */}
@@ -468,7 +468,7 @@ export default function Counting() {
 
                     {session.varianceNote && (
                       <p className="mt-1 text-xs sm:text-sm font-medium text-[#C26B1E]">
-                        ⚠️ มีบันทึกผลต่าง: {session.varianceNote}
+                        มีบันทึกผลต่าง: {session.varianceNote}
                       </p>
                     )}
 
@@ -533,7 +533,7 @@ export default function Counting() {
                       <button
                         type="button"
                         onClick={() => setLocation(`/counting/${session.id}`)}
-                        className="min-h-10 inline-flex items-center gap-1.5 rounded-xl border border-[#E9D9BF] bg-white px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE] hover:text-[#38251B] transition-colors"
+                        className="min-h-10 inline-flex items-center gap-1.5 rounded-xl border border-[#E9D9BF] bg-card px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE] hover:text-[#38251B] transition-colors"
                       >
                         <FileText className="h-3.5 w-3.5 text-[#4F8B33]" />
                         <span>ดูสรุป & รายงาน</span>

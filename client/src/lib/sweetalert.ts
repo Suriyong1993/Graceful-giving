@@ -31,7 +31,7 @@ export const Swal = {
       const container = document.createElement("div");
       container.id = "grace-sweetalert-container";
       container.className =
-        "fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#2C1810]/60 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in";
+        "fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#2C1810]/60  transition-opacity duration-200 animate-in fade-in";
 
       const iconSvgs: Record<string, string> = {
         success: `
@@ -76,7 +76,7 @@ export const Swal = {
       const cancelText = options.cancelButtonText || "ยกเลิก";
 
       container.innerHTML = `
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-[28px] sm:rounded-[36px] bg-gradient-to-b from-[#FFFDF9] via-white to-[#FFF8EC] p-6 sm:p-9 text-center shadow-2xl border-2 border-[#E9D9BF] transition-all duration-200">
+        <div class="relative w-full max-w-lg transform overflow-hidden rounded-xl sm:rounded-xl bg-secondary p-6 sm:p-9 text-center shadow-xs border-2 border-[#E9D9BF] transition-all duration-200">
           <!-- Background ambients -->
           <div class="pointer-events-none absolute -top-12 -right-12 w-44 h-44 rounded-full bg-[#E99A4A]/10 blur-3xl"></div>
           <div class="pointer-events-none absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-[#A8C978]/10 blur-3xl"></div>
@@ -103,7 +103,7 @@ export const Swal = {
                     </button>`
                   : ""
               }
-              <button id="swal-confirm-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-[#D47012]/30 active:scale-95 cursor-pointer">
+              <button id="swal-confirm-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-2xl bg-[#D47012] hover:bg-[#BA5E0B] text-white font-black text-sm sm:text-base shadow-xs hover:shadow-xs transition-all focus:outline-none focus:ring-4 focus:ring-[#D47012]/30 active:scale-95 cursor-pointer">
                 ${confirmText}
               </button>
             </div>
@@ -170,7 +170,10 @@ export const Swal = {
       cancelButtonText: "ยกเลิก",
     };
 
-    if (typeof confirmBtnOrOptions === "object" && confirmBtnOrOptions !== null) {
+    if (
+      typeof confirmBtnOrOptions === "object" &&
+      confirmBtnOrOptions !== null
+    ) {
       opts = { ...opts, ...confirmBtnOrOptions };
     } else if (typeof confirmBtnOrOptions === "string") {
       opts.confirmButtonText = confirmBtnOrOptions;

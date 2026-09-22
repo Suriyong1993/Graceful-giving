@@ -119,7 +119,7 @@ export default function NewWithdrawal() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
+          <div className="bg-card border border-[#E9D9BF] rounded-3xl p-6 md:p-8 shadow-sm space-y-5">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-[#38251B]">
                 วัตถุประสงค์การเบิก <span className="text-red-500">*</span>
@@ -182,7 +182,7 @@ export default function NewWithdrawal() {
                 className="bg-[#FFF9EE]/20 font-medium"
               >
                 <option value="" disabled>
-                  — เลือกกองทุน —
+                  เลือกกองทุน
                 </option>
                 {funds.map((f: any) => (
                   <option key={f.id} value={f.id}>
@@ -216,14 +216,14 @@ export default function NewWithdrawal() {
             <button
               type="button"
               onClick={goBack}
-              className="px-6 py-3 rounded-2xl border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]/50 font-medium text-sm transition-colors"
+              className="px-6 py-3 rounded-2xl border border-[#E9D9BF] bg-card text-[#70452E] hover:bg-[#FFF4DF]/50 font-medium text-sm transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSubmitting || funds.length === 0}
-              className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3 rounded-2xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-semibold text-sm shadow-xs transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Banknote className="w-4 h-4" />
               <span>
@@ -234,8 +234,8 @@ export default function NewWithdrawal() {
         </form>
 
         {showSuccessModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-xs">
               <div className="w-16 h-16 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E] mx-auto">
                 <CheckCircle2 className="w-8 h-8 text-[#70452E]" />
               </div>

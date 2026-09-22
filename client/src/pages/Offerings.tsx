@@ -9,14 +9,7 @@ import {
   MoneyDisplay,
 } from "@/components/common/CommonUI";
 import { Illustration } from "@/components/Illustration";
-import {
-  Download,
-  HandCoins,
-  Heart,
-  Plus,
-  Sparkles,
-  Printer,
-} from "lucide-react";
+import { Download, HandCoins, Heart, Plus, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { offeringCategoryLabel } from "@shared/categories";
 import {
@@ -114,7 +107,7 @@ export default function Offerings() {
         <div className="flex items-center gap-2">
           <button
             onClick={exportCSV}
-            className="px-3.5 py-2 rounded-2xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+            className="px-3.5 py-2 rounded-2xl bg-card border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>ส่งออก CSV</span>
@@ -130,25 +123,24 @@ export default function Offerings() {
       }
     >
       {/* 1. Header Banner with 3D Offering Box Illustration */}
-      <div className="bg-gradient-to-r from-[#FFFDF8] via-[#FFF8EC] to-[#FFF1DE] rounded-[32px] p-5 sm:p-7 border border-[#E9D9BF] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
+      <div className="bg-secondary rounded-xl p-5 sm:p-7 border border-[#E9D9BF] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="space-y-2 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#E9D9BF] text-xs font-bold text-[#70452E]">
-            <Sparkles className="w-3.5 h-3.5 text-[#E99A4A]" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-card/90 border border-[#E9D9BF] text-xs font-bold text-[#70452E]">
             <span>ยอดถวายรวมเดือนนี้</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-black text-[#1b5e3a]">
             <MoneyDisplay amount={totalAmount} type="income" size="xl" />
           </h2>
           <p className="text-xs text-[#927D6D]">
-            "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" — 2 โครินธ์ 9:7
+            "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" (2 โครินธ์ 9:7)
           </p>
         </div>
 
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[24px] overflow-hidden bg-white p-1.5 border border-[#E9D9BF] shadow-xs shrink-0">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-card p-1.5 border border-[#E9D9BF] shadow-xs shrink-0">
           <Illustration
             src="/illustrations/offering_box.jpg"
             alt="กล่องถวาย"
-            className="w-full h-full object-cover rounded-[20px]"
+            className="w-full h-full object-cover rounded-xl"
             width={112}
             height={112}
           />
@@ -156,7 +148,7 @@ export default function Offerings() {
       </div>
 
       {/* 2. Filter Bar */}
-      <div className="bg-white rounded-[28px] p-4 md:p-5 border border-[#E9D9BF] card-elevation-sm">
+      <div className="bg-card rounded-xl p-4 md:p-5 border border-[#E9D9BF] card-elevation-sm">
         <FilterBar
           searchPlaceholder="ค้นหาประเภทถวายหรือกองทุน..."
           searchValue={searchTerm}
@@ -207,7 +199,7 @@ export default function Offerings() {
           onAction={() => setLocation("/offerings/new")}
         />
       ) : (
-        <div className="bg-white rounded-[28px] border border-[#E9D9BF] card-elevation-sm divide-y divide-[#F0E6D8]/60 overflow-hidden">
+        <div className="bg-card rounded-xl border border-[#E9D9BF] card-elevation-sm divide-y divide-[#F0E6D8]/60 overflow-hidden">
           {filtered.map(o => (
             <div
               key={o.id}

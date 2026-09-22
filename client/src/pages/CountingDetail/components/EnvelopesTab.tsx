@@ -95,7 +95,7 @@ export function EnvelopesTab({
       {editable && (
         <form
           onSubmit={submitEnvelope}
-          className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
+          className="rounded-3xl border border-[#E9D9BF] bg-card p-5 shadow-sm md:p-6"
         >
           <h2 className="mb-4 font-bold text-foreground">บันทึกซองถวาย</h2>
           <div className="grid gap-4 md:grid-cols-3">
@@ -116,7 +116,7 @@ export function EnvelopesTab({
                 disabled={isAnonymous}
                 className="mt-1"
               >
-                <option value="">— ไม่ระบุสมาชิก —</option>
+                <option value="">ไม่ระบุสมาชิก</option>
                 {members.map(m => (
                   <option key={m.id} value={m.id}>
                     {m.envelopeNo ? `[${m.envelopeNo}] ` : ""}
@@ -158,7 +158,7 @@ export function EnvelopesTab({
                 className="mt-1"
               >
                 <option value="" disabled>
-                  — เลือกกองทุน —
+                  เลือกกองทุน
                 </option>
                 {funds.map(f => (
                   <option key={f.id} value={f.id}>
@@ -228,7 +228,7 @@ export function EnvelopesTab({
         </form>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
           <h2 className="font-bold text-foreground">
             ซองในรอบนี้ ({envelopes.length})

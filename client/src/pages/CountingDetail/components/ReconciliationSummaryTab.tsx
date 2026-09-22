@@ -70,7 +70,7 @@ export function ReconciliationSummaryTab({
 }: ReconciliationSummaryTabProps) {
   return (
     <section className="space-y-4">
-      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
         <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-foreground">
           ตารางกระทบยอด
         </h2>
@@ -81,15 +81,15 @@ export function ReconciliationSummaryTab({
               value: fmtBaht(r.offeringTotal),
             },
             {
-              label: "— ซองเงินสด",
+              label: "- ซองเงินสด",
               value: fmtBaht(r.envelopeCashTotal),
             },
             {
-              label: "— ซองเงินโอน",
+              label: "- ซองเงินโอน",
               value: fmtBaht(r.envelopeTransferTotal),
             },
             {
-              label: "— ซองเช็ค",
+              label: "- ซองเช็ค",
               value: fmtBaht(r.envelopeCheckTotal),
             },
           ].map(row => (
@@ -150,7 +150,7 @@ export function ReconciliationSummaryTab({
             value={varianceNote}
             onChange={e => setVarianceNote(e.target.value)}
             placeholder="เช่น เงินสดขาด 20 บาท นับซ้ำสองครั้งแล้ว แจ้งที่ประชุมมัคนายกวันที่…"
-            className="mt-3 w-full rounded-xl border border-[#E9D9BF] bg-white p-3 text-sm text-foreground"
+            className="mt-3 w-full rounded-xl border border-[#E9D9BF] bg-card p-3 text-sm text-foreground"
           />
           {sessionVarianceNote && (
             <p className="mt-2 text-sm text-[#674F42]">
@@ -163,11 +163,11 @@ export function ReconciliationSummaryTab({
       {unapprovedDeductions.length > 0 && (
         <p className="rounded-2xl border border-[#F7D5CD] bg-[#FFEBE5] p-4 text-sm font-bold text-[#A33B2A]">
           มีรายการหักเบิกที่ยังไม่ได้รับอนุมัติ {unapprovedDeductions.length}{" "}
-          รายการ — ต้องอนุมัติก่อนลงบัญชี
+          รายการ ต้องอนุมัติก่อนลงบัญชี
         </p>
       )}
 
-      <div className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm">
+      <div className="rounded-3xl border border-[#E9D9BF] bg-card p-5 shadow-sm">
         <h3 className="font-bold text-foreground">ดำเนินการกับรอบนี้</h3>
         <p className="mt-1 text-sm text-[#674F42]">
           ลำดับงาน: นับ → ส่งตรวจ → ตรวจสอบ → ลงบัญชี → ปิดรอบ
@@ -216,9 +216,7 @@ export function ReconciliationSummaryTab({
               disabled={
                 post.isPending ||
                 unapprovedDeductions.length > 0 ||
-                (!r.isBalanced &&
-                  !varianceNote.trim() &&
-                  !sessionVarianceNote)
+                (!r.isBalanced && !varianceNote.trim() && !sessionVarianceNote)
               }
               className="min-h-11 rounded-2xl bg-[#1b5e3a] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
@@ -244,7 +242,7 @@ export function ReconciliationSummaryTab({
       </div>
 
       {isUnposted && (
-        <div className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm">
+        <div className="rounded-3xl border border-[#E9D9BF] bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-1.5">
             <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
             <h4 className="font-bold text-foreground">
@@ -252,7 +250,8 @@ export function ReconciliationSummaryTab({
             </h4>
           </div>
           <p className="text-xs sm:text-sm text-[#674F42] leading-relaxed mb-4">
-            หากพบว่ากรอกข้อมูลผิดพลาด หรือเป็นรอบที่เปิดทิ้งไว้ไม่ได้ใช้งาน สามารถเลือกล้างเพื่อนับใหม่ หรือลบรอบนี้ออกจากระบบได้
+            หากพบว่ากรอกข้อมูลผิดพลาด หรือเป็นรอบที่เปิดทิ้งไว้ไม่ได้ใช้งาน
+            สามารถเลือกล้างเพื่อนับใหม่ หรือลบรอบนี้ออกจากระบบได้
           </p>
           <div className="flex flex-wrap gap-2.5">
             <button

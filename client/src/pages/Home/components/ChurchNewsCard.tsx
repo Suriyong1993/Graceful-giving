@@ -10,7 +10,7 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
     <section aria-label="ข่าวสารจากคริสตจักร" className="w-full">
       <div
         onClick={onOpenNews}
-        className="cursor-pointer bg-gradient-to-r from-[#FFFDF8] via-[#FFF8EC] to-[#FFF1DE] border-2 border-[#E9D9BF] rounded-[28px] sm:rounded-[36px] p-5 sm:p-7 flex items-center justify-between gap-4 hover:border-[#D47012] transition-all shadow-xs"
+        className="cursor-pointer bg-secondary border-2 border-[#E9D9BF] rounded-xl sm:rounded-xl p-5 sm:p-7 flex items-center justify-between gap-4 hover:border-[#D47012] transition-all shadow-xs"
         role="button"
         tabIndex={0}
         onKeyDown={e => {
@@ -21,7 +21,7 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
         aria-label="เปิดดูข่าวสารจากคริสตจักร"
       >
         <div className="flex items-center gap-4">
-          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shrink-0 bg-white p-1.5 border border-[#E9D9BF]">
+          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shrink-0 bg-card p-1.5 border border-[#E9D9BF]">
             <Illustration
               src="/illustrations/bible_cross.jpg"
               alt="พระคัมภีร์และกางเขน"
@@ -40,7 +40,7 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
             </p>
           </div>
         </div>
-        <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[#2C1810] border-2 border-[#E9D9BF] shrink-0 shadow-2xs">
+        <div className="w-11 h-11 rounded-full bg-card flex items-center justify-center text-[#2C1810] border-2 border-[#E9D9BF] shrink-0 shadow-2xs">
           <ChevronRight className="w-6 h-6" />
         </div>
       </div>

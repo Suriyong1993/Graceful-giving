@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { BackLink, EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
+import {
+  BackLink,
+  EmptyState,
+  LoadingSkeleton,
+} from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canManageMinistries } from "@shared/roles";
@@ -127,7 +131,7 @@ export default function MinistryDetail() {
         ) : canManage ? (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8"
+            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm md:p-8"
           >
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -218,7 +222,7 @@ export default function MinistryDetail() {
             </button>
           </form>
         ) : (
-          <section className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8">
+          <section className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm md:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-bold text-[#38251B]">
                 {query.data.name}

@@ -42,11 +42,19 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Updates = lazy(() => import("./pages/Updates"));
 const GivingInbox = lazy(() => import("./pages/GivingInbox"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
+const Terms = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Terms }))
+);
+const Privacy = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Privacy }))
+);
 
 /** Routes reachable without a session. Everything else needs one. */
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
 ];
@@ -80,6 +88,8 @@ const SETUP_EXEMPT_PATHS = [
   "/setup",
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   // Dev-only UI gallery; the route itself is also unmounted in prod (see Router).
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
@@ -158,7 +168,7 @@ function RoleGuard({
   if (!user || !canAccess(user)) {
     return (
       <div className="min-h-screen bg-[#FFF9EE] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
+        <div className="max-w-md w-full bg-card rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-rose-100 border-2 border-rose-200 mx-auto flex items-center justify-center text-rose-600">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -198,6 +208,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/setup" component={ChurchSetup} />
 
       {/* Transactions & Ledgers */}

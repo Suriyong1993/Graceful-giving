@@ -47,12 +47,12 @@ export function toDate(value: string | number | Date | null | undefined) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** e.g. "20 ก.ย. 2569". Returns "—" rather than "Invalid Date". */
+/** e.g. "20 ก.ย. 2569". Returns "-" rather than "Invalid Date". */
 export function formatThaiDate(
   value: string | number | Date | null | undefined
 ) {
   const d = toDate(value);
-  if (!d) return "—";
+  if (!d) return "-";
   return d.toLocaleDateString("th-TH", {
     day: "numeric",
     month: "short",
@@ -65,7 +65,7 @@ export function formatThaiDateTime(
   value: string | number | Date | null | undefined
 ) {
   const d = toDate(value);
-  if (!d) return "—";
+  if (!d) return "-";
   return `${formatThaiDate(d)} ${d.toLocaleTimeString("th-TH", {
     hour: "2-digit",
     minute: "2-digit",

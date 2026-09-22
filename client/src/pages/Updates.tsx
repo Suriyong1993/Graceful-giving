@@ -6,7 +6,6 @@ import {
   Bell,
   Megaphone,
   Settings2,
-  Sparkles,
   UsersRound,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -37,7 +36,7 @@ export default function Updates() {
             <ArrowLeft className="size-4" />
             กลับหน้าหลัก
           </Link>
-          <div className="mt-16 rounded-[28px] border border-[#eadfce] bg-white p-8 text-center shadow-[0_12px_30px_rgba(94,70,42,0.07)]">
+          <div className="mt-16 rounded-xl border border-[#eadfce] bg-card p-8 text-center shadow-xs">
             <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#f8eddb] text-[#bd7b42]">
               <Bell className="size-8" />
             </div>
@@ -86,8 +85,7 @@ export default function Updates() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#eee4d7] bg-white/75 px-3.5 py-2 text-xs text-[#5a463a]">
-            <Sparkles className="size-4 text-[#bd7b42]" />
+          <div className="flex items-center gap-2 rounded-full border border-[#eee4d7] bg-card/75 px-3.5 py-2 text-xs text-[#5a463a]">
             <span>อัปเดตเพื่อการมีส่วนร่วมในชุมชน</span>
           </div>
         </header>
@@ -97,7 +95,7 @@ export default function Updates() {
             onClick={() => setActiveTab("feed")}
             className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
               activeTab === "feed"
-                ? "bg-white text-[#8d5e30] shadow-sm"
+                ? "bg-card text-[#8d5e30] shadow-sm"
                 : "text-[#786455] hover:text-[#4c392e]"
             }`}
           >
@@ -108,7 +106,7 @@ export default function Updates() {
               onClick={() => setActiveTab("manage")}
               className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
                 activeTab === "manage"
-                  ? "bg-white text-[#8d5e30] shadow-sm"
+                  ? "bg-card text-[#8d5e30] shadow-sm"
                   : "text-[#786455] hover:text-[#4c392e]"
               }`}
             >

@@ -51,15 +51,15 @@ export function MemberFeed() {
   if (isLoading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="h-44 animate-pulse rounded-[24px] bg-white/70" />
-        <div className="h-44 animate-pulse rounded-[24px] bg-white/70" />
+        <div className="h-44 animate-pulse rounded-xl bg-card/70" />
+        <div className="h-44 animate-pulse rounded-xl bg-card/70" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-[24px] border border-[#f5c6cb] bg-[#fff0eb] p-6 text-center text-sm text-[#8a3928]">
+      <div className="rounded-xl border border-[#f5c6cb] bg-[#fff0eb] p-6 text-center text-sm text-[#8a3928]">
         <p className="font-bold text-[#9e3825]">
           ไม่สามารถโหลดข้อมูลข่าวสารได้ในขณะนี้
         </p>
@@ -113,7 +113,7 @@ export function MemberFeed() {
               className={`min-h-11 rounded-full px-3.5 py-2 text-xs font-bold transition-all ${
                 newsCategoryFilter === cat
                   ? "bg-[#bd7b42] text-white shadow-sm"
-                  : "bg-white/80 text-[#6a5649] hover:bg-white hover:text-[#49372d] border border-[#e8dccb]"
+                  : "bg-card/80 text-[#6a5649] hover:bg-card hover:text-[#49372d] border border-[#e8dccb]"
               }`}
             >
               {cat === "all" ? "ทั้งหมด" : categoryLabels[cat]}
@@ -138,7 +138,7 @@ export function MemberFeed() {
                     setSelectedNews(item);
                   }
                 }}
-                className="group cursor-pointer rounded-[24px] border border-[#eee4d7] bg-white p-5 shadow-[0_5px_15px_rgba(94,70,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(94,70,42,0.08)] focus:outline-none focus:ring-2 focus:ring-[#bd7b42]"
+                className="group cursor-pointer rounded-xl border border-[#eee4d7] bg-card p-5 shadow-xs transition focus:outline-none focus:ring-2 focus:ring-[#bd7b42]"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff3de] px-2.5 py-1 text-[10px] font-bold text-[#8d5e30]">
@@ -157,7 +157,7 @@ export function MemberFeed() {
                 </p>
                 <div className="mt-4 flex items-center gap-1 text-xs font-bold text-[#9e5d26]">
                   อ่านรายละเอียด{" "}
-                  <ChevronRight className="size-3.5 transition group-hover:translate-x-0.5" />
+                  <ChevronRight className="size-3.5 transition" />
                 </div>
               </article>
             ))}
@@ -197,7 +197,7 @@ export function MemberFeed() {
                     setSelectedEvent(event);
                   }
                 }}
-                className="group flex cursor-pointer gap-4 rounded-[24px] border border-[#eee4d7] bg-white p-4 shadow-[0_5px_15px_rgba(94,70,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(94,70,42,0.08)] focus:outline-none focus:ring-2 focus:ring-[#bd7b42]"
+                className="group flex cursor-pointer gap-4 rounded-xl border border-[#eee4d7] bg-card p-4 shadow-xs transition focus:outline-none focus:ring-2 focus:ring-[#bd7b42]"
               >
                 <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#e9f3ff] text-[#3c6f9e]">
                   <CalendarDays className="size-5" />
@@ -234,7 +234,7 @@ export function MemberFeed() {
         open={!!selectedNews}
         onOpenChange={open => !open && setSelectedNews(null)}
       >
-        <DialogContent className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
+        <DialogContent className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl border-[#eee4d7] bg-[#fffdf8] p-6 shadow-xs">
           {selectedNews && (
             <>
               <DialogHeader className="space-y-2 text-left">
@@ -289,7 +289,7 @@ export function MemberFeed() {
         open={!!selectedEvent}
         onOpenChange={open => !open && setSelectedEvent(null)}
       >
-        <DialogContent className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-[28px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
+        <DialogContent className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl border-[#eee4d7] bg-[#fffdf8] p-6 shadow-xs">
           {selectedEvent && (
             <>
               <DialogHeader className="space-y-2 text-left">
@@ -358,7 +358,7 @@ export function MemberFeed() {
                   <button
                     type="button"
                     onClick={() => downloadICS(selectedEvent)}
-                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#e5d6c2] bg-white px-4 py-2.5 text-xs font-bold text-[#8d5e30] shadow-sm hover:bg-[#fff9f0] active:scale-95 transition"
+                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#e5d6c2] bg-card px-4 py-2.5 text-xs font-bold text-[#8d5e30] shadow-sm hover:bg-[#fff9f0] active:scale-95 transition"
                   >
                     <CalendarPlus className="size-4 text-[#bd7b42]" />
                     เพิ่มลงปฏิทิน (.ics)

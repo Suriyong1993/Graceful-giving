@@ -6,7 +6,11 @@ import { fmtBaht, Variance } from "./countingUtils";
 interface CashCountTabProps {
   sessionId: number;
   editable: boolean;
-  cashCounts: Array<{ denomination: number; kind: "note" | "coin" | string; quantity: number }>;
+  cashCounts: Array<{
+    denomination: number;
+    kind: "note" | "coin" | string;
+    quantity: number;
+  }>;
   draftCounts: Record<string, string>;
   setDraftCounts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   envelopeCashTotal: number;
@@ -35,7 +39,7 @@ export function CashCountTab({
 }: CashCountTabProps) {
   return (
     <section className="space-y-4">
-      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
         <div className="border-b border-[#E9D9BF] p-4">
           <h2 className="font-bold text-foreground">ใบนับธนบัตรและเหรียญ</h2>
           <p className="mt-1 text-sm text-[#674F42]">

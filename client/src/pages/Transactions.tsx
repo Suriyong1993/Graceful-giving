@@ -36,7 +36,7 @@ interface TransactionItem {
   date: string | Date;
   type: "income" | "expense";
   category: string;
-  /** Resolved from fundId against finance.accounts; "—" when the row has none. */
+  /** Resolved from fundId against finance.accounts; "-" when the row has none. */
   fund: string;
   categoryLabel: string;
   amount: number;
@@ -83,7 +83,7 @@ export default function Transactions() {
   const transactions = useMemo(() => {
     const list: TransactionItem[] = [];
     const fundName = (id: number | null | undefined) =>
-      (id != null && fundNameById.get(id)) || "—";
+      (id != null && fundNameById.get(id)) || "-";
     if (offeringsData && offeringsData.length > 0) {
       offeringsData.forEach((o: OfferingItem) => {
         list.push({
@@ -192,7 +192,7 @@ export default function Transactions() {
     >
       {/* 1. Summary Cards (รายรับ, รายจ่าย, ยอดสุทธิ) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-        <div className="bg-[#FFF0ED] border border-[#FCE7DF] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+        <div className="bg-[#FFF0ED] border border-[#FCE7DF] rounded-xl p-4 md:p-5 shadow-2xs space-y-1">
           <span className="text-xs font-bold text-[#70452E]">
             รายรับทั้งหมด
           </span>
@@ -204,7 +204,7 @@ export default function Transactions() {
           </p>
         </div>
 
-        <div className="bg-[#EFF8E8] border border-[#DCECC5] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+        <div className="bg-[#EFF8E8] border border-[#DCECC5] rounded-xl p-4 md:p-5 shadow-2xs space-y-1">
           <span className="text-xs font-bold text-[#70452E]">
             รายจ่ายทั้งหมด
           </span>
@@ -216,7 +216,7 @@ export default function Transactions() {
           </p>
         </div>
 
-        <div className="bg-[#FFF8EB] border border-[#FBE9CD] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+        <div className="bg-[#FFF8EB] border border-[#FBE9CD] rounded-xl p-4 md:p-5 shadow-2xs space-y-1">
           <span className="text-xs font-bold text-[#70452E]">ยอดสุทธิ</span>
           <div>
             <MoneyDisplay
@@ -230,7 +230,7 @@ export default function Transactions() {
       </div>
 
       {/* 2. Filter Bar */}
-      <div className="bg-white rounded-[28px] p-4 md:p-5 border border-[#E9D9BF] card-elevation-sm space-y-3">
+      <div className="bg-card rounded-xl p-4 md:p-5 border border-[#E9D9BF] card-elevation-sm space-y-3">
         <FilterBar
           searchPlaceholder="ค้นหารายการ, หมวดหมู่, หรือพันธกิจ..."
           searchValue={searchTerm}
@@ -273,7 +273,7 @@ export default function Transactions() {
           onAction={() => setLocation("/offerings/new")}
         />
       ) : (
-        <div className="bg-white rounded-[28px] border border-[#E9D9BF] card-elevation-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-[#E9D9BF] card-elevation-sm overflow-hidden">
           {/* DESKTOP TABLE VIEW (Hidden on Mobile) */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">

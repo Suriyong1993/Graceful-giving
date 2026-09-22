@@ -244,7 +244,7 @@ export function AdminManager() {
   };
 
   return (
-    <section className="mt-10 rounded-[28px] border border-[#eadfce] bg-[#fffaf1] p-5 sm:p-7">
+    <section className="mt-10 rounded-xl border border-[#eadfce] bg-[#fffaf1] p-5 sm:p-7">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2">
@@ -266,7 +266,7 @@ export function AdminManager() {
           </button>
           <button
             onClick={openNewEvent}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#e5d6c2] bg-white px-4 py-2.5 text-xs font-bold text-[#8d5e30] hover:bg-[#fbf7f0] shadow-sm active:scale-95 transition"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#e5d6c2] bg-card px-4 py-2.5 text-xs font-bold text-[#8d5e30] hover:bg-[#fbf7f0] shadow-sm active:scale-95 transition"
           >
             <CalendarDays className="size-4" /> กิจกรรมใหม่
           </button>
@@ -280,16 +280,16 @@ export function AdminManager() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="ค้นหาชื่อข่าวสารหรือกิจกรรม..."
-          className="w-full rounded-2xl border border-[#eadfce] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#4d3a30] focus:border-[#bd7b42] focus:outline-none"
+          className="w-full rounded-2xl border border-[#eadfce] bg-card py-2.5 pl-10 pr-4 text-xs font-medium text-[#4d3a30] focus:border-[#bd7b42] focus:outline-none"
         />
       </div>
 
       {isLoading ? (
-        <div className="mt-5 h-20 animate-pulse rounded-2xl bg-white/70" />
+        <div className="mt-5 h-20 animate-pulse rounded-2xl bg-card/70" />
       ) : (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {/* Admin News List */}
-          <div className="rounded-2xl border border-[#eee4d7] bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-[#eee4d7] bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-[#4d3a30]">ข่าวสารทั้งหมด</p>
               <span className="text-xs font-semibold text-[#786455]">
@@ -370,7 +370,7 @@ export function AdminManager() {
           </div>
 
           {/* Admin Events List */}
-          <div className="rounded-2xl border border-[#eee4d7] bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-[#eee4d7] bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-[#4d3a30]">กิจกรรมทั้งหมด</p>
               <span className="text-xs font-semibold text-[#786455]">
@@ -479,7 +479,7 @@ export function AdminManager() {
         open={!!deletingNews}
         onOpenChange={open => !open && setDeletingNews(null)}
       >
-        <DialogContent className="w-full max-w-sm rounded-[26px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
+        <DialogContent className="w-full max-w-sm rounded-xl border-[#eee4d7] bg-[#fffdf8] p-6 shadow-xs">
           {deletingNews && (
             <>
               <DialogHeader className="text-left">
@@ -527,7 +527,7 @@ export function AdminManager() {
         open={!!deletingEvent}
         onOpenChange={open => !open && setDeletingEvent(null)}
       >
-        <DialogContent className="w-full max-w-sm rounded-[26px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
+        <DialogContent className="w-full max-w-sm rounded-xl border-[#eee4d7] bg-[#fffdf8] p-6 shadow-xs">
           {deletingEvent && (
             <>
               <DialogHeader className="text-left">

@@ -7,13 +7,7 @@ import {
   confirmDiscardChanges,
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
-import {
-  Calendar,
-  CheckCircle2,
-  FileUp,
-  HandCoins,
-  Sparkles,
-} from "lucide-react";
+import { Calendar, CheckCircle2, FileUp, HandCoins } from "lucide-react";
 import { toast } from "sonner";
 import {
   OFFERING_CATEGORIES,
@@ -53,12 +47,12 @@ export default function NewOffering() {
     !isSuccessOpen &&
     Boolean(
       amount ||
-        notes ||
-        donorName ||
-        isAnonymous ||
-        fundId ||
-        category !== "general" ||
-        method !== "เงินสด"
+      notes ||
+      donorName ||
+      isAnonymous ||
+      fundId ||
+      category !== "general" ||
+      method !== "เงินสด"
     );
   useUnsavedChanges(isDirty);
   const goBack = async () => {
@@ -122,12 +116,12 @@ export default function NewOffering() {
     >
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Hero Card with offering_box.jpg */}
-        <div className="bg-gradient-to-r from-[#FFFDF8] via-[#FFF8EC] to-[#FFF1DE] rounded-[32px] p-6 border border-[#E9D9BF] shadow-xs flex items-center gap-5">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[24px] overflow-hidden bg-white p-1 border border-[#E9D9BF] shadow-xs shrink-0">
+        <div className="bg-secondary rounded-xl p-6 border border-[#E9D9BF] shadow-xs flex items-center gap-5">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-card p-1 border border-[#E9D9BF] shadow-xs shrink-0">
             <Illustration
               src="/illustrations/offering_box.jpg"
               alt="กล่องถวาย"
-              className="w-full h-full object-cover rounded-[20px]"
+              className="w-full h-full object-cover rounded-xl"
               width={96}
               height={96}
             />
@@ -137,7 +131,7 @@ export default function NewOffering() {
               การถวายด้วยความยินดี
             </h2>
             <p className="text-xs text-[#927D6D] leading-relaxed">
-              "พระเจ้าทรงรักผู้ที่ให้ด้วยใจยินดี" —
+              "พระเจ้าทรงรักผู้ที่ให้ด้วยใจยินดี"
               ทุกยอดการถวายจะถูกบันทึกอย่างถูกต้องและโปร่งใสเพื่อการงานของพระเจ้า
             </p>
           </div>
@@ -146,7 +140,7 @@ export default function NewOffering() {
         {/* Main Step Form Card */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] card-elevation-sm space-y-6"
+          className="bg-card rounded-xl p-6 sm:p-8 border border-[#E9D9BF] card-elevation-sm space-y-6"
         >
           {/* 1. ประเภทถวาย */}
           <div className="space-y-2.5">
@@ -162,7 +156,7 @@ export default function NewOffering() {
                   className={`p-3 rounded-2xl border text-xs font-bold text-center transition-all ${
                     category === cat.id
                       ? "bg-[#FFF4DF] border-[#E99A4A] text-[#70452E] shadow-2xs"
-                      : "bg-white border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
+                      : "bg-card border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
                   }`}
                 >
                   {cat.label}
@@ -216,7 +210,7 @@ export default function NewOffering() {
               onChange={e => setFundId(e.target.value)}
             >
               <option value="" disabled>
-                — เลือกกองทุน —
+                เลือกกองทุน
               </option>
               {funds.map(f => (
                 <option key={f.id} value={f.id}>
@@ -245,7 +239,7 @@ export default function NewOffering() {
                   className={`min-h-11 py-2.5 px-3 rounded-2xl border text-xs font-bold transition-all ${
                     method === m
                       ? "bg-[#EAF5E4] border-[#A8C978] text-[#4F8B33] shadow-2xs"
-                      : "bg-white border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
+                      : "bg-card border-[#E9D9BF] text-[#70452E]/80 hover:bg-[#FFF9EE]"
                   }`}
                 >
                   {m}
@@ -337,7 +331,7 @@ export default function NewOffering() {
 
       {/* Success Celebration Dialog */}
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
-        <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-[32px] p-6 text-center text-[#38251B] space-y-4">
+        <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-xl p-6 text-center text-[#38251B] space-y-4">
           <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden border border-[#E9D9BF] shadow-xs p-1 bg-[#EAF5E4]">
             <Illustration
               src="/illustrations/income_hand_heart.jpg"

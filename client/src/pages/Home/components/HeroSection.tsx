@@ -5,7 +5,7 @@ export function HeroSection() {
   return (
     <section
       aria-label="Grace-giving ส่วนต้อนรับ"
-      className="animate-fade-up relative rounded-3xl overflow-hidden bg-white border border-[#E9D9BF] card-elevation-sm p-6 sm:p-8 md:p-10 w-full"
+      className="animate-fade-up relative rounded-3xl overflow-hidden bg-card border border-[#E9D9BF] card-elevation-sm p-6 sm:p-8 md:p-10 w-full"
     >
       {/* Hero Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-center relative z-10 w-full">
@@ -54,9 +54,9 @@ export function HeroSection() {
               height={384}
             />
             <div className="absolute bottom-3 left-3 pointer-events-none">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 backdrop-blur-xs border border-[#E9D9BF] shadow-2xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-card/95 border border-[#E9D9BF] shadow-2xs">
                 <span className="text-xs font-bold text-[#4A2E1B]">
-                  พระเยซูผู้เลี้ยงที่ดี ♥
+                  พระเยซูผู้เลี้ยงที่ดี
                 </span>
               </div>
             </div>

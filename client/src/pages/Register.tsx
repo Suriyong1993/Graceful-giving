@@ -1,13 +1,14 @@
 import React from "react";
 import { SignUp } from "@clerk/clerk-react";
 import { Sprout } from "lucide-react";
+import { LegalLinks } from "@/pages/Legal";
 
 export default function Register() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#FFFDF8] via-[#FFF9EE] to-[#FFF4DF] p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 space-y-2 text-center">
-          <div className="relative mb-2 inline-flex size-16 items-center justify-center overflow-hidden rounded-[24px] border border-[#E99A4A]/30 bg-[#E99A4A]/15 shadow-xs">
+          <div className="relative mb-2 inline-flex size-16 items-center justify-center overflow-hidden rounded-xl border border-[#E99A4A]/30 bg-[#E99A4A]/15 shadow-xs">
             <Sprout className="size-9 text-[#70452E]" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-[#38251B]">
@@ -29,6 +30,7 @@ export default function Register() {
             },
           }}
         />
+        <LegalLinks />
       </div>
     </div>
   );

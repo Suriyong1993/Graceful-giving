@@ -45,7 +45,7 @@ export function AdminNewsDialog({
 }: AdminNewsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[28px] border-[#eee4d7] bg-[#fffdf8] p-6 shadow-2xl">
+      <DialogContent className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border-[#eee4d7] bg-[#fffdf8] p-6 shadow-xs">
         <form onSubmit={onSubmit}>
           <DialogHeader className="text-left">
             <div className="flex items-center gap-3">

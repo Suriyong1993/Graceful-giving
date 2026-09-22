@@ -287,7 +287,7 @@ export default function Settings() {
   if (!isSuperAdmin(user)) {
     return (
       <AppLayout>
-        <div className="max-w-xl mx-auto my-12 bg-white rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
+        <div className="max-w-xl mx-auto my-12 bg-card rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-rose-100 border-2 border-rose-200 mx-auto flex items-center justify-center text-rose-600">
             <Lock className="w-8 h-8" />
           </div>
@@ -389,7 +389,7 @@ export default function Settings() {
                 : "text-[#70452E]/70 hover:text-[#38251B]"
             }`}
           >
-            <FileText className="w-4 h-4 text-purple-600 shrink-0" />
+            <FileText className="w-4 h-4 text-stone-600 shrink-0" />
             <span>ตรวจสอบประวัติ (Audit Log)</span>
           </button>
         </div>
@@ -397,7 +397,7 @@ export default function Settings() {
         {/* Tab 1: Church Profile Form */}
         {activeTab === "church" && (
           <form onSubmit={handleSaveProfile} className="space-y-6">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
               <h3 className="text-base font-bold text-[#38251B] flex items-center gap-2">
                 <Building className="w-5 h-5 text-[#E99A4A]" />
                 ข้อมูลทั่วไปของคริสตจักร
@@ -506,7 +506,7 @@ export default function Settings() {
 
         {/* Account and sign out */}
         {activeTab === "church" && (
-          <section className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm md:p-8">
+          <section className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm md:p-8">
             <h3 className="text-base font-bold text-[#38251B]">บัญชีผู้ใช้</h3>
             <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-[#674F42]">
@@ -546,7 +546,7 @@ export default function Settings() {
         {activeTab === "roles" && (
           <div className="space-y-6">
             {/* User Management Table */}
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E9D9BF]/60 pb-5">
                 <div>
                   <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
@@ -591,12 +591,12 @@ export default function Settings() {
                     className="font-semibold focus:ring-2 focus:ring-[#E99A4A]/20"
                   >
                     <option value="ALL">บทบาททั้งหมด</option>
-                    <option value="SUPER_ADMIN">👑 ผู้ดูแลระบบสูงสุด</option>
-                    <option value="PASTOR">✝️ ศิษยาภิบาล</option>
-                    <option value="TREASURER">💰 เหรัญญิก</option>
-                    <option value="DEACON">🤝 มัคนายก</option>
-                    <option value="COUNTER">📝 ทีมนับเงิน</option>
-                    <option value="MEMBER">👤 สมาชิกทั่วไป</option>
+                    <option value="SUPER_ADMIN">ผู้ดูแลระบบสูงสุด</option>
+                    <option value="PASTOR">ศิษยาภิบาล</option>
+                    <option value="TREASURER">เหรัญญิก</option>
+                    <option value="DEACON">มัคนายก</option>
+                    <option value="COUNTER">ทีมนับเงิน</option>
+                    <option value="MEMBER">สมาชิกทั่วไป</option>
                   </NativeSelect>
                 </div>
               </div>
@@ -709,22 +709,22 @@ export default function Settings() {
                                       className="font-semibold shadow-sm hover:border-[#E99A4A] focus:ring-2 focus:ring-[#E99A4A]/20 transition-all"
                                     >
                                       <option value="SUPER_ADMIN">
-                                        👑 ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)
+                                        ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)
                                       </option>
                                       <option value="PASTOR">
-                                        ✝️ ศิษยาภิบาล (PASTOR)
+                                        ศิษยาภิบาล (PASTOR)
                                       </option>
                                       <option value="TREASURER">
-                                        💰 เหรัญญิกคริสตจักร (TREASURER)
+                                        เหรัญญิกคริสตจักร (TREASURER)
                                       </option>
                                       <option value="DEACON">
-                                        🤝 มัคนายก / คณะกรรมการ (DEACON)
+                                        มัคนายก / คณะกรรมการ (DEACON)
                                       </option>
                                       <option value="COUNTER">
-                                        📝 ทีมนับเงินถวาย (COUNTER)
+                                        ทีมนับเงินถวาย (COUNTER)
                                       </option>
                                       <option value="MEMBER">
-                                        👤 สมาชิกคริสตจักร (MEMBER)
+                                        สมาชิกคริสตจักร (MEMBER)
                                       </option>
                                     </NativeSelect>
                                   </div>
@@ -745,7 +745,7 @@ export default function Settings() {
             </div>
 
             {/* Structure and Appointed Roles Reference */}
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
               <div>
                 <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
                   <Shield className="w-5 h-5 text-emerald-600" />
@@ -768,11 +768,11 @@ export default function Settings() {
                         <span className="font-bold text-base text-[#38251B]">
                           {r.title}
                         </span>
-                        <span className="ml-2.5 font-mono text-xs text-[#70452E]/70 bg-white px-2.5 py-0.5 rounded-md border border-[#E9D9BF]">
+                        <span className="ml-2.5 font-mono text-xs text-[#70452E]/70 bg-card px-2.5 py-0.5 rounded-md border border-[#E9D9BF]">
                           {r.role}
                         </span>
                       </div>
-                      <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-white text-[#38251B] border-[#E9D9BF] self-start sm:self-auto">
+                      <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-card text-[#38251B] border-[#E9D9BF] self-start sm:self-auto">
                         ผู้รับผิดชอบ:{" "}
                         <span className="text-[#E99A4A] font-bold">
                           {r.appointee}
@@ -808,7 +808,7 @@ export default function Settings() {
 
         {/* Tab 3: Categories */}
         {activeTab === "categories" && (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
+          <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
             <h3 className="text-base font-bold text-[#38251B] flex items-center gap-2">
               <Banknote className="w-5 h-5 text-amber-600" />
               หมวดหมู่การเงินมาตรฐานคริสตจักร
@@ -859,14 +859,14 @@ export default function Settings() {
 
         {/* Tab 4: Payment */}
         {activeTab === "payment" && (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
+          <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-5 shadow-sm">
             <h3 className="text-base font-bold text-[#38251B] flex items-center gap-2">
               <QrCode className="w-5 h-5 text-sky-600" />
               บัญชีรับเงินถวายและ QR พร้อมเพย์
             </h3>
 
             <div className="p-4 rounded-2xl bg-[#FFF4DF]/50 border border-[#E9D9BF] flex flex-col sm:flex-row items-center gap-6">
-              <div className="w-32 h-32 bg-white p-2 rounded-2xl border border-[#E9D9BF] shadow-inner flex items-center justify-center">
+              <div className="w-32 h-32 bg-card p-2 rounded-2xl border border-[#E9D9BF] shadow-inner flex items-center justify-center">
                 <QrCode className="w-24 h-24 text-[#38251B]" />
               </div>
 
@@ -897,11 +897,11 @@ export default function Settings() {
 
         {/* Tab 5: Audit Log */}
         {activeTab === "audit" && (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
+          <div className="bg-card rounded-3xl border border-[#E9D9BF] p-6 md:p-8 space-y-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E9D9BF]/60 pb-5">
               <div>
                 <h3 className="text-lg font-bold text-[#38251B] flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-purple-600" />
+                  <FileText className="w-5 h-5 text-stone-600" />
                   บันทึกประวัติการดำเนินงาน (Audit Log)
                 </h3>
                 <p className="text-xs text-[#70452E]/80 mt-1">
@@ -945,13 +945,13 @@ export default function Settings() {
                 >
                   <option value="ALL">กิจกรรมทั้งหมด</option>
                   <option value="AUTH_SET_CHURCH_ROLE">
-                    👑 เปลี่ยนบทบาทผู้ใช้ (AUTH_SET_CHURCH_ROLE)
+                    เปลี่ยนบทบาทผู้ใช้ (AUTH_SET_CHURCH_ROLE)
                   </option>
                   <option value="AUTH_UPDATE_PROFILE">
-                    👤 แก้ไขโปรไฟล์ (AUTH_UPDATE_PROFILE)
+                    แก้ไขโปรไฟล์ (AUTH_UPDATE_PROFILE)
                   </option>
                   <option value="CHURCH_UPDATE_PROFILE">
-                    🏛️ แก้ไขข้อมูลคริสตจักร (CHURCH_UPDATE_PROFILE)
+                    แก้ไขข้อมูลคริสตจักร (CHURCH_UPDATE_PROFILE)
                   </option>
                 </NativeSelect>
               </div>
@@ -1025,13 +1025,13 @@ export default function Settings() {
                           if (log.action === "AUTH_SET_CHURCH_ROLE") {
                             actionBadge = (
                               <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-300">
-                                👑 เปลี่ยนบทบาทผู้ใช้
+                                เปลี่ยนบทบาทผู้ใช้
                               </span>
                             );
                           } else if (log.action === "AUTH_UPDATE_PROFILE") {
                             actionBadge = (
                               <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-[11px] border border-blue-300">
-                                👤 แก้ไขโปรไฟล์
+                                แก้ไขโปรไฟล์
                               </span>
                             );
                           }

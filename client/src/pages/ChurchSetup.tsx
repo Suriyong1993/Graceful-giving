@@ -31,7 +31,9 @@ export default function ChurchSetup() {
 
   useEffect(() => {
     if (!authLoading && user && !canManageChurchSettings(user)) {
-      toast.error("เฉพาะผู้ดูแลระบบสูงสุด (SUPER_ADMIN) หรือผู้นำคริสตจักรเท่านั้นที่สามารถเข้าถึงหน้านี้ได้");
+      toast.error(
+        "เฉพาะผู้ดูแลระบบสูงสุด (SUPER_ADMIN) หรือผู้นำคริสตจักรเท่านั้นที่สามารถเข้าถึงหน้านี้ได้"
+      );
       setLocation("/");
     }
   }, [user, authLoading, setLocation]);
@@ -65,7 +67,8 @@ export default function ChurchSetup() {
     setLocation("/");
   }
 
-  const set = (partial: Partial<SetupData>) => setData((d) => ({ ...d, ...partial }));
+  const set = (partial: Partial<SetupData>) =>
+    setData(d => ({ ...d, ...partial }));
   const totalSteps = STEPS.length;
   const progressPct = ((step - 1) / (totalSteps - 1)) * 100;
   const currentStepConfig = STEPS[step - 1];
@@ -89,12 +92,12 @@ export default function ChurchSetup() {
 
   function next() {
     if (!validateStep()) return;
-    setStep((s) => Math.min(s + 1, totalSteps));
+    setStep(s => Math.min(s + 1, totalSteps));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function back() {
-    setStep((s) => Math.max(s - 1, 1));
+    setStep(s => Math.max(s - 1, 1));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -120,7 +123,7 @@ export default function ChurchSetup() {
       await completeSetupMutation.mutateAsync();
       clearSetupSkip();
       await utils.church.getProfile.invalidate();
-      toast.success("ตั้งค่าคริสตจักรเรียบร้อย! 🎉");
+      toast.success("ตั้งค่าคริสตจักรเรียบร้อย");
       setTimeout(() => setLocation("/"), 1200);
     } catch (error: unknown) {
       toast.error(getSaveErrorMessage(error));
@@ -131,25 +134,31 @@ export default function ChurchSetup() {
 
   return (
     <div className="min-h-screen bg-[#fbf7ee]">
-      <div className="mx-auto min-h-screen max-w-[560px] overflow-x-hidden bg-[#fbf7ee] pb-32 shadow-[0_0_40px_rgba(112,78,45,0.07)] lg:my-6 lg:min-h-0 lg:rounded-[32px] lg:border lg:border-[#efe2d1]">
+      <div className="mx-auto min-h-screen max-w-[560px] overflow-x-hidden bg-[#fbf7ee] pb-32 shadow-xs lg:my-6 lg:min-h-0 lg:rounded-xl lg:border lg:border-[#efe2d1]">
         {/* Header */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#fce9ce] via-[#fff3de] to-[#fbf7ee] px-5 pb-6 pt-5 sm:px-8">
+        <div className="relative overflow-hidden bg-secondary px-5 pb-6 pt-5 sm:px-8">
           <button
             onClick={skipSetup}
             aria-label="กลับหน้าหลัก"
-            className="absolute right-5 top-5 grid size-9 place-items-center rounded-full bg-white/70 text-[#786455] hover:bg-white transition"
+            className="absolute right-5 top-5 grid size-9 place-items-center rounded-full bg-card/70 text-[#786455] hover:bg-card transition"
           >
             <X className="size-4" />
           </button>
-          <p className="text-xs font-bold text-[#8d5e30]">GRACE-GIVING · ตั้งค่าคริสตจักร</p>
+          <p className="text-xs font-bold text-[#8d5e30]">
+            GRACE-GIVING · ตั้งค่าคริสตจักร
+          </p>
           <h1 className="font-display mt-2 text-2xl font-bold leading-tight tracking-tight text-[#3a2d26]">
-            ยินดีต้อนรับ 👋<br />มาเริ่มต้นด้วยกัน
+            ยินดีต้อนรับ
+            <br />
+            มาเริ่มต้นด้วยกัน
           </h1>
 
           {/* Progress bar */}
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between text-xs font-bold text-[#6a5649]">
-              <span>ขั้นตอนที่ {step} จาก {totalSteps}</span>
+              <span>
+                ขั้นตอนที่ {step} จาก {totalSteps}
+              </span>
               <span>{Math.round(progressPct)}%</span>
             </div>
             <div
@@ -161,7 +170,7 @@ export default function ChurchSetup() {
               className="h-2 overflow-hidden rounded-full bg-[#f0e8db]"
             >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#bd7b42] to-[#d4954f] transition-all duration-500"
+                className="h-full rounded-full bg-[#bd7b42] transition-all duration-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -169,13 +178,17 @@ export default function ChurchSetup() {
 
           {/* Step dots */}
           <div className="mt-4 flex justify-center gap-1.5">
-            {STEPS.map((s) => (
+            {STEPS.map(s => (
               <button
                 key={s.id}
                 onClick={() => step > s.id && setStep(s.id)}
                 aria-label={`ขั้นตอน ${s.id}`}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
-                  s.id === step ? "w-6 bg-[#bd7b42]" : s.id < step ? "w-3 bg-[#bd7b42]/50" : "w-3 bg-[#e0d4c5]"
+                  s.id === step
+                    ? "w-6 bg-[#bd7b42]"
+                    : s.id < step
+                      ? "w-3 bg-[#bd7b42]/50"
+                      : "w-3 bg-[#e0d4c5]"
                 }`}
               />
             ))}
@@ -184,18 +197,24 @@ export default function ChurchSetup() {
 
         {/* Step Card */}
         <div className="px-4 pt-4 sm:px-6">
-          <div className="rounded-[28px] border border-[#eee4d7] bg-white px-5 py-6 shadow-[0_8px_24px_rgba(94,70,42,0.06)] sm:px-7">
+          <div className="rounded-xl border border-[#eee4d7] bg-card px-5 py-6 shadow-xs sm:px-7">
             {/* Step Header */}
             <div className="mb-5 flex items-center gap-3">
-              <span className={`grid size-12 place-items-center rounded-2xl ${currentStepConfig.bgColor}`}>
+              <span
+                className={`grid size-12 place-items-center rounded-2xl ${currentStepConfig.bgColor}`}
+              >
                 <StepIcon className={`size-6 ${currentStepConfig.color}`} />
               </span>
               <div>
-                <p className="text-xs font-bold text-[#8d5e30]">ขั้นตอนที่ {step}</p>
+                <p className="text-xs font-bold text-[#8d5e30]">
+                  ขั้นตอนที่ {step}
+                </p>
                 <h2 className="font-display text-lg font-bold leading-tight text-[#3a2d26]">
                   {currentStepConfig.title}
                 </h2>
-                <p className="text-xs text-[#6a5649]">{currentStepConfig.subtitle}</p>
+                <p className="text-xs text-[#6a5649]">
+                  {currentStepConfig.subtitle}
+                </p>
               </div>
             </div>
 
@@ -213,7 +232,7 @@ export default function ChurchSetup() {
 
         {/* All Steps Overview (collapsed) */}
         <div className="px-4 pt-3 sm:px-6">
-          <details className="group rounded-2xl border border-[#eee4d7] bg-white overflow-hidden">
+          <details className="group rounded-2xl border border-[#eee4d7] bg-card overflow-hidden">
             <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-xs font-bold text-[#6a5649] select-none">
               <span className="flex items-center gap-2">
                 <Settings2 className="size-4 text-[#bd7b42]" />
@@ -222,7 +241,7 @@ export default function ChurchSetup() {
               <ChevronRight className="size-4 transition-transform duration-200 group-open:rotate-90" />
             </summary>
             <div className="divide-y divide-[#f0e8dd]">
-              {STEPS.map((s) => {
+              {STEPS.map(s => {
                 const done = step > s.id;
                 const active = step === s.id;
                 return (
@@ -234,18 +253,28 @@ export default function ChurchSetup() {
                       active ? "bg-[#fdf5ea]" : done ? "hover:bg-[#fdf8f2]" : ""
                     }`}
                   >
-                    <span className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${
-                      done ? "bg-[#6ba33e] text-white" : active ? "bg-[#bd7b42] text-white" : "bg-[#f0e8db] text-[#8d7665]"
-                    }`}>
+                    <span
+                      className={`grid size-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${
+                        done
+                          ? "bg-[#6ba33e] text-white"
+                          : active
+                            ? "bg-[#bd7b42] text-white"
+                            : "bg-[#f0e8db] text-[#8d7665]"
+                      }`}
+                    >
                       {done ? <Check className="size-3.5" /> : s.id}
                     </span>
                     <div className="min-w-0">
-                      <p className={`font-bold ${active ? "text-[#8d5e30]" : done ? "text-[#4c392e]" : "text-[#8d7665]"}`}>
+                      <p
+                        className={`font-bold ${active ? "text-[#8d5e30]" : done ? "text-[#4c392e]" : "text-[#8d7665]"}`}
+                      >
                         {s.title}
                       </p>
                       <p className="text-[10px] text-[#a09080]">{s.subtitle}</p>
                     </div>
-                    {done && <Check className="ml-auto size-3.5 shrink-0 text-[#6ba33e]" />}
+                    {done && (
+                      <Check className="ml-auto size-3.5 shrink-0 text-[#6ba33e]" />
+                    )}
                   </button>
                 );
               })}
@@ -256,12 +285,12 @@ export default function ChurchSetup() {
 
       {/* Fixed Bottom Navigation */}
       <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[560px]">
-        <div className="border-t border-[#eadfce] bg-[#fffaf2]/95 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-6">
+        <div className="border-t border-[#eadfce] bg-[#fffaf2]/95 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 sm:px-6">
           <div className="flex gap-3">
             {step > 1 && (
               <button
                 onClick={back}
-                className="min-h-[48px] flex-1 rounded-2xl border border-[#e8dccb] bg-white text-sm font-bold text-[#6a5649] hover:bg-[#f8f3eb] active:scale-[0.98] transition"
+                className="min-h-[48px] flex-1 rounded-2xl border border-[#e8dccb] bg-card text-sm font-bold text-[#6a5649] hover:bg-[#f8f3eb] active:scale-[0.98] transition"
               >
                 ← ย้อนกลับ
               </button>
@@ -269,7 +298,7 @@ export default function ChurchSetup() {
             {step < totalSteps ? (
               <button
                 onClick={next}
-                className="min-h-[48px] flex-[2] rounded-2xl bg-gradient-to-r from-[#bd7b42] to-[#d4954f] text-sm font-bold text-white shadow-[0_4px_14px_rgba(161,100,48,0.3)] hover:opacity-95 active:scale-[0.98] transition"
+                className="min-h-[48px] flex-[2] rounded-2xl bg-[#bd7b42] text-sm font-bold text-white shadow-xs hover:opacity-95 active:scale-[0.98] transition"
               >
                 ถัดไป →
               </button>
@@ -277,9 +306,9 @@ export default function ChurchSetup() {
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="min-h-[48px] flex-[2] rounded-2xl bg-gradient-to-r from-[#2c7b4c] to-[#3a9560] text-sm font-bold text-white shadow-[0_4px_14px_rgba(44,123,76,0.3)] hover:opacity-95 active:scale-[0.98] transition disabled:opacity-60"
+                className="min-h-[48px] flex-[2] rounded-2xl bg-[#2c7b4c] text-sm font-bold text-white shadow-xs hover:opacity-95 active:scale-[0.98] transition disabled:opacity-60"
               >
-                {saving ? "กำลังบันทึก..." : "✓ ยืนยันและเริ่มใช้งาน"}
+                {saving ? "กำลังบันทึก..." : "ยืนยันและเริ่มใช้งาน"}
               </button>
             )}
           </div>

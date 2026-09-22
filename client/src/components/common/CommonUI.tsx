@@ -23,7 +23,7 @@ export const LoadingSkeleton: React.FC<{
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full ${height} rounded-[24px] bg-[#FFF4DF]/60 animate-pulse border border-[#E9D9BF]/50 p-4 flex items-center gap-4`}
+          className={`w-full ${height} rounded-xl bg-[#FFF4DF]/60 animate-pulse border border-[#E9D9BF]/50 p-4 flex items-center gap-4`}
         >
           <div className="w-14 h-14 rounded-2xl bg-[#E9D9BF]/40 shrink-0" />
           <div className="flex-1 space-y-2">
@@ -58,7 +58,7 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-2xl bg-white border border-[#E9D9BF] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-card border border-[#E9D9BF] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
       <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#FFF4DF] p-1 border border-[#E9D9BF] shadow-xs shrink-0">
         <Illustration
@@ -271,7 +271,7 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E9D9BF] card-elevation-sm ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card rounded-2xl p-5 md:p-6 border border-[#E9D9BF] card-elevation-sm ${className}`}
     >
       <div className="min-w-0">
         <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight break-words">
@@ -315,7 +315,7 @@ export const Chip: React.FC<
     className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-bold transition-all ${
       active
         ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"
-        : "bg-white text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"
+        : "bg-card text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"
     } ${className}`}
     {...props}
   >

@@ -103,7 +103,7 @@ export default function Funds() {
               เพื่อให้เงินถวายที่มีวัตถุประสงค์เฉพาะถูกนำไปใช้อย่างตรงเป้าหมาย
             </p>
           </div>
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-white/60 p-1">
+          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
             <Illustration
               src="/illustrations/balance_wallet.jpg"
               alt="Funds illustration"
@@ -113,7 +113,7 @@ export default function Funds() {
         </div>
 
         {/* Overview Banner */}
-        <div className="bg-white border border-[#E9D9BF] rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-card border border-[#E9D9BF] rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="space-y-1 text-center sm:text-left">
             <p className="text-xs font-semibold text-[#70452E]/70 uppercase tracking-wider">
               ยอดเงินรวมทุกกองทุน (Total Fund Reserves)
@@ -142,7 +142,7 @@ export default function Funds() {
         {/* Funds Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {fundsList.length === 0 && (
-            <p className="md:col-span-2 lg:col-span-3 py-12 text-center text-sm text-[#927D6D] bg-white rounded-3xl border border-dashed border-[#E9D9BF]">
+            <p className="md:col-span-2 lg:col-span-3 py-12 text-center text-sm text-[#927D6D] bg-card rounded-3xl border border-dashed border-[#E9D9BF]">
               ยังไม่มีข้อมูลกองทุนจากระบบ
             </p>
           )}
@@ -153,13 +153,13 @@ export default function Funds() {
             return (
               <div
                 key={f.id}
-                className="bg-white rounded-3xl border border-[#E9D9BF] p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
+                className="bg-card rounded-3xl border border-[#E9D9BF] p-6 shadow-sm hover:shadow-xs transition-all flex flex-col justify-between group cursor-pointer"
                 onClick={() => setLocation(`/funds/${f.id}`)}
               >
                 <div className="space-y-4">
                   {/* Top Bar */}
                   <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-[#FFF4DF] flex items-center justify-center text-[#70452E] group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-2xl bg-[#FFF4DF] flex items-center justify-center text-[#70452E] transition-transform">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <span className="text-xs font-mono text-[#70452E]/60 bg-background px-2.5 py-1 rounded-full border border-[#E9D9BF]">
@@ -202,7 +202,7 @@ export default function Funds() {
                 {/* Bottom Action */}
                 <div className="pt-5 mt-4 border-t border-[#E9D9BF]/50 flex items-center justify-between text-xs font-semibold text-[#70452E] group-hover:text-primary">
                   <span>ดูสเตทเมนต์และรายละเอียด</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-4 h-4 transition-transform" />
                 </div>
               </div>
             );
@@ -211,8 +211,8 @@ export default function Funds() {
 
         {/* Create Fund Modal */}
         {showNewFundModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+            <div className="bg-card rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 space-y-5 shadow-xs animate-in fade-in zoom-in-95 duration-200">
               <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
                 <h3 className="text-lg font-bold text-foreground">
                   สร้างกองทุนใหม่

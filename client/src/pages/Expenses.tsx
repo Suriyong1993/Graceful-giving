@@ -131,7 +131,7 @@ export default function Expenses() {
       case "pastoral":
         return { icon: Cross, color: "bg-emerald-100 text-emerald-800" };
       case "admin":
-        return { icon: Receipt, color: "bg-purple-100 text-purple-800" };
+        return { icon: Receipt, color: "bg-stone-100 text-stone-800" };
       case "building":
         return { icon: Building, color: "bg-orange-100 text-orange-800" };
       case "worship":
@@ -161,7 +161,7 @@ export default function Expenses() {
               ด้วยความโปร่งใส สัตย์ซื่อ และมีหลักฐานครบถ้วน
             </p>
           </div>
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-white/60 p-1">
+          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
             <Illustration
               src="/illustrations/expense_hand_coin.jpg"
               alt="Expense illustration"
@@ -172,7 +172,7 @@ export default function Expenses() {
 
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
+          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
             <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
               <span className="text-sm font-medium">รวมรายจ่ายตามตัวกรอง</span>
               <div className="w-8 h-8 rounded-full bg-[#F7B6A6]/20 flex items-center justify-center text-[#70452E]">
@@ -190,7 +190,7 @@ export default function Expenses() {
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
+          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
             <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
               <span className="text-sm font-medium">
                 หมวดหมู่หลักประจำเดือน
@@ -207,7 +207,7 @@ export default function Expenses() {
             </p>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
+          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
             <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
               <span className="text-sm font-medium">สถานะการตรวจสอบ</span>
               <div className="w-8 h-8 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E]">
@@ -246,7 +246,7 @@ export default function Expenses() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={exportCSV}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]/50 transition-colors text-sm font-medium shadow-sm"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-[#E9D9BF] bg-card text-[#70452E] hover:bg-[#FFF4DF]/50 transition-colors text-sm font-medium shadow-sm"
             >
               <Download className="w-4 h-4" />
               <span>ส่งออก CSV</span>
@@ -279,7 +279,7 @@ export default function Expenses() {
             onAction={() => setLocation("/expenses/new")}
           />
         ) : (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] overflow-hidden shadow-sm">
+          <div className="bg-card rounded-3xl border border-[#E9D9BF] overflow-hidden shadow-sm">
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm text-foreground">
