@@ -118,6 +118,7 @@ export default function Settings() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [privacyContactEmail, setPrivacyContactEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [pastorName, setPastorName] = useState("");
   const [assistantPastorName, setAssistantPastorName] = useState("");
@@ -132,6 +133,7 @@ export default function Settings() {
     address: "",
     phone: "",
     email: "",
+    privacyContactEmail: "",
     pastorName: "",
     treasurerName: "",
     motto: "",
@@ -143,6 +145,7 @@ export default function Settings() {
       address: churchProfile?.address || "",
       phone: churchProfile?.phone || "",
       email: churchProfile?.email || "",
+      privacyContactEmail: churchProfile?.privacyContactEmail || "",
       pastorName: churchProfile?.pastorName || "",
       treasurerName: churchProfile?.treasurerName || "",
       motto: churchProfile?.motto || "",
@@ -151,6 +154,7 @@ export default function Settings() {
     setAddress(loaded.address);
     setPhone(loaded.phone);
     setEmail(loaded.email);
+    setPrivacyContactEmail(loaded.privacyContactEmail);
     setWebsite(churchProfile?.website || "");
     setPastorName(loaded.pastorName);
     setAssistantPastorName(churchProfile?.assistantPastorName || "");
@@ -167,6 +171,7 @@ export default function Settings() {
     address !== baseline.address ||
     phone !== baseline.phone ||
     email !== baseline.email ||
+    privacyContactEmail !== baseline.privacyContactEmail ||
     pastorName !== baseline.pastorName ||
     treasurerName !== baseline.treasurerName ||
     motto !== baseline.motto;
@@ -199,6 +204,7 @@ export default function Settings() {
       address,
       phone,
       email,
+      privacyContactEmail,
       website,
       pastorName,
       assistantPastorName,
@@ -463,6 +469,30 @@ export default function Settings() {
                     onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
                   />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label
+                    htmlFor="privacy-contact-email"
+                    className="font-semibold text-[#38251B]"
+                  >
+                    อีเมลติดต่อด้านข้อมูลส่วนบุคคล
+                  </label>
+                  <input
+                    id="privacy-contact-email"
+                    type="email"
+                    value={privacyContactEmail}
+                    onChange={e => setPrivacyContactEmail(e.target.value)}
+                    aria-describedby="privacy-contact-email-help"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
+                  />
+                  <p
+                    id="privacy-contact-email-help"
+                    className="text-[#70452E]"
+                  >
+                    แสดงในหน้านโยบายความเป็นส่วนตัว ซึ่งทุกคนเปิดได้โดยไม่ต้องเข้าสู่ระบบ
+                    ถ้าเว้นว่าง ระบบใช้อีเมลทางการแทน
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">

@@ -177,6 +177,8 @@ export const churchProfiles = pgTable("church_profiles", {
   address: text("address"),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
+  /** Contact for personal-data requests, shown on the public /privacy page. */
+  privacyContactEmail: varchar("privacyContactEmail", { length: 320 }),
   website: varchar("website", { length: 500 }),
   pastorName: varchar("pastorName", { length: 120 }),
   assistantPastorName: varchar("assistantPastorName", { length: 120 }),
@@ -662,7 +664,9 @@ export type InsertSessionDocument = typeof sessionDocuments.$inferInsert;
  */
 export const lineSlips = pgTable("line_slips", {
   id: serial("id").primaryKey(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
 
   // ─── LINE sender info ───
   /** LINE user ID of the sender */
@@ -696,19 +700,31 @@ export const lineSlips = pgTable("line_slips", {
   /** Extracted transfer amount in THB */
   extractedAmount: decimal("extractedAmount", { precision: 15, scale: 2 }),
   /** AI confidence 0.0–1.0 for the amount field */
-  extractedAmountConfidence: decimal("extractedAmountConfidence", { precision: 4, scale: 3 }),
+  extractedAmountConfidence: decimal("extractedAmountConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Extracted transfer date/time */
   extractedDate: timestamp("extractedDate"),
   /** AI confidence 0.0–1.0 for the date field */
-  extractedDateConfidence: decimal("extractedDateConfidence", { precision: 4, scale: 3 }),
+  extractedDateConfidence: decimal("extractedDateConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Bank transaction reference / transaction ID */
   extractedRef: varchar("extractedRef", { length: 120 }),
   /** AI confidence 0.0–1.0 for the reference field */
-  extractedRefConfidence: decimal("extractedRefConfidence", { precision: 4, scale: 3 }),
+  extractedRefConfidence: decimal("extractedRefConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Sender name as printed on the slip */
   extractedSenderName: varchar("extractedSenderName", { length: 180 }),
   /** AI confidence 0.0–1.0 for the sender name field */
-  extractedSenderConfidence: decimal("extractedSenderConfidence", { precision: 4, scale: 3 }),
+  extractedSenderConfidence: decimal("extractedSenderConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Source bank name (e.g. "SCB", "กสิกรไทย") */
   extractedBank: varchar("extractedBank", { length: 80 }),
 
@@ -756,7 +772,9 @@ export type InsertLineSlip = typeof lineSlips.$inferInsert;
 export const lineProcessingJobs = pgTable("line_processing_jobs", {
   id: serial("id").primaryKey(),
   slipId: integer("slipId").notNull(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
   /** queued → processing → done | failed */
   status: varchar("status", { length: 20 }).default("queued").notNull(),
   attempts: integer("attempts").default(0).notNull(),
