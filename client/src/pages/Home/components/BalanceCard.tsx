@@ -1,11 +1,4 @@
-import {
-  BarChart3,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Info,
-  Loader2,
-} from "lucide-react";
+import { BarChart3, ChevronRight, Eye, EyeOff, Info } from "lucide-react";
 import { Illustration } from "@/components/Illustration";
 
 interface BalanceCardProps {
@@ -62,12 +55,6 @@ export function BalanceCard({
             </button>
 
             {/* Data-source status */}
-            {isBalanceLoading && (
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F0EAF8] text-[#7D3C98] text-xs sm:text-sm font-black">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                กำลังโหลดข้อมูล
-              </span>
-            )}
             {isDataUnavailable && (
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#FFF3DF] border border-dashed border-[#E9C179] text-[#7A4B0F] text-xs sm:text-sm font-black">
                 <Info className="w-4 h-4" />
@@ -79,10 +66,13 @@ export function BalanceCard({
           </div>
 
           {isBalanceLoading ? (
-            <div
-              className="h-12 sm:h-16 md:h-20 w-56 sm:w-80 rounded-2xl bg-[#EDE6D8] animate-pulse"
-              aria-hidden="true"
-            />
+            <div role="status" aria-live="polite">
+              <span className="sr-only">กำลังโหลดยอดเงินคงเหลือ</span>
+              <div
+                className="h-12 sm:h-16 md:h-20 w-56 sm:w-80 rounded-2xl bg-[#EDE6D8] animate-pulse"
+                aria-hidden="true"
+              />
+            </div>
           ) : (
             <div
               /* Fluid, and never wrapping. The old fixed steps reached 96px,
@@ -99,7 +89,10 @@ export function BalanceCard({
 
           <p className="text-sm sm:text-base md:text-lg text-[#4A2E1B] font-bold flex items-center gap-2 pt-1">
             {isBalanceLoading ? (
-              <span>กำลังตรวจสอบยอดเงินล่าสุด…</span>
+              <span
+                className="block h-5 w-64 max-w-full rounded-md bg-[#EDE6D8] animate-pulse"
+                aria-hidden="true"
+              />
             ) : isPositiveBalance ? (
               <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
             ) : (

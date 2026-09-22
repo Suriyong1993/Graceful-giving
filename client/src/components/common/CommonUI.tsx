@@ -17,9 +17,16 @@ export const LoadingSkeleton: React.FC<{
   count?: number;
   height?: string;
   className?: string;
-}> = ({ count = 3, height = "h-24", className = "" }) => {
+  /** Read by screen readers in place of the visual placeholders. */
+  label?: string;
+}> = ({ count = 3, height = "h-24", className = "", label = "กำลังโหลด" }) => {
   return (
-    <div className={`space-y-3.5 w-full ${className}`}>
+    <div
+      className={`space-y-3.5 w-full ${className}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="sr-only">{label}</span>
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}

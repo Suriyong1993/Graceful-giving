@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { OFFERING_CATEGORIES, type OfferingCategory } from "@shared/categories";
 import { NativeSelect } from "@/components/ui/native-select";
+import { LoadingSkeleton } from "@/components/common/CommonUI";
 
 type InboxStatus =
   | "all"
@@ -687,9 +688,7 @@ export default function GivingInbox() {
 
             {/* Slips Cards */}
             {slipsQuery.isLoading ? (
-              <div className="p-12 text-center text-sm text-[#70452E]/60 bg-card rounded-3xl border border-[#E9D9BF]">
-                กำลังโหลดรายการสลิป...
-              </div>
+              <LoadingSkeleton count={3} label="กำลังโหลดรายการสลิป" />
             ) : filteredSlips.length === 0 ? (
               <div className="p-12 text-center text-[#70452E]/70 bg-card rounded-3xl border border-[#E9D9BF] space-y-3">
                 <CheckCircle2 className="w-10 h-10 text-emerald-600/50 mx-auto" />
