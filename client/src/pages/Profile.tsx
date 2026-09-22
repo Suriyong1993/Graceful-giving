@@ -42,6 +42,7 @@ import {
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { ChurchRole } from "@shared/roles";
+import { roleHolderLabel } from "@/lib/roleHolders";
 
 // ── Church roles and responsibilities. Holder names come from the users table.
 interface ChurchOfficialRoster {
@@ -174,26 +175,6 @@ const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&h=256&q=80",
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
 ];
-
-type RoleHoldersQuery = {
-  isLoading: boolean;
-  data?: {
-    holders: Partial<Record<ChurchRole, string[]>>;
-    memberCount: number;
-  };
-};
-
-/** Shows who holds a role, or "ยังไม่กำหนด" when nobody does. */
-function roleHolderLabel(role: ChurchRole, query: RoleHoldersQuery): string {
-  if (query.isLoading) return "กำลังโหลด...";
-  if (!query.data) return "ยังไม่กำหนด";
-  if (role === "MEMBER") {
-    const count = query.data.memberCount;
-    return count > 0 ? `สมาชิก ${count} คน` : "ยังไม่กำหนด";
-  }
-  const names = query.data.holders[role] ?? [];
-  return names.length > 0 ? names.join(", ") : "ยังไม่กำหนด";
-}
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -680,7 +661,7 @@ export default function Profile() {
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                   className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl border border-[#E9D9BF] text-xs sm:text-sm font-semibold text-[#38251B] focus:border-[#E99A4A] focus:outline-none focus:ring-2 focus:ring-[#E99A4A]/20 transition-all"
-                  placeholder="เช่น พณ.ท่านสุริยงค์ บาลเพ็ชร"
+                  placeholder="ชื่อและนามสกุล"
                 />
               </div>
 
@@ -768,9 +749,8 @@ export default function Profile() {
                 </span>
                 <p className="leading-relaxed">
                   บทบาทและสิทธิ์การใช้งานของท่าน ({userRoleInfo.label})
-                  ถูกกำหนดโดยมติคริสตจักรและผู้ดูแลระบบสูงสุด
-                  หากต้องการเปลี่ยนแปลงสิทธิ์ กรุณาติดต่อ
-                  พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร
+                  ถูกกำหนดโดยผู้ดูแลระบบสูงสุด หากต้องการเปลี่ยนแปลงสิทธิ์
+                  กรุณาติดต่อ {roleHolderLabel("SUPER_ADMIN", roleHoldersQuery)}
                 </p>
               </div>
 
