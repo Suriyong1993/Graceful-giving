@@ -41,12 +41,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import type { ChurchRole } from "@shared/roles";
 
-// ── Official Church Governance Structure Model ────────────────────────────────
+// ── Church roles and responsibilities. Holder names come from the users table.
 interface ChurchOfficialRoster {
-  role: string;
+  role: ChurchRole;
   title: string;
-  appointee: string;
   badgeStyle: { bg: string; text: string; border: string };
   summary: string;
   responsibilities: string[];
@@ -56,7 +56,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "SUPER_ADMIN",
     title: "ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)",
-    appointee: "พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร",
     badgeStyle: {
       bg: "bg-amber-100",
       text: "text-amber-900",
@@ -75,7 +74,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "TREASURER",
     title: "เหรัญญิกคริสตจักร (TREASURER)",
-    appointee: "สุดารัตน์ จิณเซ่ง, อาจารย์ทัศนา ดวงจิตร",
     badgeStyle: {
       bg: "bg-emerald-100",
       text: "text-emerald-900",
@@ -96,7 +94,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "PASTOR",
     title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ (PASTOR)",
-    appointee: "ศบ.อาจารย์สรรเสริญ ดวงจิตร",
     badgeStyle: {
       bg: "bg-blue-100",
       text: "text-blue-900",
@@ -116,7 +113,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "DEACON",
     title: "มัคนายก / คณะกรรมการ (DEACON)",
-    appointee: "อาจารย์ทัศนา ดวงจิตร",
     badgeStyle: {
       bg: "bg-stone-100",
       text: "text-stone-900",
@@ -136,7 +132,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "COUNTER",
     title: "กรรมการนับเงิน / ทีมนับเงินถวาย (COUNTER)",
-    appointee: "สุดารัตน์ จิณเซ่ง (และผู้ได้รับมอบหมายประจำสัปดาห์)",
     badgeStyle: {
       bg: "bg-orange-100",
       text: "text-orange-900",
@@ -155,7 +150,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "MEMBER",
     title: "สมาชิกคริสตจักร (MEMBER)",
-    appointee: "สมาชิกคริสตจักรทั่วไป",
     badgeStyle: {
       bg: "bg-stone-100",
       text: "text-stone-800",
@@ -181,6 +175,26 @@ const PRESET_AVATARS = [
   "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&h=256&q=80",
 ];
 
+type RoleHoldersQuery = {
+  isLoading: boolean;
+  data?: {
+    holders: Partial<Record<ChurchRole, string[]>>;
+    memberCount: number;
+  };
+};
+
+/** Shows who holds a role, or "ยังไม่กำหนด" when nobody does. */
+function roleHolderLabel(role: ChurchRole, query: RoleHoldersQuery): string {
+  if (query.isLoading) return "กำลังโหลด...";
+  if (!query.data) return "ยังไม่กำหนด";
+  if (role === "MEMBER") {
+    const count = query.data.memberCount;
+    return count > 0 ? `สมาชิก ${count} คน` : "ยังไม่กำหนด";
+  }
+  const names = query.data.holders[role] ?? [];
+  return names.length > 0 ? names.join(", ") : "ยังไม่กำหนด";
+}
+
 export default function Profile() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
@@ -196,6 +210,9 @@ export default function Profile() {
   );
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, {
     staleTime: 30_000,
+  });
+  const roleHoldersQuery = trpc.church.listRoleHolders.useQuery(undefined, {
+    retry: false,
   });
   const churchProfileQuery = trpc.church.getProfile.useQuery(undefined, {
     staleTime: 60_000,
@@ -424,19 +441,18 @@ export default function Profile() {
           </section>
         )}
 
-        {/* ── SECTION: โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ ── */}
+        {/* ── SECTION: บทบาทและผู้รับผิดชอบ ── */}
         <section className="bg-card rounded-2xl sm:rounded-3xl border border-[#E9D9BF] p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 shadow-xs">
           <div className="border-b border-[#E9D9BF]/60 pb-3 sm:pb-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-[#FFF4DF] text-[#70452E] border border-[#E9D9BF] mb-2">
               <Award className="w-3.5 h-3.5 text-[#E99A4A]" />
-              มติคริสตจักรอย่างเป็นทางการ
+              บทบาทในระบบ
             </span>
             <h3 className="text-lg sm:text-xl font-black text-[#38251B]">
-              โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
+              บทบาทและผู้รับผิดชอบ
             </h3>
             <p className="text-xs sm:text-sm text-[#70452E]/80 mt-1">
-              กำหนดบทบาท หน้าที่ความรับผิดชอบ
-              และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
+              รายชื่อผู้รับผิดชอบมาจากบทบาทที่ผู้ดูแลระบบกำหนดในหน้าตั้งค่า
             </p>
           </div>
 
@@ -460,7 +476,7 @@ export default function Profile() {
                       ผู้รับผิดชอบ:
                     </span>
                     <p className="text-sm font-black text-[#38251B]">
-                      {roster.appointee}
+                      {roleHolderLabel(roster.role, roleHoldersQuery)}
                     </p>
                   </div>
 

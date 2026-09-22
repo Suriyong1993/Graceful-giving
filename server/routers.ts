@@ -53,6 +53,7 @@ import {
   archiveMinistry,
   deactivateMember,
   getAllUsers,
+  listRoleHolderRows,
   updateUserProfile,
   markNotificationRead,
   markAllNotificationsRead,
@@ -91,6 +92,7 @@ import {
   rescanLineSlip,
 } from "./db";
 import { runWorkerBatch } from "./line/processWorker";
+import { groupRoleHolders } from "./roleHolders";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
 import type { CountingStatus } from "@shared/counting";
@@ -359,6 +361,9 @@ export const appRouter = router({
   church: router({
     getProfile: protectedProcedure.query(async () => {
       return await getChurchProfile();
+    }),
+    listRoleHolders: protectedProcedure.query(async () => {
+      return groupRoleHolders(await listRoleHolderRows());
     }),
     updateProfile: churchLeaderProcedure
       .input(
@@ -1938,7 +1943,8 @@ export const appRouter = router({
         } catch (err: any) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
+            message:
+              err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
           });
         }
       }),
@@ -1955,7 +1961,10 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         try {
-          const rawBase64 = input.base64Data.replace(/^data:image\/\w+;base64,/, "");
+          const rawBase64 = input.base64Data.replace(
+            /^data:image\/\w+;base64,/,
+            ""
+          );
           const buffer = Buffer.from(rawBase64, "base64");
 
           const slip = await createManualSlip({
@@ -1990,7 +1999,7 @@ export const appRouter = router({
           await rescanLineSlip(input.id, DEFAULT_CHURCH_ID);
 
           // Run worker batch immediately with Gemini AI
-          await runWorkerBatch().catch((err) =>
+          await runWorkerBatch().catch(err =>
             console.warn("[Rescan] Worker error:", err)
           );
 

@@ -178,6 +178,19 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/** Name and church roles of every user, for the Profile page role list. */
+export async function listRoleHolderRows() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select({
+      name: users.name,
+      churchRole: users.churchRole,
+      churchRoles: users.churchRoles,
+    })
+    .from(users);
+}
+
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];

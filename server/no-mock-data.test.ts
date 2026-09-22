@@ -155,3 +155,19 @@ describe("fund pickers read the database", () => {
     });
   }
 });
+
+describe("Profile names role holders from the database", () => {
+  const source = read("client/src/pages/Profile.tsx");
+
+  it("reads the holders through tRPC", () => {
+    expect(source).toContain("trpc.church.listRoleHolders.useQuery");
+  });
+
+  it("has no hardcoded appointee names", () => {
+    expect(source).not.toContain("appointee");
+  });
+
+  it("says so when a role has no holder", () => {
+    expect(source).toContain("ยังไม่กำหนด");
+  });
+});
