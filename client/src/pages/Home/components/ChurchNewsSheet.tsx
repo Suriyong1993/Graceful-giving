@@ -1,4 +1,3 @@
-import { BookOpen } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -15,36 +14,35 @@ interface ChurchNewsSheetProps {
 export function ChurchNewsSheet({ open, onOpenChange }: ChurchNewsSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="bg-[#FFFDF8] border-l border-[#E9D9BF] w-full sm:max-w-lg p-6 sm:p-8 overflow-y-auto">
+      <SheetContent className="bg-surface border-l border-line w-full sm:max-w-lg p-6 sm:p-8 overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle className="text-xl sm:text-2xl font-black text-[#70452E] flex items-center gap-3">
-            <BookOpen className="w-6 h-6 text-primary" />
+          <SheetTitle className="text-xl sm:text-2xl font-bold text-ink-2 flex items-center gap-3">
             <span>ข่าวสารและประกาศคริสตจักร</span>
           </SheetTitle>
-          <SheetDescription className="text-sm sm:text-base text-[#927D6D] font-medium mt-1">
+          <SheetDescription className="text-sm sm:text-base text-ink-3 font-medium mt-1">
             ติดตามกิจกรรม พันธกิจ และคำพยานพระพร
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5">
-          <div className="p-5 sm:p-6 rounded-3xl bg-[#FFF4DF] border-2 border-[#E9D9BF] space-y-3 shadow-xs">
-            <span className="text-xs font-black px-3 py-1 rounded-full bg-primary text-white inline-block">
+          <div className="p-5 sm:p-6 rounded-3xl bg-sunken border-2 border-line space-y-3 shadow-xs">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-primary text-white inline-block">
               ประกาศสำคัญ
             </span>
-            <h4 className="text-lg sm:text-xl font-black text-[#70452E]">
+            <h4 className="text-lg sm:text-xl font-bold text-ink-2">
               ค่ายสามัคคีธรรมประจำปี 2026
             </h4>
             <p className="text-sm sm:text-base text-foreground leading-relaxed font-medium">
-              ขอเชิญชวนพี่น้องสมาชิกทุกท่านร่วมค่ายสามัคคีธรรม วันที่ 18-20
-              ต.ค. นี้ ณ ศูนย์ฝึกอบรมคริสเตียน
+              ขอเชิญชวนพี่น้องสมาชิกทุกท่านร่วมค่ายสามัคคีธรรม วันที่ 18-20 ต.ค.
+              นี้ ณ ศูนย์ฝึกอบรมคริสเตียน
             </p>
           </div>
 
-          <div className="p-5 sm:p-6 rounded-3xl bg-[#EAF5E4] border-2 border-[#D2EAC7] space-y-3 shadow-xs">
-            <span className="text-xs font-black px-3 py-1 rounded-full bg-[#A8C978] text-white inline-block">
+          <div className="p-5 sm:p-6 rounded-3xl bg-success-soft border-2 border-success-soft space-y-3 shadow-xs">
+            <span className="text-xs font-bold px-3 py-1 rounded-full bg-success-line text-white inline-block">
               รายงานพันธกิจ
             </span>
-            <h4 className="text-lg sm:text-xl font-black text-[#4F8B33]">
+            <h4 className="text-lg sm:text-xl font-bold text-success">
               โครงการแจกถุงยังชีพสู่ชุมชนรอบโบสถ์
             </h4>
             <p className="text-sm sm:text-base text-foreground leading-relaxed font-medium">

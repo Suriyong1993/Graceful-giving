@@ -1,20 +1,17 @@
 import React from "react";
 import { SignUp } from "@clerk/clerk-react";
-import { Sprout } from "lucide-react";
 import { LegalLinks } from "@/pages/Legal";
+import { Wordmark } from "@/components/common/Wordmark";
 
 export default function Register() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 space-y-2 text-center">
-          <div className="relative mb-2 inline-flex size-16 items-center justify-center overflow-hidden rounded-xl border border-[#E99A4A]/30 bg-[#E99A4A]/15 shadow-xs">
-            <Sprout className="size-9 text-[#70452E]" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-[#38251B]">
-            Grace<span className="text-[#E99A4A]">-giving</span>
+          <h1>
+            <Wordmark size="lg" />
           </h1>
-          <p className="text-sm text-[#674F42]">สมัครบัญชีใหม่</p>
+          <p className="text-sm text-ink-2">สมัครบัญชีใหม่</p>
         </div>
 
         <SignUp
@@ -24,9 +21,10 @@ export default function Register() {
           forceRedirectUrl="/"
           appearance={{
             variables: {
-              colorPrimary: "#E99A4A",
+              colorPrimary: "#a34a24",
               colorBackground: "#FFFDF8",
-              borderRadius: "1rem",
+              borderRadius: "0.375rem",
+              fontFamily: '"IBM Plex Sans Thai", sans-serif',
             },
           }}
         />

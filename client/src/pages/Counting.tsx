@@ -14,12 +14,9 @@ import {
 } from "@/hooks/useUnsavedChanges";
 import { Swal } from "@/lib/sweetalert";
 import {
-  AlertCircle,
-  Calendar,
   CheckCircle2,
   ChevronRight,
   Clock,
-  Coins,
   FileText,
   Lock,
   Plus,
@@ -118,7 +115,7 @@ export default function Counting() {
       {
         icon: "warning",
         confirmButtonText: "ลบรอบนี้",
-        confirmButtonColor: "#D45945",
+        confirmButtonColor: "#A23B24",
         cancelButtonText: "ยกเลิก",
       }
     );
@@ -139,7 +136,7 @@ export default function Counting() {
       {
         icon: "question",
         confirmButtonText: "ล้างเพื่อนับใหม่",
-        confirmButtonColor: "#E99A4A",
+        confirmButtonColor: "#a34a24",
         cancelButtonText: "ยกเลิก",
       }
     );
@@ -202,7 +199,7 @@ export default function Counting() {
         <button
           type="button"
           onClick={() => (showCreate ? closeCreate() : setShowCreate(true))}
-          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#DE8640] active:scale-95"
+          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand active:scale-95"
         >
           <Plus className="h-4 w-4" />
           เปิดรอบใหม่
@@ -211,17 +208,14 @@ export default function Counting() {
     >
       <div className="space-y-6">
         {/* Header Overview Card */}
-        <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
+        <section className="rounded-3xl border border-line bg-sunken p-6 shadow-sm md:p-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-card p-3.5 text-[#E99A4A] shadow-xs shrink-0">
-                <Coins className="h-7 w-7" />
-              </div>
               <div>
-                <h1 className="text-xl font-bold text-[#38251B]">
+                <h1 className="text-xl font-bold text-ink">
                   รอบนับเงินถวายรายสัปดาห์
                 </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#674F42]">
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink-2">
                   จัดการซองถวาย ผลนับธนบัตร/เหรียญ รายการหักเบิก ยอดนำฝากธนาคาร
                   และการกระทบยอดให้โปร่งใสตรวจสอบได้
                 </p>
@@ -229,8 +223,8 @@ export default function Counting() {
             </div>
 
             {openCount > 0 && (
-              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-500/15 border border-amber-500/30 px-4 py-2.5 text-xs font-bold text-amber-900 shrink-0 self-start sm:self-auto">
-                <Clock className="h-4 w-4 text-amber-700 animate-pulse" />
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-warning/15 border border-warning/30 px-4 py-2.5 text-xs font-bold text-warning shrink-0 self-start sm:self-auto">
+                <Clock className="h-4 w-4 text-warning" />
                 <span>มี {openCount} รอบที่ค้างอยู่หรือกำลังนับ</span>
               </div>
             )}
@@ -248,45 +242,40 @@ export default function Counting() {
                 notes: notes.trim() || undefined,
               });
             }}
-            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm animate-in fade-in"
+            className="rounded-3xl border border-line bg-card p-6 shadow-sm animate-in fade-in"
           >
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E99A4A]/15 text-[#D47012]">
-                  <Calendar className="h-4 w-4" />
-                </div>
-                <h2 className="font-bold text-[#38251B]">
-                  เปิดรอบนับเงินถวายใหม่
-                </h2>
+                <h2 className="font-bold text-ink">เปิดรอบนับเงินถวายใหม่</h2>
               </div>
               <button
                 type="button"
                 onClick={closeCreate}
                 aria-label="ปิด"
-                className="flex size-10 items-center justify-center rounded-xl text-[#927D6D] hover:bg-[#FFF4DF] transition-colors"
+                className="flex size-10 items-center justify-center rounded-xl text-ink-3 hover:bg-sunken transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-[#674F42]">
+              <label className="text-sm font-semibold text-ink-2">
                 วันอาทิตย์ที่รับถวาย *
                 <input
                   type="date"
                   required
                   value={serviceDate}
                   onChange={event => setServiceDate(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#674F42] md:col-span-2">
+              <label className="text-sm font-semibold text-ink-2 md:col-span-2">
                 บันทึกเพิ่มเติม
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={event => setNotes(event.target.value)}
                   placeholder="เช่น มีถวายพิเศษวันครบรอบคริสตจักร, ถวายพันธกิจคริสต์มาส"
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </label>
             </div>
@@ -294,14 +283,14 @@ export default function Counting() {
               <button
                 type="button"
                 onClick={closeCreate}
-                className="min-h-11 rounded-2xl border border-[#E9D9BF] px-4 py-2 text-sm font-bold text-[#674F42] hover:bg-[#FFF9EE] transition-colors"
+                className="min-h-11 rounded-2xl border border-line px-4 py-2 text-sm font-bold text-ink-2 hover:bg-page transition-colors"
               >
                 ยกเลิก
               </button>
               <button
                 type="submit"
                 disabled={createSession.isPending}
-                className="min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-[#43752c] transition-colors disabled:opacity-50"
+                className="min-h-11 rounded-2xl bg-success px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-success transition-colors disabled:opacity-50"
               >
                 {createSession.isPending
                   ? "กำลังเปิดรอบ…"
@@ -314,18 +303,18 @@ export default function Counting() {
         {/* Filter Controls & Search */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Tabs */}
-          <div className="flex items-center gap-1.5 rounded-2xl bg-[#FFF4DF] p-1.5 border border-[#E9D9BF]/80 overflow-x-auto">
+          <div className="flex items-center gap-1.5 rounded-2xl bg-sunken p-1.5 border border-line/80 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab("all")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "all"
-                  ? "bg-card text-[#38251B] shadow-xs"
-                  : "text-[#674F42] hover:text-[#38251B]"
+                  ? "bg-card text-ink shadow-xs"
+                  : "text-ink-2 hover:text-ink"
               }`}
             >
               <span>ทั้งหมด</span>
-              <span className="rounded-md bg-[#E9D9BF]/50 px-1.5 py-0.5 text-[11px] font-semibold text-[#674F42]">
+              <span className="rounded-md bg-line/50 px-1.5 py-0.5 text-[11px] font-semibold text-ink-2">
                 {sessions.length}
               </span>
             </button>
@@ -335,14 +324,14 @@ export default function Counting() {
               onClick={() => setActiveTab("pending")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "pending"
-                  ? "bg-card text-[#C26B1E] shadow-xs"
-                  : "text-[#674F42] hover:text-[#C26B1E]"
+                  ? "bg-card text-brand shadow-xs"
+                  : "text-ink-2 hover:text-brand"
               }`}
             >
-              <Clock className="h-3.5 w-3.5 text-[#C26B1E]" />
+              <Clock className="h-3.5 w-3.5 text-brand" />
               <span>กำลังดำเนินการ / ค้างอยู่</span>
               {openCount > 0 && (
-                <span className="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-bold text-[#C26B1E]">
+                <span className="rounded-md bg-warning/20 px-1.5 py-0.5 text-[11px] font-bold text-brand">
                   {openCount}
                 </span>
               )}
@@ -353,13 +342,13 @@ export default function Counting() {
               onClick={() => setActiveTab("completed")}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition-all shrink-0 ${
                 activeTab === "completed"
-                  ? "bg-card text-[#4F8B33] shadow-xs"
-                  : "text-[#674F42] hover:text-[#4F8B33]"
+                  ? "bg-card text-success shadow-xs"
+                  : "text-ink-2 hover:text-success"
               }`}
             >
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#4F8B33]" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
               <span>ปิดรอบเสร็จสมบูรณ์</span>
-              <span className="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-[#4F8B33]">
+              <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[11px] font-semibold text-success">
                 {completedCount}
               </span>
             </button>
@@ -367,19 +356,19 @@ export default function Counting() {
 
           {/* Search bar */}
           <div className="relative min-w-[220px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#927D6D]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-3" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="ค้นหาวันที่, บันทึก..."
-              className="min-h-11 w-full rounded-2xl border border-[#E9D9BF] bg-card pl-9 pr-3 py-2 text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus:outline-none focus:ring-1 focus:ring-[#E99A4A]"
+              className="min-h-11 w-full rounded-2xl border border-line bg-card pl-9 pr-3 py-2 text-base md:text-sm text-ink placeholder-ink-3 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#927D6D] hover:text-[#38251B]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -404,14 +393,11 @@ export default function Counting() {
             onAction={() => setShowCreate(true)}
           />
         ) : filteredSessions.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#E9D9BF] bg-card/60 p-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF4DF] text-[#D47012] mb-3">
-              <AlertCircle className="h-7 w-7" />
-            </div>
-            <h3 className="text-base font-bold text-[#38251B]">
+          <div className="rounded-3xl border border-dashed border-line bg-card/60 p-12 text-center">
+            <h3 className="text-base font-bold text-ink">
               ไม่พบรายการในหมวดหมู่นี้
             </h3>
-            <p className="mt-1 text-sm text-[#674F42]">
+            <p className="mt-1 text-sm text-ink-2">
               {searchQuery
                 ? `ไม่พบผลการค้นหาสำหรับ "${searchQuery}"`
                 : activeTab === "pending"
@@ -425,7 +411,7 @@ export default function Counting() {
                   setActiveTab("all");
                   setSearchQuery("");
                 }}
-                className="mt-4 rounded-xl border border-[#E9D9BF] bg-card px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE]"
+                className="mt-4 rounded-xl border border-line bg-card px-4 py-2 text-xs font-bold text-ink-2 hover:bg-page"
               >
                 ดูทุกรอบทั้งหมด
               </button>
@@ -444,8 +430,8 @@ export default function Counting() {
                   key={session.id}
                   className={`rounded-2xl border transition-all p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                     isUnposted
-                      ? "border-[#E9D9BF] bg-[#FFFDF9] shadow-xs hover:border-[#E99A4A]/60"
-                      : "border-[#E9D9BF]/80 bg-card shadow-2xs"
+                      ? "border-line bg-surface shadow-xs hover:border-brand/60"
+                      : "border-line/80 bg-card shadow-2xs"
                   }`}
                 >
                   {/* Left: Date & Status & Notes */}
@@ -454,31 +440,31 @@ export default function Counting() {
                     className="min-w-0 cursor-pointer flex-1 group"
                   >
                     <div className="flex flex-wrap items-center gap-2.5">
-                      <h2 className="font-bold text-[#38251B] group-hover:text-[#D47012] transition-colors text-base sm:text-lg">
+                      <h2 className="font-bold text-ink group-hover:text-brand transition-colors text-base sm:text-lg">
                         {fmtThaiDate(session.serviceDate)}
                       </h2>
                       <StatusBadge status={session.status} />
                       {!isUnposted && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-stone-100 px-2 py-0.5 text-[11px] font-medium text-[#674F42]">
-                          <Lock className="h-3 w-3 text-stone-500" />
+                        <span className="inline-flex items-center gap-1 rounded-md bg-sunken px-2 py-0.5 text-[11px] font-medium text-ink-2">
+                          <Lock className="h-3 w-3 text-ink-3" />
                           ลงบัญชีแล้ว
                         </span>
                       )}
                     </div>
 
                     {session.varianceNote && (
-                      <p className="mt-1 text-xs sm:text-sm font-medium text-[#C26B1E]">
+                      <p className="mt-1 text-xs sm:text-sm font-medium text-brand">
                         มีบันทึกผลต่าง: {session.varianceNote}
                       </p>
                     )}
 
                     {session.notes && (
-                      <p className="mt-1 truncate text-xs sm:text-sm text-[#674F42]">
+                      <p className="mt-1 truncate text-xs sm:text-sm text-ink-2">
                         {session.notes}
                       </p>
                     )}
 
-                    <div className="mt-2 flex items-center gap-4 text-xs text-[#927D6D]">
+                    <div className="mt-2 flex items-center gap-4 text-xs text-ink-3">
                       <span>รอบที่ {session.serviceRound ?? 1}</span>
                       <span>•</span>
                       <span>
@@ -491,14 +477,14 @@ export default function Counting() {
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F0E6D8]">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-line">
                     {isUnposted ? (
                       <>
                         {/* Continue Button */}
                         <button
                           type="button"
                           onClick={() => setLocation(`/counting/${session.id}`)}
-                          className="min-h-10 inline-flex items-center gap-1.5 rounded-xl bg-[#E99A4A] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#DE8640] transition-colors active:scale-95"
+                          className="min-h-10 inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-brand transition-colors active:scale-95"
                         >
                           <span>นับต่อ</span>
                           <ChevronRight className="h-3.5 w-3.5" />
@@ -510,9 +496,9 @@ export default function Counting() {
                           title="ล้างข้อมูลทั้งหมดในรอบนี้เพื่อเริ่มนับใหม่"
                           onClick={() => handleResetSession(session)}
                           disabled={resetSession.isPending}
-                          className="min-h-10 inline-flex items-center gap-1 rounded-xl border border-[#E9D9BF] bg-[#FFF4DF] px-3 py-2 text-xs font-bold text-[#8A5A1E] hover:bg-[#FFE8C2] hover:border-[#E99A4A]/50 transition-colors disabled:opacity-50"
+                          className="min-h-10 inline-flex items-center gap-1 rounded-xl border border-line bg-sunken px-3 py-2 text-xs font-bold text-brand-strong hover:bg-line hover:border-brand/50 transition-colors disabled:opacity-50"
                         >
-                          <RotateCcw className="h-3.5 w-3.5 text-[#C26B1E]" />
+                          <RotateCcw className="h-3.5 w-3.5 text-brand" />
                           <span>นับใหม่</span>
                         </button>
 
@@ -522,7 +508,7 @@ export default function Counting() {
                           title="ลบรอบนับเงินค้างนี้อย่างถาวร"
                           onClick={() => handleDeleteSession(session)}
                           disabled={deleteSession.isPending}
-                          className="min-h-10 inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-[#D45945] hover:bg-rose-100 hover:border-rose-300 transition-colors disabled:opacity-50"
+                          className="min-h-10 inline-flex items-center gap-1 rounded-xl border border-danger-soft bg-danger-soft px-3 py-2 text-xs font-bold text-danger hover:bg-danger-soft hover:border-danger-line transition-colors disabled:opacity-50"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           <span>ลบรอบค้าง</span>
@@ -533,11 +519,11 @@ export default function Counting() {
                       <button
                         type="button"
                         onClick={() => setLocation(`/counting/${session.id}`)}
-                        className="min-h-10 inline-flex items-center gap-1.5 rounded-xl border border-[#E9D9BF] bg-card px-4 py-2 text-xs font-bold text-[#674F42] hover:bg-[#FFF9EE] hover:text-[#38251B] transition-colors"
+                        className="min-h-10 inline-flex items-center gap-1.5 rounded-xl border border-line bg-card px-4 py-2 text-xs font-bold text-ink-2 hover:bg-page hover:text-ink transition-colors"
                       >
-                        <FileText className="h-3.5 w-3.5 text-[#4F8B33]" />
+                        <FileText className="h-3.5 w-3.5 text-success" />
                         <span>ดูสรุป & รายงาน</span>
-                        <ChevronRight className="h-3.5 w-3.5 text-[#927D6D]" />
+                        <ChevronRight className="h-3.5 w-3.5 text-ink-3" />
                       </button>
                     )}
                   </div>

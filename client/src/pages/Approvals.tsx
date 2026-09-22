@@ -7,19 +7,7 @@ import {
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import {
-  AlertCircle,
-  Banknote,
-  CheckCircle2,
-  Clock,
-  DollarSign,
-  FileText,
-  ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-  XCircle,
-} from "lucide-react";
+import { Banknote, CheckCircle2, Clock, User, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 type WithdrawalItem = RouterOutputs["withdrawals"]["list"][number];
@@ -107,23 +95,22 @@ export default function Approvals() {
     <AppLayout>
       <div className="space-y-6">
         {/* Banner */}
-        <div className="bg-[#FFF4DF] border border-[#E9D9BF] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="bg-sunken border border-line rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="space-y-2 text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#DCECC5] text-[#70452E]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#A8C978]" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-success-soft text-ink-2">
               ระบบควบคุมภายในและการลงนามอนุมัติ
             </span>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               การอนุมัติการเบิกจ่าย (Approvals)
             </h1>
-            <p className="text-sm text-[#70452E]/80 max-w-xl">
+            <p className="text-sm text-ink-2/80 max-w-xl">
               ตรวจสอบคำขอเบิกงบประมาณ วัตถุประสงค์ และเอกสารประกอบ
               โดยศิษยาภิบาลและเหรัญญิกตามธรรมนูญคริสตจักร
             </p>
           </div>
           <button
             onClick={() => setLocation("/withdrawals/new")}
-            className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-semibold text-sm shadow-sm transition-colors"
+            className="shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary hover:bg-brand text-white font-semibold text-sm shadow-sm transition-colors"
           >
             <Banknote className="w-4 h-4" />
             <span>ยื่นคำขอเบิกเงินใหม่</span>
@@ -131,13 +118,13 @@ export default function Approvals() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#E9D9BF] pb-1">
+        <div className="flex items-center gap-2 border-b border-line pb-1">
           <button
             onClick={() => setActiveTab("pending")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "pending"
-                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-foreground"
+                ? "bg-sunken text-foreground border border-line"
+                : "text-ink-2/70 hover:text-foreground"
             }`}
           >
             <Clock className="w-4 h-4 text-primary" />
@@ -150,11 +137,11 @@ export default function Approvals() {
             onClick={() => setActiveTab("approved")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "approved"
-                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-foreground"
+                ? "bg-sunken text-foreground border border-line"
+                : "text-ink-2/70 hover:text-foreground"
             }`}
           >
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
             <span>
               อนุมัติแล้ว (
               {requests.filter(r => r.status === "approved").length})
@@ -164,11 +151,11 @@ export default function Approvals() {
             onClick={() => setActiveTab("rejected")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "rejected"
-                ? "bg-[#FFF4DF] text-foreground border border-[#E9D9BF]"
-                : "text-[#70452E]/70 hover:text-foreground"
+                ? "bg-sunken text-foreground border border-line"
+                : "text-ink-2/70 hover:text-foreground"
             }`}
           >
-            <XCircle className="w-4 h-4 text-rose-600" />
+            <XCircle className="w-4 h-4 text-danger" />
             <span>
               ไม่อนุมัติ ({requests.filter(r => r.status === "rejected").length}
               )
@@ -187,14 +174,14 @@ export default function Approvals() {
             {filteredRequests.map(req => (
               <div
                 key={req.id}
-                className="bg-card rounded-3xl border border-[#E9D9BF] p-6 shadow-sm hover:shadow-xs transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+                className="bg-card rounded-3xl border border-line p-6 shadow-sm hover:shadow-xs transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-[#70452E]/60 bg-background px-2.5 py-0.5 rounded-full border border-[#E9D9BF]">
+                    <span className="text-xs font-mono text-ink-2/60 bg-background px-2.5 py-0.5 rounded-full border border-line">
                       REQ-2026-00{req.id}
                     </span>
-                    <span className="text-xs font-medium text-[#70452E] bg-[#FFF4DF] px-2.5 py-0.5 rounded-full border border-[#E9D9BF]/60">
+                    <span className="text-xs font-medium text-ink-2 bg-sunken px-2.5 py-0.5 rounded-full border border-line/60">
                       {req.fund}
                     </span>
                     <StatusBadge
@@ -212,11 +199,11 @@ export default function Approvals() {
                     {req.purpose}
                   </h3>
 
-                  <p className="text-xs text-[#70452E]/80 leading-relaxed">
+                  <p className="text-xs text-ink-2/80 leading-relaxed">
                     {req.details}
                   </p>
 
-                  <div className="flex items-center gap-4 text-xs text-[#70452E]/70 pt-1">
+                  <div className="flex items-center gap-4 text-xs text-ink-2/70 pt-1">
                     <span className="flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-primary" />
                       {req.requester}
@@ -230,9 +217,9 @@ export default function Approvals() {
                 </div>
 
                 {/* Amount & Actions */}
-                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-[#E9D9BF]/40 flex-shrink-0">
+                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-line/40 flex-shrink-0">
                   <div className="text-left md:text-right">
-                    <p className="text-xs text-[#70452E]/60">ยอดขอเบิก</p>
+                    <p className="text-xs text-ink-2/60">ยอดขอเบิก</p>
                     <MoneyDisplay
                       amount={req.amount}
                       type="expense"
@@ -247,13 +234,13 @@ export default function Approvals() {
                           setSelectedReq(req);
                           setShowRejectModal(true);
                         }}
-                        className="min-h-11 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
+                        className="min-h-11 px-4 py-2 rounded-xl border border-danger-soft bg-danger-soft hover:bg-danger-soft text-danger text-xs font-semibold transition-colors"
                       >
                         ไม่อนุมัติ
                       </button>
                       <button
                         onClick={() => handleApprove(req.id)}
-                        className="min-h-11 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
+                        className="min-h-11 px-5 py-2 rounded-xl bg-success hover:bg-success text-white text-xs font-semibold transition-colors shadow-sm"
                       >
                         อนุมัติคำขอ
                       </button>
@@ -268,8 +255,8 @@ export default function Approvals() {
         {/* Reject Reason Modal */}
         {showRejectModal && (
           <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-card rounded-3xl border border-[#E9D9BF] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-xs animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between border-b border-[#E9D9BF] pb-3">
+            <div className="bg-card rounded-3xl border border-line max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-xs animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-line pb-3">
                 <h3 className="text-lg font-bold text-foreground">
                   ระบุเหตุผลที่ไม่อนุมัติ
                 </h3>
@@ -277,14 +264,14 @@ export default function Approvals() {
                   onClick={() => setShowRejectModal(false)}
                   type="button"
                   aria-label="ปิด"
-                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#70452E]/60 hover:bg-[#FFF4DF] hover:text-foreground"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-ink-2/60 hover:bg-sunken hover:text-foreground"
                 >
                   ×
                 </button>
               </div>
 
               <div className="space-y-2 text-xs">
-                <p className="text-[#70452E]/80">
+                <p className="text-ink-2/80">
                   คำขอนี้จะถูกปฏิเสธ และระบบจะส่งการแจ้งเตือนไปยังผู้ยื่นคำขอ
                 </p>
                 <textarea
@@ -293,20 +280,20 @@ export default function Approvals() {
                   placeholder="เช่น เอกสารใบเสนอราคาไม่ครบถ้วน, เกินงบประมาณที่จัดสรรไว้..."
                   value={rejectReason}
                   onChange={e => setRejectReason(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#E9D9BF] text-xs text-foreground focus:outline-none focus:border-rose-400"
+                  className="w-full p-3 rounded-2xl border border-line text-xs text-foreground focus:outline-none focus:border-danger-line"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   onClick={() => setShowRejectModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[#E9D9BF] text-xs font-medium text-[#70452E]"
+                  className="px-4 py-2 rounded-xl border border-line text-xs font-medium text-ink-2"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleReject}
-                  className="px-5 py-2 rounded-xl bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700"
+                  className="px-5 py-2 rounded-xl bg-danger text-white text-xs font-semibold hover:bg-danger"
                 >
                   ยืนยันไม่อนุมัติ
                 </button>

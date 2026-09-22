@@ -22,15 +22,15 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-4">
-      <div className="bg-card w-full max-w-2xl rounded-3xl shadow-xs border border-[#E9D9BF] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-card w-full max-w-2xl rounded-3xl shadow-xs border border-line overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#FFF9EE] border-b border-[#E9D9BF]">
+        <div className="flex items-center justify-between px-6 py-4 bg-page border-b border-line">
           <div>
-            <h3 className="font-bold text-sm text-[#38251B]">
+            <h3 className="font-bold text-sm text-ink">
               หลักฐานสลิป / ใบเสร็จแนบ
             </h3>
             {refCode && (
-              <p className="text-xs text-[#70452E]/70 font-mono">
+              <p className="text-xs text-ink-2/70 font-mono">
                 {refCode} {title && `• ${title}`}
               </p>
             )}
@@ -40,14 +40,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               href={receiptUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF] text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card border border-line text-ink-2 hover:bg-sunken text-xs font-medium transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>เปิดลิงก์เต็ม</span>
             </a>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#70452E]/70 hover:text-[#38251B] hover:bg-black/5 rounded-xl transition-colors"
+              className="p-1.5 text-ink-2/70 hover:text-ink hover:bg-black/5 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -55,28 +55,26 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         </div>
 
         {/* Body Preview */}
-        <div className="p-4 sm:p-6 flex-1 overflow-y-auto flex items-center justify-center bg-stone-100 min-h-[300px]">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto flex items-center justify-center bg-sunken min-h-[300px]">
           {isPdf ? (
-            <div className="text-center p-8 bg-card rounded-2xl border border-stone-200 shadow-xs max-w-sm">
-              <FileText className="w-16 h-16 text-[#E99A4A] mx-auto mb-3" />
-              <p className="font-bold text-sm text-stone-800">
-                เอกสารแนบรูปแบบ PDF
-              </p>
-              <p className="text-xs text-stone-500 mt-1 mb-4">
+            <div className="text-center p-8 bg-card rounded-2xl border border-line shadow-xs max-w-sm">
+              <FileText className="w-16 h-16 text-brand mx-auto mb-3" />
+              <p className="font-bold text-sm text-ink">เอกสารแนบรูปแบบ PDF</p>
+              <p className="text-xs text-ink-3 mt-1 mb-4">
                 ไฟล์เอกสาร PDF เก็บไว้ใน Supabase Storage อย่างปลอดภัย
               </p>
               <a
                 href={receiptUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E99A4A] hover:bg-[#d88939] text-white text-xs font-bold shadow-xs transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand hover:bg-brand text-white text-xs font-bold shadow-xs transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span>เปิดและดาวน์โหลด PDF</span>
               </a>
             </div>
           ) : (
-            <div className="max-w-full max-h-[70vh] flex items-center justify-center overflow-hidden rounded-xl border border-stone-200 bg-card p-2">
+            <div className="max-w-full max-h-[70vh] flex items-center justify-center overflow-hidden rounded-xl border border-line bg-card p-2">
               <img
                 src={receiptUrl}
                 alt="Receipt Full Preview"

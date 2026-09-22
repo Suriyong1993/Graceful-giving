@@ -10,7 +10,7 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
     <section aria-label="ข่าวสารจากคริสตจักร" className="w-full">
       <div
         onClick={onOpenNews}
-        className="cursor-pointer bg-secondary border-2 border-[#E9D9BF] rounded-xl sm:rounded-xl p-5 sm:p-7 flex items-center justify-between gap-4 hover:border-[#D47012] transition-all shadow-xs"
+        className="cursor-pointer bg-secondary border-2 border-line rounded-xl sm:rounded-xl p-5 sm:p-7 flex items-center justify-between gap-4 hover:border-brand transition-all shadow-xs"
         role="button"
         tabIndex={0}
         onKeyDown={e => {
@@ -21,7 +21,7 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
         aria-label="เปิดดูข่าวสารจากคริสตจักร"
       >
         <div className="flex items-center gap-4">
-          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shrink-0 bg-card p-1.5 border border-[#E9D9BF]">
+          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shrink-0 bg-card p-1.5 border border-line">
             <Illustration
               src="/illustrations/bible_cross.jpg"
               alt="พระคัมภีร์และกางเขน"
@@ -32,15 +32,15 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
             />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#2C1810]">
+            <h2 className="text-xl sm:text-2xl font-bold text-ink">
               ข่าวสารจากคริสตจักร
             </h2>
-            <p className="text-sm sm:text-base text-[#4A2E1B] font-bold mt-0.5">
+            <p className="text-sm sm:text-base text-ink font-bold mt-0.5">
               ติดตามประกาศ กิจกรรม และพันธกิจต่าง ๆ
             </p>
           </div>
         </div>
-        <div className="w-11 h-11 rounded-full bg-card flex items-center justify-center text-[#2C1810] border-2 border-[#E9D9BF] shrink-0 shadow-2xs">
+        <div className="w-11 h-11 rounded-full bg-card flex items-center justify-center text-ink border-2 border-line shrink-0 shadow-2xs">
           <ChevronRight className="w-6 h-6" />
         </div>
       </div>

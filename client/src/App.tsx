@@ -144,9 +144,9 @@ function RouteLoading() {
       aria-live="polite"
     >
       <div className="w-full max-w-md space-y-3">
-        <div className="h-8 w-40 rounded-xl bg-[#E9D9BF]/60 animate-pulse" />
-        <div className="h-24 w-full rounded-2xl bg-[#E9D9BF]/40 animate-pulse" />
-        <p className="text-center text-sm text-[#927D6D]">กำลังโหลดหน้า…</p>
+        <div className="h-8 w-40 rounded-xl bg-line/60 animate-pulse" />
+        <div className="h-24 w-full rounded-2xl bg-line/40 animate-pulse" />
+        <p className="text-center text-sm text-ink-3">กำลังโหลดหน้า…</p>
       </div>
     </div>
   );
@@ -167,9 +167,9 @@ function RoleGuard({
   if (loading) return <RouteLoading />;
   if (!user || !canAccess(user)) {
     return (
-      <div className="min-h-screen bg-[#FFF9EE] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card rounded-3xl p-8 border-2 border-[#E9D9BF] text-center space-y-4 shadow-sm">
-          <div className="w-16 h-16 rounded-full bg-rose-100 border-2 border-rose-200 mx-auto flex items-center justify-center text-rose-600">
+      <div className="min-h-screen bg-page flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card rounded-3xl p-8 border-2 border-line text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-full bg-danger-soft border-2 border-danger-soft mx-auto flex items-center justify-center text-danger">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="w-8 h-8"
@@ -184,12 +184,12 @@ function RoleGuard({
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-[#38251B]">{title}</h2>
-          <p className="text-sm text-[#70452E]/80 leading-relaxed">{message}</p>
+          <h2 className="text-xl font-bold text-ink">{title}</h2>
+          <p className="text-sm text-ink-2/80 leading-relaxed">{message}</p>
           <div className="pt-2">
             <a
               href="/"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#E99A4A] text-white font-bold text-sm hover:bg-[#d88939] transition-all shadow-xs"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-brand text-white font-bold text-sm hover:bg-brand transition-all shadow-xs"
             >
               กลับสู่หน้าหลัก
             </a>

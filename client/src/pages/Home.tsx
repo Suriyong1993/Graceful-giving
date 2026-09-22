@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
-import { ArrowRight, Heart, Inbox, Landmark } from "lucide-react";
+import { ArrowRight, Heart, Landmark } from "lucide-react";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -162,7 +162,7 @@ export default function Home() {
           category: o.category,
           subCategory: "อาคารคริสตจักร",
           amount: Number(o.amount),
-          tone: "bg-[#FFEBE5] text-[#E06250]",
+          tone: "bg-danger-soft text-danger",
           icon: Heart,
         });
       });
@@ -178,7 +178,7 @@ export default function Home() {
           category: e.category,
           subCategory: "พันธกิจนมัสการ",
           amount: Number(e.amount),
-          tone: "bg-[#FDF0E2] text-[#B3702A]",
+          tone: "bg-sunken text-brand",
           icon: Landmark,
         });
       });
@@ -199,24 +199,21 @@ export default function Home() {
           <div
             role="region"
             aria-label="รายการที่ต้องดำเนินการ"
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#FFF8EB] border border-[#F6E1BF] text-[#70452E] shadow-2xs"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-page border border-line text-ink-2 shadow-2xs"
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#FFF3DF] border border-[#F6E1BF] flex items-center justify-center text-[#D47012] shrink-0">
-                <Inbox className="w-5 h-5" />
-              </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-sm sm:text-base text-[#2C1810]">
+                <h3 className="font-bold text-sm sm:text-base text-ink">
                   มีสลิปถวายรอตรวจสอบ {pendingSlipCount} รายการ
                 </h3>
-                <p className="text-xs text-[#70452E] truncate">
+                <p className="text-xs text-ink-2 truncate">
                   สลิปจาก LINE Official Account รอดำเนินการตรวจสอบและบันทึกบัญชี
                 </p>
               </div>
             </div>
             <button
               onClick={() => setLocation("/giving/inbox")}
-              className="min-h-11 px-4 py-2 rounded-xl bg-[#D47012] hover:bg-[#B85E0E] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#D47012]"
+              className="min-h-11 px-4 py-2 rounded-xl bg-brand hover:bg-brand-strong text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-brand"
             >
               <span>ตรวจสอบสลิป</span>
               <ArrowRight className="w-4 h-4" />

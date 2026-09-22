@@ -1,13 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Prompt", "Noto Sans Thai", sans-serif;
-  --font-display: "Prompt", "Noto Sans Thai", sans-serif;
-  --font-script: "Caveat", cursive;
+  --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", sans-serif;
+  --font-display: "IBM Plex Sans Thai", "Noto Sans Thai", sans-serif;
+  /* Reference numbers, account numbers and audit payloads. */
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -35,31 +36,36 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Custom Grace-giving Brand Colors (Semantic Tokens) */
-  --color-brand-bg: var(--background);
-  --color-brand-cream: #fff4df;
-  --color-brand-sage: #a8c978;
-  --color-brand-lightsage: #dcecc5;
-  --color-brand-peach: #f7b6a6;
-  --color-brand-orange: var(--primary);
-  --color-brand-sky: #a9d4ed;
-  --color-brand-brown: #70452e;
-  --color-brand-dark: var(--foreground);
-  --color-brand-muted: #927d6d;
-  --color-brand-border: #e9d9bf;
-
-  /* Legacy aliases maintained for backward safety */
-  --color-clay-bg: var(--color-brand-bg);
-  --color-clay-cream: var(--color-brand-cream);
-  --color-clay-sage: var(--color-brand-sage);
-  --color-clay-lightsage: var(--color-brand-lightsage);
-  --color-clay-peach: var(--color-brand-peach);
-  --color-clay-orange: var(--color-brand-orange);
-  --color-clay-sky: var(--color-brand-sky);
-  --color-clay-brown: var(--color-brand-brown);
-  --color-clay-dark: var(--color-brand-dark);
-  --color-clay-muted: var(--color-brand-muted);
-  --color-clay-border: var(--color-brand-border);
+  /* Grace-giving palette. Warm neutrals carry the layout; one brick-orange
+     accent marks the primary action; four muted status families (success,
+     danger, warning, info) carry meaning only. Each family has a main colour
+     for text and icons, a -line for borders and a -soft for backgrounds.
+     Main colours pass WCAG AA (4.5:1) on page, surface, sunken and their own
+     -soft; checked when the palette was set. */
+  --color-ink: #2b1d14;
+  --color-ink-2: #4e3b2e;
+  --color-ink-3: #6e5a4b;
+  --color-page: #faf6ef;
+  --color-surface: #fffdf8;
+  --color-sunken: #f1eadf;
+  --color-line: #e2d6c3;
+  --color-line-strong: #cdbda5;
+  --color-brand: #a34a24;
+  --color-brand-strong: #8a3e1f;
+  --color-brand-soft: #f5e4d8;
+  --color-brand-line: #e3b9a0;
+  --color-success: #2f6b3a;
+  --color-success-soft: #e3ede0;
+  --color-success-line: #b9d0b6;
+  --color-danger: #a23b24;
+  --color-danger-soft: #f7e3dd;
+  --color-danger-line: #e5b5a8;
+  --color-warning: #8a6414;
+  --color-warning-soft: #f6edd5;
+  --color-warning-line: #e0cd9b;
+  --color-info: #2f5d7c;
+  --color-info-soft: #e2eaf1;
+  --color-info-line: #b3c7d8;
 }
 
 :root {
@@ -67,7 +73,7 @@
      keep page content clear of it below the lg: breakpoint. Any page that
      adds its own fixed/sticky bottom bar on mobile must clear this same
      value plus its own height, instead of guessing a pixel offset. */
-  --mobile-nav-clearance: 8.5rem;
+  --mobile-nav-clearance: 7rem;
 
   /* Widest the page content column is allowed to get (AppLayout.tsx). Without
      a ceiling, a ledger row on a 1920px monitor puts its date at the far left
@@ -75,25 +81,25 @@
      them, which is unreadable. The sidebar sits outside this width. */
   --content-max: 88rem;
 
-  --primary: #e99a4a;
-  --primary-foreground: #ffffff;
-  --background: #fff9ee;
-  --foreground: #38251b;
+  --primary: #a34a24;
+  --primary-foreground: #fffdf8;
+  --background: #faf6ef;
+  --foreground: #2b1d14;
   --card: #fffdf8;
-  --card-foreground: #38251b;
+  --card-foreground: #2b1d14;
   --popover: #fffdf8;
-  --popover-foreground: #38251b;
-  --secondary: #fff4df;
-  --secondary-foreground: #70452e;
-  --muted: #f8f2e6;
-  --muted-foreground: #927d6d;
-  --accent: #dcecc5;
-  --accent-foreground: #3b6b22;
-  --destructive: #f7b6a6;
-  --destructive-foreground: #7c2a1e;
-  --border: #e9d9bf;
-  --input: #e9d9bf;
-  --ring: #e99a4a;
+  --popover-foreground: #2b1d14;
+  --secondary: #f1eadf;
+  --secondary-foreground: #4e3b2e;
+  --muted: #f1eadf;
+  --muted-foreground: #6e5a4b;
+  --accent: #f1eadf;
+  --accent-foreground: #2b1d14;
+  --destructive: #a23b24;
+  --destructive-foreground: #fffdf8;
+  --border: #e2d6c3;
+  --input: #cdbda5;
+  --ring: #a34a24;
   --radius: 0.375rem;
 }
 
@@ -109,7 +115,10 @@ body {
   margin: 0;
   background-color: var(--background);
   color: var(--foreground);
-  font-family: "Prompt", "Noto Sans Thai", sans-serif;
+  font-family: "IBM Plex Sans Thai", "Noto Sans Thai", sans-serif;
+  /* IBM Plex Sans Thai already draws 0-9 at one width (600 units, checked in
+     the served woff2). This keeps the fallback fonts aligned the same way. */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -118,12 +127,8 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(233, 154, 74, 0.45);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
-}
-
-.font-script {
-  font-family: "Caveat", cursive;
 }
 
 @utility no-scrollbar {
@@ -173,7 +178,7 @@ select:focus-visible {
 
 @layer base {
   * {
-    border-color: #e9d9bf;
+    border-color: var(--border);
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -207,11 +212,11 @@ select:focus-visible {
   background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #e5d5bc;
+  background: var(--color-line-strong);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #d4be9f;
+  background: var(--color-ink-3);
 }
 
 /* ============================================
@@ -286,5 +291,16 @@ select:focus-visible {
   }
   .flip-char {
     -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* iOS Safari zooms the page when a focused field is smaller than 16px. Many
+   forms use text-sm or text-xs inputs, so hold every text field at 16px on
+   phones. Unlayered on purpose: it must win over Tailwind's utilities. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }

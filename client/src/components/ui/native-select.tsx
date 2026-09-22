@@ -35,11 +35,11 @@ export const NativeSelect = React.forwardRef<
       ref={ref}
       aria-invalid={invalid || undefined}
       className={cn(
-        "min-h-11 w-full appearance-none rounded-2xl border border-[#E9D9BF]",
-        "bg-[#FFFDF8] py-2.5 pl-4 pr-10 text-sm text-[#38251B]",
-        "focus:border-[#E99A4A] focus:outline-none",
+        "min-h-11 w-full appearance-none rounded-2xl border border-line",
+        "bg-surface py-2.5 pl-4 pr-10 text-sm text-ink",
+        "focus:border-brand focus:outline-none",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        invalid && "border-[#D45945]",
+        invalid && "border-danger",
         className
       )}
       {...props}
@@ -50,7 +50,7 @@ export const NativeSelect = React.forwardRef<
         Not focusable, so it never sits between the label and the control. */}
     <ChevronDown
       aria-hidden="true"
-      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#927D6D]"
+      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
     />
   </div>
 ));

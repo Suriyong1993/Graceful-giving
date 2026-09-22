@@ -7,7 +7,7 @@ import {
   LoadingSkeleton,
 } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
-import { Plus, UsersRound, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   confirmDiscardChanges,
@@ -74,7 +74,7 @@ export default function Members() {
               setShowCreate(true);
             }
           }}
-          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2 text-xs font-bold text-white"
+          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-brand px-4 py-2 text-xs font-bold text-white"
         >
           <Plus className="h-4 w-4" />
           เพิ่มสมาชิก
@@ -82,16 +82,11 @@ export default function Members() {
       }
     >
       <div className="space-y-6">
-        <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
+        <section className="rounded-3xl border border-line bg-sunken p-6 shadow-sm md:p-8">
           <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-card p-3 text-[#E99A4A]">
-              <UsersRound className="h-6 w-6" />
-            </div>
             <div>
-              <h1 className="text-xl font-bold text-[#38251B]">
-                สมาชิกคริสตจักร
-              </h1>
-              <p className="mt-1 text-sm text-[#70452E]/80">
+              <h1 className="text-xl font-bold text-ink">สมาชิกคริสตจักร</h1>
+              <p className="mt-1 text-sm text-ink-2/80">
                 รายชื่อและสถานะจะถูกอ่านและบันทึกจากฐานข้อมูลของคริสตจักรนี้
               </p>
             </div>
@@ -100,58 +95,58 @@ export default function Members() {
         {showCreate && (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-card p-6 shadow-sm"
+            className="rounded-3xl border border-line bg-card p-6 shadow-sm"
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-bold text-[#38251B]">เพิ่มสมาชิกใหม่</h2>
+              <h2 className="font-bold text-ink">เพิ่มสมาชิกใหม่</h2>
               <button
                 type="button"
                 onClick={closeCreateForm}
-                className="text-[#927D6D]"
+                className="text-ink-3"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-ink-2">
                 ชื่อ-นามสกุล *
                 <input
                   required
                   value={name}
                   onChange={event => setName(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 font-normal text-ink"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-ink-2">
                 โทรศัพท์
                 <input
                   value={phone}
                   onChange={event => setPhone(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 font-normal text-ink"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-ink-2">
                 อีเมล
                 <input
                   type="email"
                   value={email}
                   onChange={event => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 font-normal text-ink"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E] md:col-span-2">
+              <label className="text-sm font-semibold text-ink-2 md:col-span-2">
                 หมายเหตุ
                 <textarea
                   value={notes}
                   onChange={event => setNotes(event.target.value)}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-line p-3 font-normal text-ink"
                 />
               </label>
             </div>
             <button
               disabled={createMember.isPending}
-              className="mt-5 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="mt-5 min-h-11 rounded-2xl bg-success px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {createMember.isPending ? "กำลังบันทึก…" : "บันทึกสมาชิก"}
             </button>
@@ -179,20 +174,20 @@ export default function Members() {
                 key={member.id}
                 type="button"
                 onClick={() => setLocation(`/members/${member.id}`)}
-                className="rounded-2xl border border-[#E9D9BF] bg-card p-5 text-left shadow-sm hover:bg-[#FFF9EE]"
+                className="rounded-2xl border border-line bg-card p-5 text-left shadow-sm hover:bg-page"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-bold text-[#38251B]">{member.name}</h2>
+                  <h2 className="font-bold text-ink">{member.name}</h2>
                   <span
-                    className={`rounded-full px-2 py-1 text-[11px] ${member.status === "active" ? "bg-[#DCECC5] text-[#38251B]" : "bg-stone-100 text-stone-600"}`}
+                    className={`rounded-full px-2 py-1 text-[11px] ${member.status === "active" ? "bg-success-soft text-ink" : "bg-sunken text-ink-2"}`}
                   >
                     {member.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-[#70452E]/80">
+                <p className="mt-2 text-sm text-ink-2/80">
                   {member.phone || "ไม่ระบุเบอร์โทรศัพท์"}
                 </p>
-                <p className="text-sm text-[#70452E]/80">
+                <p className="text-sm text-ink-2/80">
                   {member.email || "ไม่ระบุอีเมล"}
                 </p>
               </button>

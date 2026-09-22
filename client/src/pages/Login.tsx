@@ -4,8 +4,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Sprout } from "lucide-react";
 import { LegalLinks } from "@/pages/Legal";
+import { Wordmark } from "@/components/common/Wordmark";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -19,16 +19,10 @@ export default function Login() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 space-y-2 text-center">
-          <div className="relative mb-2 inline-flex size-16 items-center justify-center overflow-hidden rounded-xl border border-[#E99A4A]/30 bg-[#E99A4A]/15 shadow-xs">
-            <Sprout className="size-9 text-[#70452E]" />
-            <div className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-[#A8C978]">
-              <span className="text-[11px] font-bold text-white">✝</span>
-            </div>
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-[#38251B]">
-            Grace<span className="text-[#E99A4A]">-giving</span>
+          <h1>
+            <Wordmark size="lg" />
           </h1>
-          <p className="text-sm text-[#674F42]">ระบบบัญชีการเงินคริสตจักร</p>
+          <p className="text-sm text-ink-2">ระบบบัญชีการเงินคริสตจักร</p>
         </div>
 
         {/* Clerk Sign-In component — handles all auth providers */}
@@ -39,9 +33,10 @@ export default function Login() {
           forceRedirectUrl="/"
           appearance={{
             variables: {
-              colorPrimary: "#E99A4A",
+              colorPrimary: "#a34a24",
               colorBackground: "#FFFDF8",
-              borderRadius: "1rem",
+              borderRadius: "0.375rem",
+              fontFamily: '"IBM Plex Sans Thai", sans-serif',
             },
           }}
         />

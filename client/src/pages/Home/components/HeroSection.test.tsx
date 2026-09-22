@@ -15,8 +15,7 @@ describe("HeroSection", () => {
   it("renders the brand title and tagline", () => {
     render(<HeroSection />);
 
-    expect(screen.getByText("Grace")).toBeInTheDocument();
-    expect(screen.getByText("-giving")).toBeInTheDocument();
+    expect(screen.getByText("Grace-giving")).toBeInTheDocument();
     expect(
       screen.getByText("การเงินเชื่อมใจ เพื่อพันธกิจของพระเจ้า")
     ).toBeInTheDocument();

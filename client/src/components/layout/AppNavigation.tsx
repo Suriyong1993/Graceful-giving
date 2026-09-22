@@ -128,7 +128,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         {children || (
           <button
             type="button"
-            className="flex min-h-12 shrink-0 items-center gap-2.5 rounded-2xl border-2 border-[#E9D9BF] bg-card px-4 text-base font-bold text-[#70452E] hover:bg-[#FFF4DF] shadow-2xs"
+            className="flex min-h-12 shrink-0 items-center gap-2.5 rounded-2xl border-2 border-line bg-card px-4 text-base font-bold text-ink-2 hover:bg-sunken shadow-2xs"
           >
             <Menu className="size-6" aria-hidden="true" />
             <span>เมนูทั้งหมด</span>
@@ -137,13 +137,13 @@ export function AppMenu({ children }: { children?: ReactNode }) {
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-[#FFF9EE]"
+        className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-page"
       >
-        <SheetHeader className="border-b-2 border-[#E9D9BF] p-6 pr-16">
-          <SheetTitle className="text-xl sm:text-2xl font-black text-[#70452E]">
+        <SheetHeader className="border-b-2 border-line p-6 pr-16">
+          <SheetTitle className="text-xl sm:text-2xl font-bold text-ink-2">
             เมนูทั้งหมด
           </SheetTitle>
-          <SheetDescription className="text-sm font-medium text-[#927D6D] mt-0.5">
+          <SheetDescription className="text-sm font-medium text-ink-3 mt-0.5">
             จัดการการเงินและพันธกิจคริสตจักร
           </SheetDescription>
         </SheetHeader>
@@ -163,8 +163,8 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                   }
                   className={`flex min-h-13 items-center gap-3.5 rounded-2xl border-2 px-4 py-3 text-base ${
                     active
-                      ? "border-[#E9D9BF] bg-[#FFF4DF] font-black text-[#70452E] shadow-2xs"
-                      : "border-transparent text-[#70452E] hover:bg-[#FFF4DF] font-bold"
+                      ? "border-line bg-sunken font-bold text-ink-2 shadow-2xs"
+                      : "border-transparent text-ink-2 hover:bg-sunken font-bold"
                   }`}
                 >
                   <Icon className={`size-6 shrink-0`} aria-hidden="true" />

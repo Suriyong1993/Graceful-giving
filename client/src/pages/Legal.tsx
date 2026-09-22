@@ -96,16 +96,16 @@ function LegalPage({
   sections: Section[];
 }) {
   return (
-    <div className="min-h-screen bg-background px-4 py-10 text-[#38251B]">
+    <div className="min-h-screen bg-background px-4 py-10 text-ink">
       <article className="mx-auto max-w-2xl">
         <Link
           href="/login"
-          className="text-sm font-semibold text-[#70452E] underline"
+          className="text-sm font-semibold text-ink-2 underline"
         >
           กลับไปหน้าเข้าสู่ระบบ
         </Link>
         <h1 className="mt-6 text-2xl font-bold">{title}</h1>
-        <p className="mt-1 text-sm text-[#674F42]">แก้ไขล่าสุด {UPDATED}</p>
+        <p className="mt-1 text-sm text-ink-2">แก้ไขล่าสุด {UPDATED}</p>
         {sections.map(section => (
           <section key={section.heading} className="mt-8">
             <h2 className="text-lg font-bold">{section.heading}</h2>
@@ -132,7 +132,7 @@ export function Privacy() {
 /** Footer links shown under the sign-in and sign-up forms. */
 export function LegalLinks() {
   return (
-    <p className="mt-6 text-center text-xs text-[#674F42]">
+    <p className="mt-6 text-center text-xs text-ink-2">
       การใช้งานระบบถือว่ายอมรับ{" "}
       <Link href="/terms" className="underline">
         ข้อกำหนดการใช้งาน

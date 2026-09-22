@@ -95,20 +95,20 @@ export function EnvelopesTab({
       {editable && (
         <form
           onSubmit={submitEnvelope}
-          className="rounded-3xl border border-[#E9D9BF] bg-card p-5 shadow-sm md:p-6"
+          className="rounded-3xl border border-line bg-card p-5 shadow-sm md:p-6"
         >
           <h2 className="mb-4 font-bold text-foreground">บันทึกซองถวาย</h2>
           <div className="grid gap-4 md:grid-cols-3">
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               เลขซอง
               <input
                 value={envelopeNo}
                 onChange={e => setEnvelopeNo(e.target.value)}
                 placeholder="เช่น 012 (เว้นว่างได้)"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground"
+                className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal text-foreground"
               />
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               สมาชิก
               <NativeSelect
                 value={memberId}
@@ -125,17 +125,17 @@ export function EnvelopesTab({
                 ))}
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               ชื่อผู้ถวาย (ถ้าไม่ใช่สมาชิก)
               <input
                 value={donorName}
                 onChange={e => setDonorName(e.target.value)}
                 disabled={isAnonymous}
                 placeholder={isAnonymous ? "ไม่เปิดเผยนาม" : "ชื่อ-นามสกุล"}
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-foreground disabled:opacity-50"
+                className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal text-foreground disabled:opacity-50"
               />
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               ประเภทถวาย
               <NativeSelect
                 value={category}
@@ -149,7 +149,7 @@ export function EnvelopesTab({
                 ))}
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               เข้ากองทุน *
               <NativeSelect
                 required
@@ -167,7 +167,7 @@ export function EnvelopesTab({
                 ))}
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               ช่องทาง
               <NativeSelect
                 value={method}
@@ -179,22 +179,23 @@ export function EnvelopesTab({
                 <option value="check">เช็ค</option>
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#674F42]">
+            <label className="text-sm font-semibold text-ink-2">
               จำนวนเงิน (บาท) *
               <input
                 ref={amountRef}
                 type="number"
+                inputMode="decimal"
                 required
                 min="0.25"
                 step="0.25"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#1b5e3a]"
+                className="mt-1 w-full rounded-xl border border-line p-3 text-base font-bold tabular-nums text-success"
               />
             </label>
             <div className="flex items-end gap-2">
-              <label className="flex items-center gap-2 text-sm text-[#674F42]">
+              <label className="flex items-center gap-2 text-sm text-ink-2">
                 <input
                   type="checkbox"
                   checked={isAnonymous}
@@ -205,7 +206,7 @@ export function EnvelopesTab({
                       setDonorName("");
                     }
                   }}
-                  className="size-4 rounded border-[#E9D9BF]"
+                  className="size-4 rounded border-line"
                 />
                 ไม่ระบุนาม
               </label>
@@ -214,35 +215,35 @@ export function EnvelopesTab({
               <button
                 type="submit"
                 disabled={addEnvelope.isPending || !fundId}
-                className="min-h-11 w-full rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                className="min-h-11 w-full rounded-2xl bg-success px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
               >
                 {addEnvelope.isPending ? "กำลังบันทึก…" : "เพิ่มซอง"}
               </button>
             </div>
           </div>
           {funds.length === 0 && (
-            <p className="mt-3 text-sm text-[#D45945]">
+            <p className="mt-3 text-sm text-danger">
               ยังไม่มีกองทุนในระบบ ต้องสร้างกองทุนก่อนบันทึกซองถวาย
             </p>
           )}
         </form>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#E9D9BF] p-4">
+      <div className="overflow-hidden rounded-3xl border border-line bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-line p-4">
           <h2 className="font-bold text-foreground">
             ซองในรอบนี้ ({envelopes.length})
           </h2>
-          <span className="text-sm font-bold text-[#674F42]">
+          <span className="text-sm font-bold text-ink-2">
             รวม {fmtBaht(offeringTotal)}
           </span>
         </div>
         {envelopes.length === 0 ? (
-          <p className="p-8 text-center text-sm text-[#674F42]">
+          <p className="p-8 text-center text-sm text-ink-2">
             ยังไม่มีซองในรอบนี้
           </p>
         ) : (
-          <ul className="divide-y divide-[#F0E6D8]">
+          <ul className="divide-y divide-line">
             {envelopes.map(envelope => {
               const member = members.find(m => m.id === envelope.memberId);
               const who = envelope.isAnonymous
@@ -264,7 +265,7 @@ export function EnvelopesTab({
                         : ""}
                       {who}
                     </p>
-                    <p className="text-sm text-[#674F42]">
+                    <p className="text-sm text-ink-2">
                       {categoryLabel} · {fundName} ·{" "}
                       {envelope.method === "cash"
                         ? "เงินสด"
@@ -286,7 +287,7 @@ export function EnvelopesTab({
                           })
                         }
                         disabled={removeEnvelope.isPending}
-                        className="flex size-11 items-center justify-center rounded-xl text-[#D45945] hover:bg-[#FFEBE5] disabled:opacity-50"
+                        className="flex size-11 items-center justify-center rounded-xl text-danger hover:bg-danger-soft disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

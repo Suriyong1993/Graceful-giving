@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
-import {
-  ArrowLeft,
-  Bell,
-  Megaphone,
-  Settings2,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft, Settings2, UsersRound } from "lucide-react";
 import { Link } from "wouter";
 import { MemberFeed } from "./Updates/components/MemberFeed";
 import { AdminManager } from "./Updates/components/AdminManager";
@@ -19,7 +13,7 @@ export default function Updates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fbf7ee] p-6 text-center text-sm text-[#786455]">
+      <div className="min-h-screen bg-page p-6 text-center text-sm text-ink-3">
         กำลังตรวจสอบบัญชีผู้ใช้...
       </div>
     );
@@ -27,28 +21,25 @@ export default function Updates() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#fbf7ee] px-5 py-8">
+      <div className="min-h-screen bg-page px-5 py-8">
         <div className="mx-auto max-w-lg">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#8d5e30] hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-bold text-ink-3 hover:underline"
           >
             <ArrowLeft className="size-4" />
             กลับหน้าหลัก
           </Link>
-          <div className="mt-16 rounded-xl border border-[#eadfce] bg-card p-8 text-center shadow-xs">
-            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#f8eddb] text-[#bd7b42]">
-              <Bell className="size-8" />
-            </div>
-            <h1 className="mt-5 font-display text-2xl font-bold text-[#4c392e]">
+          <div className="mt-16 rounded-xl border border-line bg-card p-8 text-center shadow-xs">
+            <h1 className="mt-5 font-display text-2xl font-bold text-ink-2">
               ติดตามข่าวสารคริสตจักร
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#6a5649]">
+            <p className="mt-2 text-sm leading-6 text-ink-2">
               เข้าสู่ระบบเพื่อดูประกาศ กิจกรรม และข้อมูลอัปเดตสำหรับสมาชิก
             </p>
             <button
               onClick={startLogin}
-              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#bd7b42] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#a86a34] active:scale-95 transition"
+              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-ink-3 active:scale-95 transition"
             >
               <UsersRound className="size-4" />
               เข้าสู่ระบบ
@@ -60,43 +51,40 @@ export default function Updates() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf7ee] pb-16 text-[#3a2d26]">
+    <div className="min-h-screen bg-page pb-16 text-ink">
       <div className="mx-auto max-w-[var(--content-max)] px-5 py-6 sm:px-8 lg:py-10">
         <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#8d5e30] hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-ink-3 hover:underline"
             >
               <ArrowLeft className="size-4" />
               กลับหน้าหลัก
             </Link>
             <div className="mt-4 flex items-center gap-3">
-              <div className="grid size-12 place-items-center rounded-2xl bg-[#e7f1fb] text-[#3c6f9e]">
-                <Megaphone className="size-6" />
-              </div>
               <div>
-                <h1 className="font-display text-3xl font-bold tracking-tight text-[#4b382e]">
+                <h1 className="font-display text-3xl font-bold tracking-tight text-ink-2">
                   ข่าวสาร & กิจกรรม
                 </h1>
-                <p className="mt-1 text-sm text-[#6a5649]">
+                <p className="mt-1 text-sm text-ink-2">
                   ติดตามสิ่งที่เกิดขึ้นในคริสตจักรบ้านแห่งพระคุณ
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#eee4d7] bg-card/75 px-3.5 py-2 text-xs text-[#5a463a]">
+          <div className="flex items-center gap-2 rounded-full border border-line bg-card/75 px-3.5 py-2 text-xs text-ink-2">
             <span>อัปเดตเพื่อการมีส่วนร่วมในชุมชน</span>
           </div>
         </header>
 
-        <div className="mt-8 flex gap-2 rounded-2xl bg-[#f3eadf] p-1.5 sm:w-fit">
+        <div className="mt-8 flex gap-2 rounded-2xl bg-sunken p-1.5 sm:w-fit">
           <button
             onClick={() => setActiveTab("feed")}
             className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
               activeTab === "feed"
-                ? "bg-card text-[#8d5e30] shadow-sm"
-                : "text-[#786455] hover:text-[#4c392e]"
+                ? "bg-card text-ink-3 shadow-sm"
+                : "text-ink-3 hover:text-ink-2"
             }`}
           >
             สำหรับสมาชิก
@@ -106,8 +94,8 @@ export default function Updates() {
               onClick={() => setActiveTab("manage")}
               className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
                 activeTab === "manage"
-                  ? "bg-card text-[#8d5e30] shadow-sm"
-                  : "text-[#786455] hover:text-[#4c392e]"
+                  ? "bg-card text-ink-3 shadow-sm"
+                  : "text-ink-3 hover:text-ink-2"
               }`}
             >
               <Settings2 className="mr-1.5 inline size-4" />

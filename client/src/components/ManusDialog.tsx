@@ -51,7 +51,7 @@ export function ManusDialog({
       open={onOpenChange ? open : internalOpen}
       onOpenChange={handleOpenChange}
     >
-      <DialogContent className="py-5 bg-[#f8f8f7] rounded-xl w-[400px] shadow-xs border border-[rgba(0,0,0,0.08)] p-0 gap-0 text-center">
+      <DialogContent className="py-5 bg-page rounded-xl w-[400px] shadow-xs border border-[rgba(0,0,0,0.08)] p-0 gap-0 text-center">
         <div className="flex flex-col items-center gap-2 p-5 pt-12">
           {logo ? (
             <div className="w-16 h-16 bg-card rounded-xl border border-[rgba(0,0,0,0.08)] flex items-center justify-center">
@@ -65,11 +65,11 @@ export function ManusDialog({
 
           {/* Title and subtitle */}
           {title ? (
-            <DialogTitle className="text-xl font-semibold text-[#34322d] leading-[26px] tracking-[-0.44px]">
+            <DialogTitle className="text-xl font-semibold text-ink leading-[26px] tracking-[-0.44px]">
               {title}
             </DialogTitle>
           ) : null}
-          <DialogDescription className="text-sm text-[#858481] leading-5 tracking-[-0.154px]">
+          <DialogDescription className="text-sm text-ink-3 leading-5 tracking-[-0.154px]">
             Please login with Manus to continue
           </DialogDescription>
         </div>
@@ -78,7 +78,7 @@ export function ManusDialog({
           {/* Login button */}
           <Button
             onClick={onLogin}
-            className="w-full h-10 bg-[#1a1a19] hover:bg-[#1a1a19]/90 text-white rounded-[10px] text-sm font-medium leading-5 tracking-[-0.154px]"
+            className="w-full h-10 bg-ink hover:bg-ink/90 text-white rounded-[10px] text-sm font-medium leading-5 tracking-[-0.154px]"
           >
             Login with Manus
           </Button>

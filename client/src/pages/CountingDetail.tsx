@@ -258,7 +258,7 @@ export default function CountingDetail() {
       {
         icon: "warning",
         confirmButtonText: "ลบรอบนี้",
-        confirmButtonColor: "#D45945",
+        confirmButtonColor: "#A23B24",
         cancelButtonText: "ยกเลิก",
       }
     );
@@ -274,7 +274,7 @@ export default function CountingDetail() {
       {
         icon: "question",
         confirmButtonText: "ล้างเพื่อนับใหม่",
-        confirmButtonColor: "#E99A4A",
+        confirmButtonColor: "#a34a24",
         cancelButtonText: "ยกเลิก",
       }
     );
@@ -300,9 +300,9 @@ export default function CountingDetail() {
                 title="ล้างข้อมูลเพื่อนับใหม่"
                 onClick={handleResetThisSession}
                 disabled={resetSession.isPending}
-                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-3.5 py-2 text-xs font-bold text-[#8A5A1E] hover:bg-[#FFE8C2] transition-colors disabled:opacity-50"
+                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-line bg-sunken px-3.5 py-2 text-xs font-bold text-brand-strong hover:bg-line transition-colors disabled:opacity-50"
               >
-                <RotateCcw className="h-4 w-4 text-[#C26B1E]" />
+                <RotateCcw className="h-4 w-4 text-brand" />
                 <span className="hidden sm:inline">นับใหม่</span>
               </button>
               <button
@@ -310,7 +310,7 @@ export default function CountingDetail() {
                 title="ลบรอบนับเงินนี้"
                 onClick={handleDeleteThisSession}
                 disabled={deleteSession.isPending}
-                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-[#D45945] hover:bg-rose-100 transition-colors disabled:opacity-50"
+                className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-danger-soft bg-danger-soft px-3.5 py-2 text-xs font-bold text-danger hover:bg-danger-soft transition-colors disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
                 <span className="hidden sm:inline">ลบรอบนี้</span>
@@ -324,23 +324,23 @@ export default function CountingDetail() {
       <div className="space-y-6">
         {/* Running totals stay visible on every tab. */}
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
-            <p className="text-sm text-[#674F42]">ยอดถวายตามซอง</p>
+          <div className="rounded-2xl border border-line bg-card p-4 shadow-2xs">
+            <p className="text-sm text-ink-2">ยอดถวายตามซอง</p>
             <MoneyDisplay amount={r.offeringTotal} type="income" size="lg" />
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
-            <p className="text-sm text-[#674F42]">นับเงินสดได้</p>
+          <div className="rounded-2xl border border-line bg-card p-4 shadow-2xs">
+            <p className="text-sm text-ink-2">นับเงินสดได้</p>
             <MoneyDisplay amount={r.countedCashTotal} size="lg" />
             <div className="mt-1 text-sm">
               <Variance amount={r.cashVariance} />
             </div>
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
-            <p className="text-sm text-[#674F42]">หักเบิก</p>
+          <div className="rounded-2xl border border-line bg-card p-4 shadow-2xs">
+            <p className="text-sm text-ink-2">หักเบิก</p>
             <MoneyDisplay amount={r.deductionTotal} type="expense" size="lg" />
           </div>
-          <div className="rounded-2xl border border-[#E9D9BF] bg-card p-4 shadow-2xs">
-            <p className="text-sm text-[#674F42]">ต้องนำฝาก</p>
+          <div className="rounded-2xl border border-line bg-card p-4 shadow-2xs">
+            <p className="text-sm text-ink-2">ต้องนำฝาก</p>
             <MoneyDisplay amount={r.expectedDeposit} size="lg" />
             <div className="mt-1 text-sm">
               <Variance amount={r.depositVariance} />
@@ -358,7 +358,7 @@ export default function CountingDetail() {
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition-colors ${
                 tab === id
                   ? "bg-primary text-white shadow-sm"
-                  : "border border-[#E9D9BF] bg-card text-[#674F42] hover:bg-background"
+                  : "border border-line bg-card text-ink-2 hover:bg-background"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -368,7 +368,7 @@ export default function CountingDetail() {
         </div>
 
         {!editable && tab !== "summary" && tab !== "bank" && (
-          <p className="rounded-2xl border border-[#F6E1BF] bg-[#FFF3DF] p-4 text-sm text-[#8A5A1E]">
+          <p className="rounded-2xl border border-line bg-sunken p-4 text-sm text-brand-strong">
             รอบนี้ส่งนับแล้ว จึงแก้ไขซองและผลนับไม่ได้ ถ้าต้องแก้ ให้เหรัญญิกกด
             “ส่งกลับไปนับใหม่” ในแท็บสรุป
           </p>

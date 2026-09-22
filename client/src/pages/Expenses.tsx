@@ -14,7 +14,6 @@ import {
   Download,
   Plus,
   Receipt,
-  TrendingDown,
   Building,
   Zap,
   Users,
@@ -23,7 +22,6 @@ import {
   HeartHandshake,
   Paperclip,
   Printer,
-  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@shared/categories";
@@ -125,21 +123,21 @@ export default function Expenses() {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "utilities":
-        return { icon: Zap, color: "bg-amber-100 text-amber-800" };
+        return { icon: Zap, color: "bg-warning-soft text-warning" };
       case "ministry":
-        return { icon: Users, color: "bg-sky-100 text-sky-800" };
+        return { icon: Users, color: "bg-info-soft text-info" };
       case "pastoral":
-        return { icon: Cross, color: "bg-emerald-100 text-emerald-800" };
+        return { icon: Cross, color: "bg-success-soft text-success" };
       case "admin":
-        return { icon: Receipt, color: "bg-stone-100 text-stone-800" };
+        return { icon: Receipt, color: "bg-sunken text-ink" };
       case "building":
-        return { icon: Building, color: "bg-orange-100 text-orange-800" };
+        return { icon: Building, color: "bg-brand-soft text-brand-strong" };
       case "worship":
-        return { icon: GraduationCap, color: "bg-blue-100 text-blue-800" };
+        return { icon: GraduationCap, color: "bg-info-soft text-info" };
       case "welfare":
-        return { icon: HeartHandshake, color: "bg-rose-100 text-rose-800" };
+        return { icon: HeartHandshake, color: "bg-danger-soft text-danger" };
       default:
-        return { icon: Receipt, color: "bg-stone-100 text-stone-700" };
+        return { icon: Receipt, color: "bg-sunken text-ink-2" };
     }
   };
 
@@ -147,16 +145,15 @@ export default function Expenses() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header Banner */}
-        <div className="bg-[#FFF4DF] border border-[#E9D9BF] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="bg-sunken border border-line rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="space-y-2 text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F7B6A6]/20 text-[#70452E]">
-              <TrendingDown className="w-3.5 h-3.5 text-[#F7B6A6]" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-danger-line/20 text-ink-2">
               การเบิกจ่ายและค่าใช้จ่ายคริสตจักร
             </span>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
               บันทึกรายจ่าย (Expenses)
             </h1>
-            <p className="text-sm text-[#70452E]/80 max-w-xl">
+            <p className="text-sm text-ink-2/80 max-w-xl">
               บันทึกและตรวจสอบทุกการใช้จ่ายเพื่อพันธกิจของพระเจ้า
               ด้วยความโปร่งใส สัตย์ซื่อ และมีหลักฐานครบถ้วน
             </p>
@@ -172,12 +169,9 @@ export default function Expenses() {
 
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
+          <div className="bg-card p-5 rounded-2xl border border-line shadow-sm">
+            <div className="flex items-center justify-between text-ink-2/70 mb-2">
               <span className="text-sm font-medium">รวมรายจ่ายตามตัวกรอง</span>
-              <div className="w-8 h-8 rounded-full bg-[#F7B6A6]/20 flex items-center justify-center text-[#70452E]">
-                <TrendingDown className="w-4 h-4" />
-              </div>
             </div>
             <MoneyDisplay
               amount={totalAmount}
@@ -185,42 +179,36 @@ export default function Expenses() {
               size="lg"
               className="font-bold text-foreground"
             />
-            <p className="text-xs text-[#70452E]/60 mt-1">
+            <p className="text-xs text-ink-2/60 mt-1">
               {filteredExpenses.length} รายการที่แสดง
             </p>
           </div>
 
-          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
+          <div className="bg-card p-5 rounded-2xl border border-line shadow-sm">
+            <div className="flex items-center justify-between text-ink-2/70 mb-2">
               <span className="text-sm font-medium">
                 หมวดหมู่หลักประจำเดือน
               </span>
-              <div className="w-8 h-8 rounded-full bg-[#A9D4ED]/20 flex items-center justify-center text-sky-700">
-                <Receipt className="w-4 h-4" />
-              </div>
             </div>
             <p className="text-xl font-bold text-foreground">
               สาธารณูปโภค & พันธกิจ
             </p>
-            <p className="text-xs text-[#70452E]/60 mt-1">
+            <p className="text-xs text-ink-2/60 mt-1">
               สัดส่วน 62% ของงบประมาณ
             </p>
           </div>
 
-          <div className="bg-card p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
+          <div className="bg-card p-5 rounded-2xl border border-line shadow-sm">
+            <div className="flex items-center justify-between text-ink-2/70 mb-2">
               <span className="text-sm font-medium">สถานะการตรวจสอบ</span>
-              <div className="w-8 h-8 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E]">
-                <HeartHandshake className="w-4 h-4" />
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-foreground">100%</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#A8C978]/20 text-foreground font-medium">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-success-line/20 text-foreground font-medium">
                 มีใบเสร็จครบ
               </span>
             </div>
-            <p className="text-xs text-[#70452E]/60 mt-1">
+            <p className="text-xs text-ink-2/60 mt-1">
               ผ่านการอนุมัติเรียบร้อย
             </p>
           </div>
@@ -246,14 +234,14 @@ export default function Expenses() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={exportCSV}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-[#E9D9BF] bg-card text-[#70452E] hover:bg-[#FFF4DF]/50 transition-colors text-sm font-medium shadow-sm"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-line bg-card text-ink-2 hover:bg-sunken/50 transition-colors text-sm font-medium shadow-sm"
             >
               <Download className="w-4 h-4" />
               <span>ส่งออก CSV</span>
             </button>
             <button
               onClick={() => setLocation("/expenses/new")}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-brand text-white font-medium text-sm shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>บันทึกรายจ่าย</span>
@@ -279,11 +267,11 @@ export default function Expenses() {
             onAction={() => setLocation("/expenses/new")}
           />
         ) : (
-          <div className="bg-card rounded-3xl border border-[#E9D9BF] overflow-hidden shadow-sm">
+          <div className="bg-card rounded-3xl border border-line overflow-hidden shadow-sm">
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-sm text-foreground">
-                <thead className="bg-background border-b border-[#E9D9BF] text-xs font-semibold text-[#70452E]">
+                <thead className="bg-background border-b border-line text-xs font-semibold text-ink-2">
                   <tr>
                     <th className="py-4 px-6">วันที่</th>
                     <th className="py-4 px-6">รายการ</th>
@@ -297,7 +285,7 @@ export default function Expenses() {
                     <th className="py-4 px-6 text-center">ใบสำคัญจ่าย</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E9D9BF]/40">
+                <tbody className="divide-y divide-line/40">
                   {filteredExpenses.map(e => {
                     const cat = getCategoryIcon(e.category);
                     const CatIcon = cat.icon;
@@ -307,9 +295,9 @@ export default function Expenses() {
                         onClick={() =>
                           setLocation(`/transactions/expense-${e.id}`)
                         }
-                        className="hover:bg-[#FFF4DF]/30 cursor-pointer transition-colors"
+                        className="hover:bg-sunken/30 cursor-pointer transition-colors"
                       >
-                        <td className="py-4 px-6 whitespace-nowrap text-[#70452E]/80">
+                        <td className="py-4 px-6 whitespace-nowrap text-ink-2/80">
                           {new Date(e.date).toLocaleDateString("th-TH", {
                             year: "numeric",
                             month: "short",
@@ -327,13 +315,13 @@ export default function Expenses() {
                             {expenseCategoryLabel(e.category)}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-[#70452E]/80 whitespace-nowrap">
+                        <td className="py-4 px-6 text-ink-2/80 whitespace-nowrap">
                           {e.payee}
                         </td>
-                        <td className="py-4 px-6 text-xs text-[#70452E]/80 whitespace-nowrap">
+                        <td className="py-4 px-6 text-xs text-ink-2/80 whitespace-nowrap">
                           {fundName(e.fundId)}
                         </td>
-                        <td className="py-4 px-6 text-xs text-[#70452E]/60 font-mono whitespace-nowrap">
+                        <td className="py-4 px-6 text-xs text-ink-2/60 font-mono whitespace-nowrap">
                           {e.receiptRef}
                         </td>
                         <td
@@ -349,14 +337,14 @@ export default function Expenses() {
                                   title: e.description,
                                 })
                               }
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-medium transition-colors"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success-soft hover:bg-success-soft text-success border border-success-soft text-xs font-medium transition-colors"
                               title="คลิกเพื่อดูรูปสลิป/ใบเสร็จ"
                             >
                               <Paperclip className="w-3.5 h-3.5" />
                               <span>ดูสลิป</span>
                             </button>
                           ) : (
-                            <span className="text-stone-300 text-xs">-</span>
+                            <span className="text-line-strong text-xs">-</span>
                           )}
                         </td>
                         <td className="py-4 px-6 text-right whitespace-nowrap font-medium">
@@ -388,7 +376,7 @@ export default function Expenses() {
                                 receiptUrl: e.receiptUrl,
                               })
                             }
-                            className="min-h-11 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-primary text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
+                            className="min-h-11 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sunken hover:bg-sunken hover:border-primary text-ink-2 border border-line text-xs font-semibold transition-all shadow-2xs"
                             title="พิมพ์ใบสำคัญจ่าย"
                           >
                             <Printer className="w-3.5 h-3.5 text-primary" />
@@ -403,7 +391,7 @@ export default function Expenses() {
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-[#E9D9BF]/40">
+            <div className="md:hidden divide-y divide-line/40">
               {filteredExpenses.map(e => {
                 const cat = getCategoryIcon(e.category);
                 const CatIcon = cat.icon;
@@ -411,7 +399,7 @@ export default function Expenses() {
                   <div
                     key={e.id}
                     onClick={() => setLocation(`/transactions/expense-${e.id}`)}
-                    className="p-4 space-y-2.5 active:bg-[#FFF4DF]/40"
+                    className="p-4 space-y-2.5 active:bg-sunken/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
@@ -422,14 +410,14 @@ export default function Expenses() {
                             <CatIcon className="w-3 h-3" />
                             {expenseCategoryLabel(e.category)}
                           </span>
-                          <span className="text-xs text-[#70452E]/60 font-mono">
+                          <span className="text-xs text-ink-2/60 font-mono">
                             {e.receiptRef}
                           </span>
                         </div>
                         <p className="font-medium text-foreground text-sm truncate">
                           {e.description}
                         </p>
-                        <p className="text-xs text-[#70452E]/70">
+                        <p className="text-xs text-ink-2/70">
                           {e.payee} •{" "}
                           {new Date(e.date).toLocaleDateString("th-TH")}
                         </p>
@@ -448,7 +436,7 @@ export default function Expenses() {
 
                     {/* Mobile Action Bar */}
                     <div
-                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#E9D9BF]/30"
+                      className="flex items-center justify-end gap-2 pt-1 border-t border-line/30"
                       onClick={ev => ev.stopPropagation()}
                     >
                       {e.receiptUrl && (
@@ -460,7 +448,7 @@ export default function Expenses() {
                               title: e.description,
                             })
                           }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-medium"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-success-soft text-success border border-success-soft text-xs font-medium"
                         >
                           <Paperclip className="w-3 h-3" />
                           <span>ดูสลิป</span>
@@ -481,7 +469,7 @@ export default function Expenses() {
                             receiptUrl: e.receiptUrl,
                           })
                         }
-                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
+                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sunken text-ink-2 border border-line text-xs font-medium"
                       >
                         <Printer className="w-3 h-3 text-primary" />
                         <span>พิมพ์ใบสำคัญ</span>
