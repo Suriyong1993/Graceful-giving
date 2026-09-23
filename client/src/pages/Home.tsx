@@ -18,6 +18,7 @@ import {
 } from "./Home/components/RecentTransactions";
 import { ChurchNewsSheet } from "./Home/components/ChurchNewsSheet";
 import { formatBaht, formatThaiDateTime } from "@/lib/format";
+import { FEATURES } from "@/lib/features";
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -269,11 +270,13 @@ export default function Home() {
           onOpenWithdrawals={() => setLocation("/withdrawals/new")}
         />
 
-        {/* 5. Budget Section */}
-        <BudgetSection
-          canOpenReports={canOpenReports}
-          onOpenReports={() => setLocation("/reports")}
-        />
+        {/* 5. Budget Section: hidden until the API exists */}
+        {FEATURES.budgets && (
+          <BudgetSection
+            canOpenReports={canOpenReports}
+            onOpenReports={() => setLocation("/reports")}
+          />
+        )}
 
         {/* 6. Recent Transactions Section */}
         <RecentTransactions

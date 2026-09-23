@@ -9,6 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { hasSkippedSetup } from "@/lib/setupSkip";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { FEATURES } from "@/lib/features";
 
 // Pages are loaded on demand so the initial bundle contains only the app shell
 // and the route chunk the user actually opens.
@@ -292,23 +293,27 @@ function Router() {
         </RoleGuard>
       </Route>
 
-      {/* Budgets */}
-      <Route path="/budgets">
-        <RoleGuard
-          canAccess={u => canAccessRoute("/budgets", u)}
-          message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
-        >
-          <Budgets />
-        </RoleGuard>
-      </Route>
-      <Route path="/budgets/:id">
-        <RoleGuard
-          canAccess={u => canAccessRoute("/budgets", u)}
-          message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
-        >
-          <BudgetDetail />
-        </RoleGuard>
-      </Route>
+      {/* Budgets: hidden until the API exists, see lib/features.ts */}
+      {FEATURES.budgets && (
+        <>
+          <Route path="/budgets">
+            <RoleGuard
+              canAccess={u => canAccessRoute("/budgets", u)}
+              message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
+            >
+              <Budgets />
+            </RoleGuard>
+          </Route>
+          <Route path="/budgets/:id">
+            <RoleGuard
+              canAccess={u => canAccessRoute("/budgets", u)}
+              message="ส่วนงบประมาณสงวนไว้สำหรับเหรัญญิกหรือคณะกรรมการงบประมาณเท่านั้น"
+            >
+              <BudgetDetail />
+            </RoleGuard>
+          </Route>
+        </>
+      )}
 
       {/* Ministries & Team */}
       <Route path="/ministries" component={Ministries} />
