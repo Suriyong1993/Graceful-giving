@@ -297,6 +297,17 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "offering_envelopes" ADD COLUMN IF NOT EXISTS "linkedOfferingId" integer;`,
+  // A linked offering cannot be deleted out from under its envelope, and only
+  // a transfer envelope may carry a link.
+  `DO $$ BEGIN
+    ALTER TABLE "offering_envelopes" ADD CONSTRAINT "offering_envelopes_linked_offering_fk"
+      FOREIGN KEY ("linkedOfferingId") REFERENCES "offerings"("id") ON DELETE RESTRICT;
+  EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN
+    ALTER TABLE "offering_envelopes" ADD CONSTRAINT "offering_envelopes_link_is_transfer"
+      CHECK ("linkedOfferingId" IS NULL OR "method" = 'transfer');
+  EXCEPTION WHEN duplicate_object THEN null; END $$;`,
 
   `CREATE TABLE IF NOT EXISTS "session_deductions" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -406,6 +417,10 @@ export const INDEX_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`,
   /** Financial integrity backstop: prevent duplicate active offerings with the same bank reference */
   `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`,
+  /** One offering records one amount of money: at most one slip creates it */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_offering_uniq" ON "line_slips" ("approvedOfferingId") WHERE "approvedOfferingId" IS NOT NULL;`,
+  /** ...and at most one counted envelope refers back to it */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "offering_envelopes_linked_offering_uniq" ON "offering_envelopes" ("linkedOfferingId") WHERE "linkedOfferingId" IS NOT NULL;`,
 ];
 
 /**
@@ -431,6 +446,20 @@ const INTEGRITY_INDEXES: Record<
       WHERE "extractedRef" IS NOT NULL
         AND "status" NOT IN ('rejected', 'duplicate', 'failed')
       GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  line_slips_offering_uniq: {
+    guards: "two LINE slips must not create or claim one offering",
+    findBlockingRows: `SELECT "approvedOfferingId", count(*) AS copies
+      FROM "line_slips"
+      WHERE "approvedOfferingId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  offering_envelopes_linked_offering_uniq: {
+    guards: "one offering must not back two counted envelopes",
+    findBlockingRows: `SELECT "linkedOfferingId", count(*) AS copies
+      FROM "offering_envelopes"
+      WHERE "linkedOfferingId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
   },
   line_slips_event_uniq: {
     guards: "one LINE event must not create two slips",

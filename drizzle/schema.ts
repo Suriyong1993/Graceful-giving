@@ -525,6 +525,13 @@ export const offeringEnvelopes = pgTable("offering_envelopes", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   /** Bank reference or cheque number when the gift did not arrive as cash. */
   reference: varchar("reference", { length: 120 }),
+  /**
+   * For a transfer: the offering that already records this money (usually
+   * the one an approved LINE slip created). Posting the round does not
+   * create a second offering for it. Unique, so one offering backs at most
+   * one envelope.
+   */
+  linkedOfferingId: integer("linkedOfferingId"),
   notes: text("notes"),
   recordedBy: integer("recordedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

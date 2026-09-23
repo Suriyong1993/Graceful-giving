@@ -5,6 +5,8 @@ import { MoneyDisplay } from "@/components/common/CommonUI";
 import { OFFERING_CATEGORIES, offeringCategoryLabel } from "@shared/categories";
 import { fmtBaht } from "./countingUtils";
 import { NativeSelect } from "@/components/ui/native-select";
+import { trpc } from "@/lib/trpc";
+import { formatThaiDate } from "@/lib/format";
 
 interface EnvelopesTabProps {
   sessionId: number;
@@ -20,7 +22,14 @@ interface EnvelopesTabProps {
     fundId?: number | null;
     method: "cash" | "transfer" | "check" | string;
     amount: number;
+    linkedOfferingId?: number | null;
   }>;
+  /**
+   * The treasurer may link a transfer to its offering until the round is
+   * posted, even after the count is locked: the amount must match, so the
+   * counted totals do not change.
+   */
+  canLinkTransfers: boolean;
   funds: Array<{ id: number; name: string }>;
   members: Array<{ id: number; name: string; envelopeNo?: string | null }>;
   offeringTotal: number;
@@ -43,7 +52,44 @@ export function EnvelopesTab({
   offeringTotal,
   addEnvelope,
   removeEnvelope,
+  canLinkTransfers,
 }: EnvelopesTabProps) {
+  const utils = trpc.useUtils();
+  const linkableQuery = trpc.counting.linkableTransfers.useQuery(
+    { sessionId },
+    { enabled: editable || canLinkTransfers, retry: false }
+  );
+  const linkedIds = new Set(
+    envelopes.map(e => e.linkedOfferingId).filter(Boolean) as number[]
+  );
+  const freeTransfers = (linkableQuery.data ?? []).filter(
+    t => !linkedIds.has(t.id)
+  );
+  const linkTransfer = trpc.counting.linkTransfer.useMutation({
+    onSuccess: () =>
+      Promise.all([
+        utils.counting.get.invalidate({ id: sessionId }),
+        utils.counting.linkableTransfers.invalidate({ sessionId }),
+      ]),
+    onError: error =>
+      toast.error("ผูกรายการเงินโอนไม่สำเร็จ", { description: error.message }),
+  });
+  const transferLabel = (t: {
+    id: number;
+    amount: number;
+    receiptDate: Date | string;
+    reference: string | null;
+    donorName: string | null;
+  }) =>
+    [
+      `#${t.id}`,
+      fmtBaht(t.amount),
+      formatThaiDate(t.receiptDate),
+      t.donorName,
+      t.reference,
+    ]
+      .filter(Boolean)
+      .join(" · ");
   const [envelopeNo, setEnvelopeNo] = useState("");
   const [memberId, setMemberId] = useState("");
   const [donorName, setDonorName] = useState("");
@@ -52,6 +98,8 @@ export function EnvelopesTab({
   const [fundId, setFundId] = useState("");
   const [method, setMethod] = useState<"cash" | "transfer" | "check">("cash");
   const [amount, setAmount] = useState("");
+  const [linkedOfferingId, setLinkedOfferingId] = useState("");
+  const linked = freeTransfers.find(t => t.id === Number(linkedOfferingId));
   const amountRef = useRef<HTMLInputElement>(null);
 
   const submitEnvelope = (event: React.FormEvent) => {
@@ -76,6 +124,10 @@ export function EnvelopesTab({
         fundId: Number(fundId),
         method,
         amount: value,
+        linkedOfferingId:
+          method === "transfer" && linkedOfferingId
+            ? Number(linkedOfferingId)
+            : undefined,
       },
       {
         onSuccess: () => {
@@ -84,6 +136,7 @@ export function EnvelopesTab({
           setDonorName("");
           setIsAnonymous(false);
           setAmount("");
+          setLinkedOfferingId("");
           amountRef.current?.focus();
         },
       }
@@ -171,7 +224,10 @@ export function EnvelopesTab({
               ช่องทาง
               <NativeSelect
                 value={method}
-                onChange={e => setMethod(e.target.value as typeof method)}
+                onChange={e => {
+                  setMethod(e.target.value as typeof method);
+                  setLinkedOfferingId("");
+                }}
                 className="mt-1"
               >
                 <option value="cash">เงินสด</option>
@@ -179,6 +235,38 @@ export function EnvelopesTab({
                 <option value="check">เช็ค</option>
               </NativeSelect>
             </label>
+            {method === "transfer" && (
+              <label className="text-sm font-semibold text-ink-2 md:col-span-3">
+                รายการเงินโอนที่รับแล้ว
+                <NativeSelect
+                  value={linkedOfferingId}
+                  onChange={e => {
+                    const id = e.target.value;
+                    setLinkedOfferingId(id);
+                    const t = freeTransfers.find(x => x.id === Number(id));
+                    if (t) {
+                      setAmount(String(t.amount));
+                      if (t.fundId) setFundId(String(t.fundId));
+                      setCategory(t.category);
+                    }
+                  }}
+                  className="mt-1"
+                >
+                  <option value="">ยังไม่ผูก (ต้องผูกก่อนลงบัญชี)</option>
+                  {freeTransfers.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {transferLabel(t)}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <span className="mt-1 block text-xs font-normal text-ink-3">
+                  เงินโอนถูกบันทึกเข้าบัญชีแล้วเมื่ออนุมัติสลิป
+                  ซองนี้จึงอ้างถึงรายการเดิม ไม่สร้างรายการใหม่
+                  {freeTransfers.length === 0 &&
+                    " ยังไม่มีรายการเงินโอนที่ผูกได้ ให้เหรัญญิกอนุมัติสลิปใน Giving Inbox ก่อน"}
+                </span>
+              </label>
+            )}
             <label className="text-sm font-semibold text-ink-2">
               จำนวนเงิน (บาท) *
               <input
@@ -190,6 +278,7 @@ export function EnvelopesTab({
                 step="0.25"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
+                readOnly={Boolean(linked)}
                 placeholder="0.00"
                 className="mt-1 w-full rounded-xl border border-line p-3 text-base font-bold tabular-nums text-success"
               />
@@ -273,6 +362,43 @@ export function EnvelopesTab({
                           ? "เงินโอน"
                           : "เช็ค"}
                     </p>
+                    {envelope.method === "transfer" &&
+                      (envelope.linkedOfferingId ? (
+                        <p className="text-xs text-success">
+                          ผูกกับรายการเงินโอน #{envelope.linkedOfferingId}
+                        </p>
+                      ) : (
+                        <div className="mt-1 space-y-1">
+                          <p className="text-xs font-semibold text-warning">
+                            ยังไม่ได้ผูกกับรายการเงินโอน
+                            ลงบัญชีไม่ได้จนกว่าจะผูก
+                          </p>
+                          {canLinkTransfers && (
+                            <NativeSelect
+                              aria-label="ผูกกับรายการเงินโอน"
+                              value=""
+                              disabled={linkTransfer.isPending}
+                              onChange={e =>
+                                e.target.value &&
+                                linkTransfer.mutate({
+                                  sessionId,
+                                  envelopeId: envelope.id,
+                                  linkedOfferingId: Number(e.target.value),
+                                })
+                              }
+                            >
+                              <option value="">เลือกรายการเงินโอน</option>
+                              {freeTransfers
+                                .filter(t => t.amount === envelope.amount)
+                                .map(t => (
+                                  <option key={t.id} value={t.id}>
+                                    {transferLabel(t)}
+                                  </option>
+                                ))}
+                            </NativeSelect>
+                          )}
+                        </div>
+                      ))}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <MoneyDisplay amount={envelope.amount} type="income" />

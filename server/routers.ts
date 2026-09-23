@@ -68,6 +68,8 @@ import {
   createCountingSession,
   setCountingSessionStatus,
   addOfferingEnvelope,
+  FinanceRuleError,
+  listLinkableTransfers,
   updateOfferingEnvelope,
   deleteOfferingEnvelope,
   setCashCount,
@@ -240,6 +242,18 @@ function csvCell(value: string | number): string {
 }
 
 // ─── Counting session helpers ─────────────────────────────────────────────────
+
+/** Surfaces a broken financial rule as the tRPC error the client expects. */
+async function withFinanceRules<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if (err instanceof FinanceRuleError) {
+      throw new TRPCError({ code: err.code, message: err.message });
+    }
+    throw err;
+  }
+}
 
 async function requireCountingSession(id: number) {
   const session = await getCountingSession(id);
@@ -519,10 +533,12 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const { id, amount, ...rest } = input;
-        const updated = await updateOffering(id, {
-          ...rest,
-          ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
-        } as any);
+        const updated = await withFinanceRules(() =>
+          updateOffering(id, {
+            ...rest,
+            ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
+          } as any)
+        );
         if (updated === null)
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -541,7 +557,7 @@ export const appRouter = router({
     delete: financeProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
-        const deleted = await voidOffering(input.id);
+        const deleted = await withFinanceRules(() => voidOffering(input.id));
         if (!deleted)
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -1158,6 +1174,8 @@ export const appRouter = router({
           method: paymentMethod.default("cash"),
           amount: z.number().positive(),
           reference: z.string().trim().max(120).optional(),
+          /** Required before posting when method is "transfer". */
+          linkedOfferingId: z.number().int().positive().optional(),
           notes: z.string().trim().max(500).optional(),
         })
       )
@@ -1165,7 +1183,8 @@ export const appRouter = router({
         assertCanCount(ctx.user);
         const session = await requireCountingSession(input.sessionId);
         assertCountEditable(session.status);
-        const id = await addOfferingEnvelope({
+        const id = await withFinanceRules(() =>
+          addOfferingEnvelope({
           sessionId: input.sessionId,
           envelopeNo: input.envelopeNo ?? null,
           memberId: input.memberId ?? null,
@@ -1176,10 +1195,73 @@ export const appRouter = router({
           method: input.method,
           amount: input.amount.toFixed(2),
           reference: input.reference ?? null,
+          linkedOfferingId: input.linkedOfferingId ?? null,
           notes: input.notes ?? null,
           recordedBy: ctx.user.id,
-        });
+          })
+        );
         return { id };
+      }),
+
+    /** Transfer offerings this round can link its transfer envelopes to. */
+    linkableTransfers: protectedProcedure
+      .input(z.object({ sessionId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        assertCanCount(ctx.user);
+        const session = await requireCountingSession(input.sessionId);
+        const rows = await listLinkableTransfers(
+          input.sessionId,
+          session.serviceDate
+        );
+        const showDonorNames = canViewDonorNames(ctx.user);
+        return rows.map(r => ({
+          ...r,
+          donorName: showDonorNames ? r.donorName : null,
+        }));
+      }),
+
+    /**
+     * Points a transfer envelope at the offering that already records the
+     * money, or clears the link. Allowed until the round is posted, because
+     * a slip is often approved after Sunday; the amount must still match, so
+     * the counted totals do not change.
+     */
+    linkTransfer: financeProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          envelopeId: z.number().int().positive(),
+          linkedOfferingId: z.number().int().positive().nullable(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const session = await requireCountingSession(input.sessionId);
+        if (session.status === "posted" || session.status === "closed") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "รอบนี้ลงบัญชีแล้ว จึงเปลี่ยนการผูกเงินโอนไม่ได้",
+          });
+        }
+        const updated = await withFinanceRules(() =>
+          updateOfferingEnvelope(input.envelopeId, input.sessionId, {
+            linkedOfferingId: input.linkedOfferingId,
+          })
+        );
+        if (updated === null) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบรายการซอง" });
+        }
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "LINK_TRANSFER",
+          entity: "offering_envelope",
+          entityId: input.envelopeId,
+          metadata: {
+            sessionId: input.sessionId,
+            linkedOfferingId: input.linkedOfferingId,
+          },
+        });
+        return { id: updated };
       }),
 
     updateEnvelope: protectedProcedure
@@ -1196,6 +1278,7 @@ export const appRouter = router({
           method: paymentMethod.optional(),
           amount: z.number().positive().optional(),
           reference: z.string().trim().max(120).nullable().optional(),
+          linkedOfferingId: z.number().int().positive().nullable().optional(),
           notes: z.string().trim().max(500).nullable().optional(),
         })
       )
@@ -1204,10 +1287,12 @@ export const appRouter = router({
         const session = await requireCountingSession(input.sessionId);
         assertCountEditable(session.status);
         const { id, sessionId, amount, ...rest } = input;
-        const updated = await updateOfferingEnvelope(id, sessionId, {
-          ...rest,
-          ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
-        });
+        const updated = await withFinanceRules(() =>
+          updateOfferingEnvelope(id, sessionId, {
+            ...rest,
+            ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
+          })
+        );
         if (updated === null) {
           throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบรายการซอง" });
         }
@@ -1592,6 +1677,16 @@ export const appRouter = router({
           });
         }
 
+        const unlinked = detail.envelopes.filter(
+          e => e.method === "transfer" && !e.linkedOfferingId
+        );
+        if (unlinked.length > 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `มีซองเงินโอน ${unlinked.length} ซองที่ยังไม่ได้ผูกกับรายการเงินโอน ต้องผูกก่อนลงบัญชี`,
+          });
+        }
+
         const unapproved = detail.deductions.filter(d => !d.approvedBy);
         if (unapproved.length > 0) {
           throw new TRPCError({
@@ -1616,7 +1711,9 @@ export const appRouter = router({
           );
         }
 
-        const result = await postCountingSession(input.id, ctx.user.id);
+        const result = await withFinanceRules(() =>
+          postCountingSession(input.id, ctx.user.id)
+        );
         if (!result) {
           throw new TRPCError({
             code: "CONFLICT",

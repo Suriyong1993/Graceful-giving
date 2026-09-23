@@ -271,6 +271,56 @@ describeDb("financial invariants", () => {
       expect(session.status).toBe("verified");
     });
 
+    it("lets the treasurer link a transfer after the count is submitted", async () => {
+      const sessionId = await verifiedRound(new Date("2026-11-01T01:00:00Z"), [
+        { amount: 1200, method: "transfer" },
+      ]);
+      const slipId = await insertSlip(1200);
+      const { offeringId } = await approveSlip(slipId, 1200);
+      const [envelope] = await rows(
+        sql`SELECT id FROM offering_envelopes WHERE "sessionId" = ${sessionId}`
+      );
+
+      // Counters cannot change the link once the count is locked.
+      await expect(
+        callerFor(counter).counting.linkTransfer({
+          sessionId,
+          envelopeId: Number(envelope.id),
+          linkedOfferingId: offeringId,
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      await callerFor(treasurer).counting.linkTransfer({
+        sessionId,
+        envelopeId: Number(envelope.id),
+        linkedOfferingId: offeringId,
+      });
+      const offeringsBefore = await activeOfferingCount();
+      const balanceBefore = await fundBalance();
+      const result = await callerFor(treasurer).counting.post({
+        id: sessionId,
+        varianceNote: "ไม่มีรายการฝากธนาคารในรอบทดสอบ",
+      });
+      expect(result.offeringCount).toBe(0);
+      expect(result.linkedTransferCount).toBe(1);
+      expect(await activeOfferingCount()).toBe(offeringsBefore);
+      expect(await fundBalance()).toBe(balanceBefore);
+    });
+
+    it("will not void or re-amount an offering a round has counted", async () => {
+      const slipId = await insertSlip(600);
+      const { offeringId } = await approveSlip(slipId, 600);
+      await verifiedRound(new Date("2026-11-08T01:00:00Z"), [
+        { amount: 600, method: "transfer", linkedOfferingId: offeringId },
+      ]);
+      await expect(
+        callerFor(treasurer).offerings.delete({ id: offeringId })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await expect(
+        callerFor(treasurer).offerings.update({ id: offeringId, amount: 650 })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+
     it("refuses to link one offering to two envelopes", async () => {
       const slipId = await insertSlip(400);
       const { offeringId } = await approveSlip(slipId, 400);
