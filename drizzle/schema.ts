@@ -356,6 +356,11 @@ export const expenses = pgTable("expenses", {
   status: expenseStatusEnum("status").default("approved").notNull(),
   approvedBy: integer("approvedBy"),
   recordedBy: integer("recordedBy").notNull(),
+  /**
+   * Set when this expense is the payment of a withdrawal request. Unique, so
+   * one request produces at most one expense.
+   */
+  withdrawalId: integer("withdrawalId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -383,6 +388,9 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   approvalDate: timestamp("approvalDate"),
   approvalNote: text("approvalNote"),
   rejectionReason: text("rejectionReason"),
+  /** Who paid it out, and when; set together with status "disbursed". */
+  disbursedBy: integer("disbursedBy"),
+  disbursedAt: timestamp("disbursedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()

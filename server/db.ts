@@ -807,6 +807,13 @@ export async function updateExpense(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  if (
+    input.amount !== undefined ||
+    input.fundId !== undefined ||
+    input.status !== undefined
+  ) {
+    await assertExpenseNotAPayment(id);
+  }
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: expenses.amount, fundId: expenses.fundId })
@@ -896,9 +903,31 @@ export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 
+/**
+ * An expense that pays a withdrawal request is the record that the money
+ * left. Voiding it or changing its amount or fund would leave a disbursed
+ * request with no payment behind it.
+ */
+async function assertExpenseNotAPayment(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  const [row] = await db
+    .select({ withdrawalId: expenses.withdrawalId })
+    .from(expenses)
+    .where(eq(expenses.id, id))
+    .limit(1);
+  if (row?.withdrawalId) {
+    throw new FinanceRuleError(
+      "CONFLICT",
+      `รายจ่ายนี้คือการจ่ายเงินตามคำขอเบิก #${row.withdrawalId} จึงยกเลิกหรือแก้ยอดไม่ได้`
+    );
+  }
+}
+
 export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  await assertExpenseNotAPayment(id);
   return db.transaction(async tx => {
     const existing = await tx
       .select({
@@ -1003,24 +1032,135 @@ export async function approveWithdrawal(
   return rows.length > 0;
 }
 
+/**
+ * Pays an approved withdrawal request, as one transaction:
+ *   1. approved -> disbursed (compare-and-set, so a second or concurrent
+ *      call finds nothing to claim and pays nothing)
+ *   2. the fund must exist and be active (row locked)
+ *   3. write the expense, linked by withdrawalId (unique)
+ *   4. lower the fund balance by the amount
+ *   5. write the audit log
+ * Any failure rolls back every step, including the status change.
+ */
 export async function disburseWithdrawal(
-  id: number,
+  input: {
+    id: number;
+    disbursedBy: number;
+    category?: string;
+    payee?: string | null;
+    receiptRef?: string | null;
+  },
   churchId = DEFAULT_CHURCH_ID
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .update(withdrawalRequests)
-    .set({ status: "disbursed" })
-    .where(
-      and(
-        eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId),
-        eq(withdrawalRequests.status, "approved")
-      )
-    )
-    .returning({ id: withdrawalRequests.id });
-  return rows.length > 0;
+  try {
+    return await db.transaction(async tx => {
+      const [claimed] = await tx
+        .update(withdrawalRequests)
+        .set({
+          status: "disbursed",
+          disbursedBy: input.disbursedBy,
+          disbursedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(withdrawalRequests.id, input.id),
+            eq(withdrawalRequests.churchId, churchId),
+            eq(withdrawalRequests.status, "approved")
+          )
+        )
+        .returning();
+      if (!claimed) {
+        const [current] = await tx
+          .select({ status: withdrawalRequests.status })
+          .from(withdrawalRequests)
+          .where(
+            and(
+              eq(withdrawalRequests.id, input.id),
+              eq(withdrawalRequests.churchId, churchId)
+            )
+          )
+          .limit(1);
+        if (!current) {
+          throw new FinanceRuleError("BAD_REQUEST", "ไม่พบคำขอเบิกนี้");
+        }
+        throw new FinanceRuleError(
+          "CONFLICT",
+          current.status === "disbursed"
+            ? "คำขอเบิกนี้จ่ายเงินไปแล้ว"
+            : "ต้องอนุมัติคำขอเบิกก่อนจ่ายเงิน"
+        );
+      }
+      if (!claimed.fundId) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "คำขอเบิกนี้ไม่ได้ระบุกองทุน จึงจ่ายเงินไม่ได้"
+        );
+      }
+      const [fund] = await tx
+        .select({ id: financeAccounts.id })
+        .from(financeAccounts)
+        .where(
+          and(
+            eq(financeAccounts.id, claimed.fundId),
+            eq(financeAccounts.churchId, churchId),
+            eq(financeAccounts.isActive, true)
+          )
+        )
+        .for("update")
+        .limit(1);
+      if (!fund) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          `กองทุน #${claimed.fundId} ไม่ได้เปิดใช้งาน`
+        );
+      }
+
+      const [expense] = await tx
+        .insert(expenses)
+        .values({
+          churchId,
+          amount: claimed.amount,
+          category: (input.category as InsertExpense["category"]) ?? "other",
+          fundId: claimed.fundId,
+          description: claimed.purpose,
+          details: claimed.details,
+          expenseDate: new Date(),
+          payee: input.payee ?? null,
+          receiptRef: input.receiptRef ?? null,
+          status: "paid",
+          approvedBy: claimed.approvedBy,
+          recordedBy: input.disbursedBy,
+          withdrawalId: claimed.id,
+        })
+        .returning({ id: expenses.id });
+
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${claimed.amount} WHERE id = ${claimed.fundId} AND "churchId" = ${churchId}`
+      );
+
+      await tx.insert(auditLogs).values({
+        churchId,
+        userId: input.disbursedBy,
+        action: "DISBURSE",
+        entity: "withdrawal_request",
+        entityId: claimed.id,
+        metadata: {
+          expenseId: expense.id,
+          amount: Number(claimed.amount),
+          fundId: claimed.fundId,
+        },
+      });
+
+      return { expenseId: expense.id };
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new FinanceRuleError("CONFLICT", "คำขอเบิกนี้จ่ายเงินไปแล้ว");
+    }
+    throw err;
+  }
 }
 
 // ─── Members / Notifications / Audit ──────────────────────────────────────────

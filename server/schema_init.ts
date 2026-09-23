@@ -141,6 +141,7 @@ export const TABLE_STATEMENTS: string[] = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
   `ALTER TABLE "expenses" ADD COLUMN IF NOT EXISTS "receiptUrl" text;`,
+  `ALTER TABLE "expenses" ADD COLUMN IF NOT EXISTS "withdrawalId" integer;`,
 
   `CREATE TABLE IF NOT EXISTS "offerings" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -179,6 +180,8 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedBy" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedAt" timestamp;`,
 
   `CREATE TABLE IF NOT EXISTS "members" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -421,6 +424,8 @@ export const INDEX_STATEMENTS: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_offering_uniq" ON "line_slips" ("approvedOfferingId") WHERE "approvedOfferingId" IS NOT NULL;`,
   /** ...and at most one counted envelope refers back to it */
   `CREATE UNIQUE INDEX IF NOT EXISTS "offering_envelopes_linked_offering_uniq" ON "offering_envelopes" ("linkedOfferingId") WHERE "linkedOfferingId" IS NOT NULL;`,
+  /** One withdrawal request is paid by at most one expense */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "expenses_withdrawal_uniq" ON "expenses" ("withdrawalId") WHERE "withdrawalId" IS NOT NULL;`,
 ];
 
 /**
@@ -459,6 +464,13 @@ const INTEGRITY_INDEXES: Record<
     findBlockingRows: `SELECT "linkedOfferingId", count(*) AS copies
       FROM "offering_envelopes"
       WHERE "linkedOfferingId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  expenses_withdrawal_uniq: {
+    guards: "one withdrawal request must not be paid by two expenses",
+    findBlockingRows: `SELECT "withdrawalId", count(*) AS copies
+      FROM "expenses"
+      WHERE "withdrawalId" IS NOT NULL
       GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
   },
   line_slips_event_uniq: {

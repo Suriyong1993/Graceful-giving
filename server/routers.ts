@@ -679,10 +679,12 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const { id, amount, ...rest } = input;
-        const updated = await updateExpense(id, {
-          ...rest,
-          ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
-        } as any);
+        const updated = await withFinanceRules(() =>
+          updateExpense(id, {
+            ...rest,
+            ...(amount === undefined ? {} : { amount: amount.toFixed(2) }),
+          } as any)
+        );
         if (updated === null)
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -701,7 +703,7 @@ export const appRouter = router({
     delete: financeProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
-        const deleted = await voidExpense(input.id);
+        const deleted = await withFinanceRules(() => voidExpense(input.id));
         if (!deleted)
           throw new TRPCError({
             code: "NOT_FOUND",
@@ -778,17 +780,29 @@ export const appRouter = router({
         }
         return { success: true } as const;
       }),
+    /**
+     * Pays an approved request: writes the expense, lowers the fund balance,
+     * marks the request disbursed and logs it, all in one transaction.
+     */
     disburse: financeProcedure
-      .input(z.object({ id: z.number().int().positive() }))
-      .mutation(async ({ input }) => {
-        const updated = await disburseWithdrawal(input.id);
-        if (!updated) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "ต้องอนุมัติคำขอเบิกก่อนจ่ายเงิน",
-          });
-        }
-        return { success: true } as const;
+      .input(
+        z.object({
+          id: z.number().int().positive(),
+          category: expenseCategory.optional(),
+          payee: z.string().trim().max(120).optional(),
+          receiptRef: z.string().trim().max(120).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        return withFinanceRules(() =>
+          disburseWithdrawal({
+            id: input.id,
+            disbursedBy: ctx.user.id,
+            category: input.category,
+            payee: input.payee ?? null,
+            receiptRef: input.receiptRef ?? null,
+          })
+        );
       }),
   }),
 

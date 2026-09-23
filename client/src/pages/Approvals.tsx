@@ -9,6 +9,9 @@ import {
 } from "@/components/common/CommonUI";
 import { Banknote, CheckCircle2, Clock, User, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Swal } from "@/lib/sweetalert";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canManageFinance } from "@shared/roles";
 
 type WithdrawalItem = RouterOutputs["withdrawals"]["list"][number];
 
@@ -26,8 +29,13 @@ export interface ApprovalRequest {
 export default function Approvals() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<
-    "pending" | "approved" | "rejected"
+    "pending" | "approved" | "disbursed" | "rejected"
   >("pending");
+  const { user } = useAuth();
+  const canPay = canManageFinance(user);
+  const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+  });
   const [selectedReq, setSelectedReq] = useState<ApprovalRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -48,6 +56,24 @@ export default function Approvals() {
     },
   });
 
+  const disburseMutation = trpc.withdrawals.disburse.useMutation({
+    onSuccess: () => {
+      toast.success("จ่ายเงินและบันทึกรายจ่ายแล้ว");
+      refetch();
+    },
+    onError: error => {
+      toast.error("จ่ายเงินไม่สำเร็จ", { description: error.message });
+    },
+  });
+
+  const handleDisburse = async (req: ApprovalRequest) => {
+    const confirmed = await Swal.confirm(
+      "ยืนยันการจ่ายเงิน",
+      `ระบบจะบันทึกรายจ่าย ${req.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท จาก${req.fund} และหักยอดกองทุนทันที ทำซ้ำไม่ได้`
+    );
+    if (confirmed) disburseMutation.mutate({ id: req.id });
+  };
+
   const requests = useMemo(() => {
     if (withdrawalsData && withdrawalsData.length > 0) {
       return withdrawalsData.map(
@@ -58,14 +84,16 @@ export default function Approvals() {
           status: w.status,
           date: w.requestDate || w.createdAt,
           requester: "ผู้ประสานงานพันธกิจ",
-          fund: "บัญชีทั่วไป",
-          details: w.details || "เบิกจ่ายตามงบประมาณที่ได้รับอนุมัติ",
+          fund:
+            (fundsQuery.data ?? []).find(f => f.id === w.fundId)?.name ??
+            "ไม่ระบุกองทุน",
+          details: w.details || "",
         })
       );
     }
 
     return [];
-  }, [withdrawalsData]);
+  }, [withdrawalsData, fundsQuery.data]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter(r => r.status === activeTab);
@@ -148,6 +176,18 @@ export default function Approvals() {
             </span>
           </button>
           <button
+            onClick={() => setActiveTab("disbursed")}
+            className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
+              activeTab === "disbursed"
+                ? "bg-sunken text-foreground border border-line"
+                : "text-ink-2/70 hover:text-foreground"
+            }`}
+          >
+            <span>
+              จ่ายแล้ว ({requests.filter(r => r.status === "disbursed").length})
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab("rejected")}
             className={`px-5 py-2.5 rounded-2xl text-sm font-semibold transition-colors flex items-center gap-2 ${
               activeTab === "rejected"
@@ -179,7 +219,7 @@ export default function Approvals() {
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono text-ink-2/60 bg-background px-2.5 py-0.5 rounded-full border border-line">
-                      REQ-2026-00{req.id}
+                      คำขอ #{req.id}
                     </span>
                     <span className="text-xs font-medium text-ink-2 bg-sunken px-2.5 py-0.5 rounded-full border border-line/60">
                       {req.fund}
@@ -189,8 +229,13 @@ export default function Approvals() {
                         req.status === "pending"
                           ? "pending"
                           : req.status === "approved"
-                            ? "completed"
-                            : "failed"
+                            ? "approved"
+                            : req.status === "disbursed"
+                              ? "posted"
+                              : "rejected"
+                      }
+                      label={
+                        req.status === "disbursed" ? "จ่ายเงินแล้ว" : undefined
                       }
                     />
                   </div>
@@ -199,9 +244,11 @@ export default function Approvals() {
                     {req.purpose}
                   </h3>
 
-                  <p className="text-xs text-ink-2/80 leading-relaxed">
-                    {req.details}
-                  </p>
+                  {req.details && (
+                    <p className="text-xs text-ink-2/80 leading-relaxed">
+                      {req.details}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-4 text-xs text-ink-2/70 pt-1">
                     <span className="flex items-center gap-1">
@@ -226,6 +273,18 @@ export default function Approvals() {
                       size="md"
                     />
                   </div>
+
+                  {req.status === "approved" && canPay && (
+                    <button
+                      onClick={() => handleDisburse(req)}
+                      disabled={disburseMutation.isPending}
+                      className="min-h-11 px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                    >
+                      {disburseMutation.isPending
+                        ? "กำลังบันทึก…"
+                        : "จ่ายเงินและบันทึกรายจ่าย"}
+                    </button>
+                  )}
 
                   {req.status === "pending" && (
                     <div className="flex items-center gap-2">
