@@ -406,6 +406,140 @@ describeDb("financial invariants", () => {
     });
   });
 
+  describe("a disbursed withdrawal is exactly one expense", () => {
+    async function approvedWithdrawal(amount: number): Promise<number> {
+      const { id } = await callerFor(counter).withdrawals.create({
+        amount,
+        purpose: "ซื้ออุปกรณ์ห้องนมัสการ",
+        fundId,
+      });
+      await callerFor(treasurer).withdrawals.approve({
+        id,
+        action: "approved",
+        note: "",
+      });
+      return id;
+    }
+    async function expensesFor(withdrawalId: number) {
+      return rows(
+        sql`SELECT id, amount, status, "fundId" FROM expenses
+            WHERE "withdrawalId" = ${withdrawalId}`
+      );
+    }
+
+    it("writes one expense, moves the balance once and marks it disbursed", async () => {
+      const id = await approvedWithdrawal(1500);
+      const balanceBefore = await fundBalance();
+
+      const result = await callerFor(treasurer).withdrawals.disburse({ id });
+
+      const written = await expensesFor(id);
+      expect(written).toHaveLength(1);
+      expect(Number(written[0].id)).toBe(result.expenseId);
+      expect(num(written[0].amount)).toBe(1500);
+      expect(Number(written[0].fundId)).toBe(fundId);
+      expect(await fundBalance()).toBe(balanceBefore - 1500);
+      const [withdrawal] = await rows(
+        sql`SELECT status, "disbursedBy" FROM withdrawal_requests WHERE id = ${id}`
+      );
+      expect(withdrawal.status).toBe("disbursed");
+      expect(Number(withdrawal.disbursedBy)).toBe(treasurer.id);
+      const [log] = await rows(
+        sql`SELECT count(*) AS n FROM audit_logs
+            WHERE entity = 'withdrawal_request' AND "entityId" = ${id}
+              AND action = 'DISBURSE'`
+      );
+      expect(Number(log.n)).toBe(1);
+    });
+
+    it("refuses a second disbursement and changes nothing", async () => {
+      const id = await approvedWithdrawal(800);
+      await callerFor(treasurer).withdrawals.disburse({ id });
+      const balance = await fundBalance();
+
+      await expect(
+        callerFor(treasurer).withdrawals.disburse({ id })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(await expensesFor(id)).toHaveLength(1);
+      expect(await fundBalance()).toBe(balance);
+    });
+
+    it("pays once when two disbursements race", async () => {
+      const id = await approvedWithdrawal(300);
+      const balance = await fundBalance();
+      const results = await Promise.allSettled([
+        callerFor(treasurer).withdrawals.disburse({ id }),
+        callerFor(treasurer).withdrawals.disburse({ id }),
+      ]);
+      expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);
+      expect(await expensesFor(id)).toHaveLength(1);
+      expect(await fundBalance()).toBe(balance - 300);
+    });
+
+    it("does not pay a request that is not approved", async () => {
+      const { id } = await callerFor(counter).withdrawals.create({
+        amount: 450,
+        purpose: "ยังไม่ได้อนุมัติ",
+        fundId,
+      });
+      const balance = await fundBalance();
+      await expect(
+        callerFor(treasurer).withdrawals.disburse({ id })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(await expensesFor(id)).toHaveLength(0);
+      expect(await fundBalance()).toBe(balance);
+    });
+
+    it("does not pay a request without a fund", async () => {
+      const { id } = await callerFor(counter).withdrawals.create({
+        amount: 450,
+        purpose: "ไม่ระบุกองทุน",
+      });
+      await callerFor(treasurer).withdrawals.approve({
+        id,
+        action: "approved",
+        note: "",
+      });
+      await expect(
+        callerFor(treasurer).withdrawals.disburse({ id })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(await expensesFor(id)).toHaveLength(0);
+      const [withdrawal] = await rows(
+        sql`SELECT status FROM withdrawal_requests WHERE id = ${id}`
+      );
+      expect(withdrawal.status).toBe("approved");
+    });
+
+    it("keeps the paid expense: no void, no second expense in SQL", async () => {
+      const id = await approvedWithdrawal(200);
+      const { expenseId } = await callerFor(treasurer).withdrawals.disburse({
+        id,
+      });
+      await expect(
+        callerFor(treasurer).expenses.delete({ id: expenseId })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      await expect(
+        rows(
+          sql`INSERT INTO expenses
+                ("churchId", amount, category, description, status, "recordedBy", "withdrawalId")
+              VALUES (${TEST_CHURCH_ID}, 200, 'other', 'ซ้ำ', 'paid', ${treasurer.id}, ${id})`
+        )
+      ).rejects.toThrow();
+    });
+
+    it("leaves every disbursed withdrawal with exactly one live expense", async () => {
+      const broken = await rows(
+        sql`SELECT w.id, count(e.id) AS n
+            FROM withdrawal_requests w
+            LEFT JOIN expenses e
+              ON e."withdrawalId" = w.id AND e.status <> 'voided'
+            WHERE w."churchId" = ${TEST_CHURCH_ID} AND w.status = 'disbursed'
+            GROUP BY w.id HAVING count(e.id) <> 1`
+      );
+      expect(broken).toEqual([]);
+    });
+  });
+
   describe("fund balance agrees with the ledger", () => {
     it("equals active offerings minus live expenses", async () => {
       expect(await fundBalance()).toBe(await ledgerBalance());
