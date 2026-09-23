@@ -30,15 +30,8 @@ describe("HeroSection", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the hero illustration with correct alt text", () => {
-    render(<HeroSection />);
-
-    const img = screen.getByAltText("พระเยซูคริสต์และลูกแกะ");
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute(
-      "src",
-      "/illustrations/hero_jesus_shepherd.jpg"
-    );
-    expect(screen.getByText("พระเยซูผู้เลี้ยงที่ดี")).toBeInTheDocument();
+  it("shows no decorative illustration", () => {
+    const { container } = render(<HeroSection />);
+    expect(container.querySelector("img")).toBeNull();
   });
 });

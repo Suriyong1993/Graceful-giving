@@ -1,5 +1,4 @@
 import React from "react";
-import { Illustration } from "@/components/Illustration";
 import { ArrowLeft, Search } from "lucide-react";
 import { formatAmount } from "@/lib/format";
 import {
@@ -42,33 +41,14 @@ export const LoadingSkeleton: React.FC<{
 export const EmptyState: React.FC<{
   title: string;
   description: string;
-  illustrationSrc?: string;
-  illustrationAlt?: string;
   actionText?: string;
   onAction?: () => void;
   className?: string;
-}> = ({
-  title,
-  description,
-  illustrationSrc = "/illustrations/offering_box.jpg",
-  illustrationAlt = "กล่องถวาย",
-  actionText,
-  onAction,
-  className = "",
-}) => {
+}> = ({ title, description, actionText, onAction, className = "" }) => {
   return (
     <div
       className={`py-12 px-6 rounded-2xl bg-card border border-line card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-sunken p-1 border border-line shadow-xs shrink-0">
-        <Illustration
-          src={illustrationSrc}
-          alt={illustrationAlt}
-          className="w-full h-full object-cover rounded-xl"
-          width={96}
-          height={96}
-        />
-      </div>
       <div className="space-y-1 max-w-sm">
         <h3 className="text-base font-bold text-ink-2">{title}</h3>
         <p className="text-sm text-ink-2 leading-relaxed">{description}</p>

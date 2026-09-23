@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Illustration } from "@/components/Illustration";
 import {
   confirmDiscardChanges,
   useUnsavedChanges,
@@ -222,13 +221,6 @@ export default function NewExpense() {
               บันทึกใบเสร็จ ค่าใช้จ่ายโครงการ หรือการเบิกจ่ายงบประมาณ
               พร้อมแนบหลักฐานเพื่อความโปร่งใสของคริสตจักร
             </p>
-          </div>
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
-            <Illustration
-              src="/illustrations/expense_hand_coin.jpg"
-              alt="Record expense"
-              className="w-full h-full object-cover rounded-xl"
-            />
           </div>
         </div>
 

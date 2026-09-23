@@ -8,7 +8,6 @@ import {
   LoadingSkeleton,
   MoneyDisplay,
 } from "@/components/common/CommonUI";
-import { Illustration } from "@/components/Illustration";
 import { Download, Plus, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { offeringCategoryLabel } from "@shared/categories";
@@ -122,7 +121,7 @@ export default function Offerings() {
         </div>
       }
     >
-      {/* 1. Header Banner with 3D Offering Box Illustration */}
+      {/* 1. Header Banner */}
       <div className="bg-secondary rounded-xl p-5 sm:p-7 border border-line shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="space-y-2 text-center sm:text-left">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-card/90 border border-line text-xs font-bold text-ink-2">
@@ -134,16 +133,6 @@ export default function Offerings() {
           <p className="text-xs text-ink-3">
             "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" (2 โครินธ์ 9:7)
           </p>
-        </div>
-
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-card p-1.5 border border-line shadow-xs shrink-0">
-          <Illustration
-            src="/illustrations/offering_box.jpg"
-            alt="กล่องถวาย"
-            className="w-full h-full object-cover rounded-xl"
-            width={112}
-            height={112}
-          />
         </div>
       </div>
 

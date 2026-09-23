@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Illustration } from "@/components/Illustration";
 import { ArrowRight, Building, Cross, Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { MoneyDisplay } from "@/components/common/CommonUI";
@@ -86,13 +85,6 @@ export default function Funds() {
               แยกหมวดหมู่เงินถวายและงบประมาณอย่างเป็นสัดส่วน
               เพื่อให้เงินถวายที่มีวัตถุประสงค์เฉพาะถูกนำไปใช้อย่างตรงเป้าหมาย
             </p>
-          </div>
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
-            <Illustration
-              src="/illustrations/balance_wallet.jpg"
-              alt="Funds illustration"
-              className="w-full h-full object-cover rounded-xl"
-            />
           </div>
         </div>
 

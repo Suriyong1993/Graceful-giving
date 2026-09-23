@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Illustration } from "@/components/Illustration";
 import {
   confirmDiscardChanges,
   useUnsavedChanges,
@@ -117,15 +116,6 @@ export default function NewOffering() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Hero Card with offering_box.jpg */}
         <div className="bg-secondary rounded-xl p-6 border border-line shadow-xs flex items-center gap-5">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-card p-1 border border-line shadow-xs shrink-0">
-            <Illustration
-              src="/illustrations/offering_box.jpg"
-              alt="กล่องถวาย"
-              className="w-full h-full object-cover rounded-xl"
-              width={96}
-              height={96}
-            />
-          </div>
           <div className="space-y-1">
             <h2 className="text-lg sm:text-xl font-semibold text-ink-2">
               การถวายด้วยความยินดี
@@ -330,15 +320,6 @@ export default function NewOffering() {
       {/* Success Celebration Dialog */}
       <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
         <DialogContent className="max-w-sm bg-surface border-line rounded-xl p-6 text-center text-ink space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden border border-line shadow-xs p-1 bg-success-soft">
-            <Illustration
-              src="/illustrations/income_hand_heart.jpg"
-              alt="ถวายสำเร็จ"
-              className="w-full h-full object-cover rounded-2xl"
-              width={80}
-              height={80}
-            />
-          </div>
           <div>
             <h3 className="text-xl font-semibold text-ink-2">
               บันทึกการถวายเรียบร้อยแล้ว

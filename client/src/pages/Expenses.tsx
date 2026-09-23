@@ -9,7 +9,6 @@ import {
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import { Illustration } from "@/components/Illustration";
 import {
   Download,
   Plus,
@@ -157,13 +156,6 @@ export default function Expenses() {
               บันทึกและตรวจสอบทุกการใช้จ่ายเพื่อพันธกิจของพระเจ้า
               ด้วยความโปร่งใส สัตย์ซื่อ และมีหลักฐานครบถ้วน
             </p>
-          </div>
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-card/60 p-1">
-            <Illustration
-              src="/illustrations/expense_hand_coin.jpg"
-              alt="Expense illustration"
-              className="w-full h-full object-cover rounded-xl"
-            />
           </div>
         </div>
 
