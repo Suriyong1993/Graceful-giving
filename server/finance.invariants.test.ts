@@ -62,6 +62,12 @@ const treasurer: User = {
   openId: "t",
   churchRole: "TREASURER",
 };
+const secondTreasurer: User = {
+  ...base,
+  id: 803,
+  openId: "t2",
+  churchRole: "TREASURER",
+};
 
 type Row = Record<string, unknown>;
 async function rows(query: ReturnType<typeof sql>): Promise<Row[]> {
@@ -535,6 +541,126 @@ describeDb("financial invariants", () => {
               ON e."withdrawalId" = w.id AND e.status <> 'voided'
             WHERE w."churchId" = ${TEST_CHURCH_ID} AND w.status = 'disbursed'
             GROUP BY w.id HAVING count(e.id) <> 1`
+      );
+      expect(broken).toEqual([]);
+    });
+  });
+
+  describe("approval: segregation of duties and the threshold", () => {
+    async function setThreshold(amount: number | null) {
+      await rows(
+        sql`INSERT INTO church_profiles ("churchId", name, "approvalThreshold")
+            VALUES (${TEST_CHURCH_ID}, 'คริสตจักรทดสอบ', ${amount})
+            ON CONFLICT ("churchId")
+            DO UPDATE SET "approvalThreshold" = EXCLUDED."approvalThreshold"`
+      );
+    }
+    async function statusOf(id: number) {
+      const [row] = await rows(
+        sql`SELECT status, "approvedBy", "secondApprovedBy", "requiredApprovals"
+            FROM withdrawal_requests WHERE id = ${id}`
+      );
+      return row;
+    }
+    const request = (by: User, amount: number) =>
+      callerFor(by).withdrawals.create({
+        amount,
+        purpose: "คำขอทดสอบกฎการอนุมัติ",
+        fundId,
+      });
+    const approve = (by: User, id: number) =>
+      callerFor(by).withdrawals.approve({ id, action: "approved", note: "" });
+
+    it("does not let the requester approve or reject their own request", async () => {
+      await setThreshold(null);
+      const { id } = await request(treasurer, 1000);
+      await expect(approve(treasurer, id)).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      await expect(
+        callerFor(treasurer).withdrawals.approve({
+          id,
+          action: "rejected",
+          note: "ถอนคำขอ",
+        })
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect((await statusOf(id)).status).toBe("pending");
+
+      await approve(secondTreasurer, id);
+      expect((await statusOf(id)).status).toBe("approved");
+    });
+
+    it("approves at or below the threshold with one approver", async () => {
+      await setThreshold(5000);
+      const { id } = await request(counter, 5000);
+      await approve(treasurer, id);
+      const row = await statusOf(id);
+      expect(row.status).toBe("approved");
+      expect(Number(row.requiredApprovals)).toBe(1);
+    });
+
+    it("needs a second, different approver above the threshold", async () => {
+      await setThreshold(5000);
+      const { id } = await request(counter, 8000);
+
+      await approve(treasurer, id);
+      let row = await statusOf(id);
+      expect(row.status).toBe("pending");
+      expect(Number(row.approvedBy)).toBe(treasurer.id);
+      expect(Number(row.requiredApprovals)).toBe(2);
+
+      // The first approval does not let the money out.
+      await expect(
+        callerFor(treasurer).withdrawals.disburse({ id })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+
+      // The same person cannot give the second approval.
+      await expect(approve(treasurer, id)).rejects.toMatchObject({
+        code: "CONFLICT",
+      });
+
+      await approve(secondTreasurer, id);
+      row = await statusOf(id);
+      expect(row.status).toBe("approved");
+      expect(Number(row.secondApprovedBy)).toBe(secondTreasurer.id);
+
+      const balance = await fundBalance();
+      await callerFor(treasurer).withdrawals.disburse({ id });
+      expect(await fundBalance()).toBe(balance - 8000);
+    });
+
+    it("lets a second approver reject a half-approved request", async () => {
+      await setThreshold(5000);
+      const { id } = await request(counter, 9000);
+      await approve(treasurer, id);
+      await callerFor(secondTreasurer).withdrawals.approve({
+        id,
+        action: "rejected",
+        note: "เกินงบประมาณ",
+      });
+      expect((await statusOf(id)).status).toBe("rejected");
+    });
+
+    it("keeps the threshold on the server, not in the client", async () => {
+      await setThreshold(100);
+      const { id } = await request(counter, 101);
+      await approve(treasurer, id);
+      expect((await statusOf(id)).status).toBe("pending");
+    });
+
+    it("leaves no approved request with a self-approval or a missing second approver", async () => {
+      const broken = await rows(
+        sql`SELECT id FROM withdrawal_requests
+            WHERE "churchId" = ${TEST_CHURCH_ID}
+              AND status IN ('approved', 'disbursed')
+              AND (
+                "approvedBy" IS NULL
+                OR "approvedBy" = "requestedBy"
+                OR ("requiredApprovals" = 2 AND (
+                      "secondApprovedBy" IS NULL
+                      OR "secondApprovedBy" = "approvedBy"
+                      OR "secondApprovedBy" = "requestedBy"))
+              )`
       );
       expect(broken).toEqual([]);
     });
