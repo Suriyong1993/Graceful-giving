@@ -191,6 +191,11 @@ export const churchProfiles = pgTable("church_profiles", {
   setupCompleted: boolean("setupCompleted").default(false).notNull(),
   /** Custom verse or motto */
   motto: varchar("motto", { length: 280 }),
+  /**
+   * A withdrawal request above this amount needs a second, different
+   * approver. Null means one approver is always enough.
+   */
+  approvalThreshold: decimal("approvalThreshold", { precision: 15, scale: 2 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -388,6 +393,13 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   approvalDate: timestamp("approvalDate"),
   approvalNote: text("approvalNote"),
   rejectionReason: text("rejectionReason"),
+  /**
+   * 1 or 2, fixed at the first approval from the church's threshold, so a
+   * later threshold change does not move a request that is half-approved.
+   */
+  requiredApprovals: integer("requiredApprovals"),
+  secondApprovedBy: integer("secondApprovedBy"),
+  secondApprovalDate: timestamp("secondApprovalDate"),
   /** Who paid it out, and when; set together with status "disbursed". */
   disbursedBy: integer("disbursedBy"),
   disbursedAt: timestamp("disbursedAt"),

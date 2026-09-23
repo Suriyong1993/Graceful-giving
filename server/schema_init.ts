@@ -66,6 +66,7 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "church_profiles" ADD COLUMN IF NOT EXISTS "approvalThreshold" numeric(15, 2);`,
 
   `CREATE TABLE IF NOT EXISTS "finance_accounts" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -181,6 +182,9 @@ export const TABLE_STATEMENTS: string[] = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
   `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedBy" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "requiredApprovals" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "secondApprovedBy" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "secondApprovalDate" timestamp;`,
   `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedAt" timestamp;`,
 
   `CREATE TABLE IF NOT EXISTS "members" (

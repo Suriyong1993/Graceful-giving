@@ -22,8 +22,11 @@ export interface ApprovalRequest {
   status: string;
   date: string | Date;
   requester: string;
+  requestedBy: number;
   fund: string;
   details: string;
+  approvedBy: number | null;
+  requiredApprovals: number | null;
 }
 
 export default function Approvals() {
@@ -33,6 +36,11 @@ export default function Approvals() {
   >("pending");
   const { user } = useAuth();
   const canPay = canManageFinance(user);
+  // Same roles the server accepts in withdrawals.approve.
+  const canApprove =
+    user?.role === "admin" ||
+    user?.churchRole === "SUPER_ADMIN" ||
+    user?.churchRole === "TREASURER";
   const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
     retry: false,
   });
@@ -47,8 +55,14 @@ export default function Approvals() {
   } = trpc.withdrawals.list.useQuery(undefined, { retry: false });
 
   const approveMutation = trpc.withdrawals.approve.useMutation({
-    onSuccess: () => {
-      toast.success("อนุมัติคำขอเบิกจ่ายเรียบร้อยแล้ว");
+    onSuccess: result => {
+      toast.success(
+        result.status === "approved"
+          ? "อนุมัติคำขอเบิกจ่ายแล้ว"
+          : result.status === "rejected"
+            ? "ปฏิเสธคำขอเบิกจ่ายแล้ว"
+            : "บันทึกการอนุมัติคนแรกแล้ว รอผู้อนุมัติคนที่สอง"
+      );
       refetch();
     },
     onError: error => {
@@ -83,7 +97,10 @@ export default function Approvals() {
           amount: Number(w.amount),
           status: w.status,
           date: w.requestDate || w.createdAt,
-          requester: "ผู้ประสานงานพันธกิจ",
+          requester: w.requesterName ?? `ผู้ใช้ #${w.requestedBy}`,
+          requestedBy: w.requestedBy,
+          approvedBy: w.approvedBy,
+          requiredApprovals: w.requiredApprovals,
           fund:
             (fundsQuery.data ?? []).find(f => f.id === w.fundId)?.name ??
             "ไม่ระบุกองทุน",
@@ -286,25 +303,42 @@ export default function Approvals() {
                     </button>
                   )}
 
-                  {req.status === "pending" && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedReq(req);
-                          setShowRejectModal(true);
-                        }}
-                        className="min-h-11 px-4 py-2 rounded-xl border border-danger-soft bg-danger-soft hover:bg-danger-soft text-danger text-xs font-semibold transition-colors"
-                      >
-                        ไม่อนุมัติ
-                      </button>
-                      <button
-                        onClick={() => handleApprove(req.id)}
-                        className="min-h-11 px-5 py-2 rounded-xl bg-success hover:bg-success text-white text-xs font-semibold transition-colors shadow-sm"
-                      >
-                        อนุมัติคำขอ
-                      </button>
-                    </div>
+                  {req.status === "pending" &&
+                    req.approvedBy !== null &&
+                    req.requiredApprovals === 2 && (
+                      <p className="text-xs font-semibold text-warning">
+                        อนุมัติแล้ว 1 จาก 2 คน รอผู้อนุมัติคนที่สอง
+                      </p>
+                    )}
+
+                  {req.status === "pending" && user?.id === req.requestedBy && (
+                    <p className="text-xs text-ink-3">
+                      คำขอของคุณ ต้องให้ผู้อื่นอนุมัติ
+                    </p>
                   )}
+
+                  {req.status === "pending" &&
+                    canApprove &&
+                    user?.id !== req.requestedBy &&
+                    user?.id !== req.approvedBy && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedReq(req);
+                            setShowRejectModal(true);
+                          }}
+                          className="min-h-11 px-4 py-2 rounded-xl border border-danger-soft bg-danger-soft hover:bg-danger-soft text-danger text-xs font-semibold transition-colors"
+                        >
+                          ไม่อนุมัติ
+                        </button>
+                        <button
+                          onClick={() => handleApprove(req.id)}
+                          className="min-h-11 px-5 py-2 rounded-xl bg-success hover:bg-success text-white text-xs font-semibold transition-colors shadow-sm"
+                        >
+                          อนุมัติคำขอ
+                        </button>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}

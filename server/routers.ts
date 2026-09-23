@@ -390,10 +390,24 @@ export const appRouter = router({
           bankAccountName: z.string().trim().max(120).optional(),
           fiscalYearStartMonth: z.number().int().min(1).max(12).default(1),
           motto: z.string().trim().max(280).optional(),
+          /** Null clears it: one approver is then always enough. */
+          approvalThreshold: z.number().nonnegative().nullable().optional(),
         })
       )
       .mutation(async ({ input }) => {
-        await upsertChurchProfile({ ...input, churchId: DEFAULT_CHURCH_ID });
+        const { approvalThreshold, ...rest } = input;
+        await upsertChurchProfile({
+          ...rest,
+          ...(approvalThreshold === undefined
+            ? {}
+            : {
+                approvalThreshold:
+                  approvalThreshold === null
+                    ? null
+                    : approvalThreshold.toFixed(2),
+              }),
+          churchId: DEFAULT_CHURCH_ID,
+        });
         return { success: true } as const;
       }),
     completeSetup: churchLeaderProcedure.mutation(async () => {
@@ -766,19 +780,9 @@ export const appRouter = router({
             message: "คุณไม่มีสิทธิ์อนุมัติคำขอเบิก",
           });
         }
-        const updated = await approveWithdrawal(
-          input.id,
-          ctx.user.id,
-          input.action,
-          input.note
+        return withFinanceRules(() =>
+          approveWithdrawal(input.id, ctx.user.id, input.action, input.note)
         );
-        if (!updated) {
-          throw new TRPCError({
-            code: "CONFLICT",
-            message: "คำขอเบิกนี้ไม่ได้อยู่ในสถานะรออนุมัติ",
-          });
-        }
-        return { success: true } as const;
       }),
     /**
      * Pays an approved request: writes the expense, lowers the fund balance,

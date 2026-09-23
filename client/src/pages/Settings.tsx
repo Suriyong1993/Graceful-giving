@@ -119,6 +119,7 @@ export default function Settings() {
   const [bankAccount, setBankAccount] = useState("");
   const [bankAccountName, setBankAccountName] = useState("");
   const [motto, setMotto] = useState("");
+  const [approvalThreshold, setApprovalThreshold] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [baseline, setBaseline] = useState({
     name: "",
@@ -128,6 +129,7 @@ export default function Settings() {
     pastorName: "",
     treasurerName: "",
     motto: "",
+    approvalThreshold: "",
   });
 
   useEffect(() => {
@@ -139,6 +141,10 @@ export default function Settings() {
       pastorName: churchProfile?.pastorName || "",
       treasurerName: churchProfile?.treasurerName || "",
       motto: churchProfile?.motto || "",
+      approvalThreshold:
+        churchProfile?.approvalThreshold == null
+          ? ""
+          : String(Number(churchProfile.approvalThreshold)),
     };
     setName(loaded.name);
     setAddress(loaded.address);
@@ -152,6 +158,7 @@ export default function Settings() {
     setBankAccount(churchProfile?.bankAccount || "");
     setBankAccountName(churchProfile?.bankAccountName || "");
     setMotto(loaded.motto);
+    setApprovalThreshold(loaded.approvalThreshold);
     setBaseline(loaded);
   }, [churchProfile]);
 
@@ -162,7 +169,8 @@ export default function Settings() {
     email !== baseline.email ||
     pastorName !== baseline.pastorName ||
     treasurerName !== baseline.treasurerName ||
-    motto !== baseline.motto;
+    motto !== baseline.motto ||
+    approvalThreshold !== baseline.approvalThreshold;
   useUnsavedChanges(isDirty);
 
   const updateProfileMutation = trpc.church.updateProfile.useMutation({
@@ -201,6 +209,8 @@ export default function Settings() {
       bankAccountName,
       fiscalYearStartMonth: churchProfile?.fiscalYearStartMonth ?? 1,
       motto,
+      approvalThreshold:
+        approvalThreshold.trim() === "" ? null : Number(approvalThreshold),
     });
   };
 
@@ -418,6 +428,31 @@ export default function Settings() {
                     onChange={e => setMotto(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-line text-sm text-ink"
                   />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label
+                    htmlFor="approval-threshold"
+                    className="font-semibold text-ink"
+                  >
+                    วงเงินที่ต้องมีผู้อนุมัติ 2 คน (บาท)
+                  </label>
+                  <input
+                    id="approval-threshold"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={approvalThreshold}
+                    onChange={e => setApprovalThreshold(e.target.value)}
+                    aria-describedby="approval-threshold-help"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-line text-sm text-ink tabular-nums"
+                  />
+                  <p id="approval-threshold-help" className="text-ink-2">
+                    คำขอเบิกที่มียอดเกินวงเงินนี้ต้องได้รับอนุมัติจากผู้อนุมัติ
+                    2 คนที่ไม่ใช่ผู้ขอ ถ้าเว้นว่าง ผู้อนุมัติ 1 คนเพียงพอ
+                    ผู้ขอไม่สามารถอนุมัติคำขอของตัวเองได้เสมอ
+                  </p>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">

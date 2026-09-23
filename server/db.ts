@@ -69,7 +69,7 @@ import { createHash } from "crypto";
  */
 export class FinanceRuleError extends Error {
   constructor(
-    public readonly code: "BAD_REQUEST" | "CONFLICT",
+    public readonly code: "BAD_REQUEST" | "CONFLICT" | "FORBIDDEN",
     message: string
   ) {
     super(message);
@@ -978,15 +978,20 @@ export async function listWithdrawalRequests(
     conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
 
   const rows = await db
-    .select()
+    .select({
+      request: withdrawalRequests,
+      requesterName: users.name,
+    })
     .from(withdrawalRequests)
+    .leftJoin(users, eq(users.id, withdrawalRequests.requestedBy))
     .where(and(...conditions))
     .orderBy(desc(withdrawalRequests.createdAt))
     .limit(50);
 
-  return rows.map(r => ({
-    ...r,
-    amount: parseFloat((r.amount as unknown as string) ?? "0"),
+  return rows.map(({ request, requesterName }) => ({
+    ...request,
+    requesterName,
+    amount: parseFloat((request.amount as unknown as string) ?? "0"),
   }));
 }
 
@@ -1003,6 +1008,15 @@ export async function createWithdrawalRequest(
   return result[0].id;
 }
 
+/**
+ * Records one approval or a rejection on a pending request, under a row lock:
+ * - the requester can neither approve nor reject their own request
+ * - the first approval fixes requiredApprovals: 2 when the amount is above
+ *   church_profiles.approvalThreshold, else 1
+ * - with 2 required, the request stays pending until a different person
+ *   approves it; only then can it be paid
+ * - any eligible approver can reject it while it is pending
+ */
 export async function approveWithdrawal(
   id: number,
   approverId: number,
@@ -1012,24 +1026,93 @@ export async function approveWithdrawal(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .update(withdrawalRequests)
-    .set({
-      status: action,
-      approvedBy: approverId,
-      approvalDate: new Date(),
-      approvalNote: action === "approved" ? note : null,
-      rejectionReason: action === "rejected" ? note : null,
-    })
-    .where(
-      and(
-        eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId),
-        eq(withdrawalRequests.status, "pending")
+  return db.transaction(async tx => {
+    const [request] = await tx
+      .select()
+      .from(withdrawalRequests)
+      .where(
+        and(
+          eq(withdrawalRequests.id, id),
+          eq(withdrawalRequests.churchId, churchId)
+        )
       )
-    )
-    .returning({ id: withdrawalRequests.id });
-  return rows.length > 0;
+      .for("update")
+      .limit(1);
+    if (!request) {
+      throw new FinanceRuleError("BAD_REQUEST", "ไม่พบคำขอเบิกนี้");
+    }
+    if (request.status !== "pending") {
+      throw new FinanceRuleError(
+        "CONFLICT",
+        "คำขอเบิกนี้ไม่ได้อยู่ในสถานะรออนุมัติ"
+      );
+    }
+    if (request.requestedBy === approverId) {
+      throw new FinanceRuleError(
+        "FORBIDDEN",
+        "ผู้ยื่นคำขอไม่สามารถอนุมัติหรือปฏิเสธคำขอของตัวเองได้"
+      );
+    }
+
+    const now = new Date();
+    if (action === "rejected") {
+      await tx
+        .update(withdrawalRequests)
+        .set({ status: "rejected", rejectionReason: note || null })
+        .where(eq(withdrawalRequests.id, id));
+    } else if (request.approvedBy === null) {
+      const [profile] = await tx
+        .select({ threshold: churchProfiles.approvalThreshold })
+        .from(churchProfiles)
+        .where(eq(churchProfiles.churchId, churchId))
+        .limit(1);
+      const threshold =
+        profile?.threshold === null || profile?.threshold === undefined
+          ? null
+          : Number(profile.threshold);
+      const required =
+        threshold !== null && Number(request.amount) > threshold ? 2 : 1;
+      await tx
+        .update(withdrawalRequests)
+        .set({
+          approvedBy: approverId,
+          approvalDate: now,
+          approvalNote: note || null,
+          requiredApprovals: required,
+          status: required === 1 ? "approved" : "pending",
+        })
+        .where(eq(withdrawalRequests.id, id));
+    } else {
+      if (request.approvedBy === approverId) {
+        throw new FinanceRuleError(
+          "CONFLICT",
+          "คำขอนี้ต้องได้รับอนุมัติจากผู้อนุมัติคนที่สองที่ไม่ใช่คนเดิม"
+        );
+      }
+      await tx
+        .update(withdrawalRequests)
+        .set({
+          secondApprovedBy: approverId,
+          secondApprovalDate: now,
+          status: "approved",
+        })
+        .where(eq(withdrawalRequests.id, id));
+    }
+
+    const [after] = await tx
+      .select({ status: withdrawalRequests.status })
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.id, id));
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: approverId,
+      action: action === "rejected" ? "REJECT" : "APPROVE",
+      entity: "withdrawal_request",
+      entityId: id,
+      metadata: { status: after.status, note: note || null },
+    });
+    return { status: after.status };
+  });
 }
 
 /**

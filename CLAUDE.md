@@ -72,6 +72,8 @@ One offering row stands for one amount of money received, whatever channel recor
 
 Paying a withdrawal request is one transaction in `disburseWithdrawal`: approved → disbursed (compare-and-set), one expense with `withdrawalId` (unique index `expenses_withdrawal_uniq`), the fund balance lowered once, and the audit log. That expense cannot be voided or re-amounted.
 
+Approving a withdrawal request (`approveWithdrawal`): the requester can neither approve nor reject their own request, and an amount above `church_profiles.approvalThreshold` needs a second, different approver before it can be paid. The first approval fixes `requiredApprovals`; a null threshold means one approver is enough.
+
 `db.ts` throws `FinanceRuleError` (code `BAD_REQUEST` or `CONFLICT`) when a request breaks one of these rules; wrap the call in `withFinanceRules` in `routers.ts` so the client gets that tRPC code. `server/finance.invariants.test.ts` checks the rules against a real database; run it with `DATABASE_URL` set before changing any path that writes offerings, expenses or fund balances.
 
 ### Data layer
