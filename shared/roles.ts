@@ -149,3 +149,15 @@ export function canManageMinistries(
     user && (canManageChurchSettings(user) || user.churchRole === "DEACON")
   );
 }
+
+/**
+ * Budget plans are compared against recorded spending, so both reading and
+ * writing them stay with the treasurer, the pastor and the super admin.
+ */
+export function canManageBudgets(
+  user?: { role?: string; churchRole?: string | null } | null
+): boolean {
+  return Boolean(
+    user && (canManageFinance(user) || canManageChurchSettings(user))
+  );
+}

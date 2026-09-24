@@ -6,6 +6,7 @@ import {
   desc,
   eq,
   gte,
+  lt,
   lte,
   ne,
   sql,
@@ -16,6 +17,8 @@ import postgres from "postgres";
 import {
   bankRecords,
   budgetPlans,
+  BudgetPlan,
+  InsertBudgetPlan,
   cashCounts,
   churchEvents,
   churchNews,
@@ -1305,16 +1308,184 @@ export async function getFinancialReportData(
   return rows.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function getBudgetComparison(
-  churchId = DEFAULT_CHURCH_ID,
-  year: number
-) {
+// ─── Budget Plans ─────────────────────────────────────────────────────────────
+
+/**
+ * A plan's spending is every non-voided expense inside the plan's period that
+ * matches its filters. A plan with no category counts every category, and a
+ * plan with no fund counts every fund, so an annual "total budget" row with
+ * neither set compares against all spending of the year.
+ */
+function budgetPeriod(year: number, month: number | null) {
+  const from = new Date(Date.UTC(year, month ? month - 1 : 0, 1));
+  const to = month
+    ? new Date(Date.UTC(year, month, 1))
+    : new Date(Date.UTC(year + 1, 0, 1));
+  return { from, to };
+}
+
+function budgetExpenseFilter(plan: BudgetPlan) {
+  const { from, to } = budgetPeriod(plan.year, plan.month);
+  return and(
+    eq(expenses.churchId, plan.churchId),
+    ne(expenses.status, "voided"),
+    gte(expenses.expenseDate, from),
+    lt(expenses.expenseDate, to),
+    plan.category
+      ? eq(
+          expenses.category,
+          plan.category as (typeof expenses.category.enumValues)[number]
+        )
+      : undefined,
+    plan.fundId ? eq(expenses.fundId, plan.fundId) : undefined
+  );
+}
+
+function toBudgetView(plan: BudgetPlan, actualAmount: number) {
+  const plannedAmount = parseFloat(plan.plannedAmount ?? "0");
+  return {
+    ...plan,
+    plannedAmount,
+    actualAmount,
+    remainingAmount: plannedAmount - actualAmount,
+  };
+}
+
+export type BudgetPlanView = ReturnType<typeof toBudgetView>;
+
+export async function listBudgetPlans(
+  year: number,
+  churchId = DEFAULT_CHURCH_ID
+): Promise<BudgetPlanView[]> {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const plans = await db
     .select()
     .from(budgetPlans)
-    .where(and(eq(budgetPlans.churchId, churchId), eq(budgetPlans.year, year)));
+    .where(and(eq(budgetPlans.churchId, churchId), eq(budgetPlans.year, year)))
+    .orderBy(
+      sql`${budgetPlans.month} asc nulls first`,
+      sql`${budgetPlans.category} asc nulls first`,
+      asc(budgetPlans.id)
+    );
+  if (plans.length === 0) return [];
+
+  // One grouped read for the whole year, then each plan sums the buckets that
+  // match its filters. This avoids one query per plan.
+  const { from, to } = budgetPeriod(year, null);
+  const monthExpr = sql<number>`extract(month from ${expenses.expenseDate})::int`;
+  const buckets = await db
+    .select({
+      category: expenses.category,
+      fundId: expenses.fundId,
+      month: monthExpr,
+      total: sum(expenses.amount),
+    })
+    .from(expenses)
+    .where(
+      and(
+        eq(expenses.churchId, churchId),
+        ne(expenses.status, "voided"),
+        gte(expenses.expenseDate, from),
+        lt(expenses.expenseDate, to)
+      )
+    )
+    .groupBy(expenses.category, expenses.fundId, monthExpr);
+
+  return plans.map(plan => {
+    const actual = buckets
+      .filter(
+        b =>
+          (!plan.category || b.category === plan.category) &&
+          (!plan.fundId || b.fundId === plan.fundId) &&
+          (!plan.month || Number(b.month) === plan.month)
+      )
+      .reduce((total, b) => total + parseFloat(b.total ?? "0"), 0);
+    return toBudgetView(plan, actual);
+  });
+}
+
+export async function getBudgetPlanById(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(budgetPlans)
+    .where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId)))
+    .limit(1);
+  const plan = rows[0];
+  if (!plan) return null;
+
+  const filter = budgetExpenseFilter(plan);
+  const [totals, recent] = await Promise.all([
+    db
+      .select({ total: sum(expenses.amount), count: count(expenses.id) })
+      .from(expenses)
+      .where(filter),
+    db
+      .select({
+        id: expenses.id,
+        amount: expenses.amount,
+        category: expenses.category,
+        description: expenses.description,
+        expenseDate: expenses.expenseDate,
+        payee: expenses.payee,
+      })
+      .from(expenses)
+      .where(filter)
+      .orderBy(desc(expenses.expenseDate), desc(expenses.id))
+      .limit(50),
+  ]);
+
+  return {
+    ...toBudgetView(plan, parseFloat(totals[0]?.total ?? "0")),
+    expenseCount: Number(totals[0]?.count ?? 0),
+    expenses: recent.map(e => ({ ...e, amount: parseFloat(e.amount) })),
+  };
+}
+
+export async function createBudgetPlan(
+  input: Omit<InsertBudgetPlan, "churchId">,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .insert(budgetPlans)
+    .values({ ...input, churchId })
+    .returning({ id: budgetPlans.id });
+  return rows[0].id;
+}
+
+export async function updateBudgetPlan(
+  id: number,
+  input: Partial<Omit<InsertBudgetPlan, "churchId">>,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .update(budgetPlans)
+    .set(input)
+    .where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId)))
+    .returning({ id: budgetPlans.id });
+  return rows[0]?.id ?? null;
+}
+
+export async function deleteBudgetPlan(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db
+    .delete(budgetPlans)
+    .where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId)))
+    .returning({ id: budgetPlans.id });
+  return rows[0]?.id ?? null;
 }
 
 // ─── News & Events (existing) ─────────────────────────────────────────────────
@@ -2179,7 +2350,10 @@ export async function listLineSlips(
           signedUrl = await getSlipSignedUrl(slip.slipImageKey);
         }
       } catch (e) {
-        console.warn(`[listLineSlips] Failed to sign URL for slip #${slip.id}:`, e);
+        console.warn(
+          `[listLineSlips] Failed to sign URL for slip #${slip.id}:`,
+          e
+        );
       }
       return {
         ...slip,
@@ -2191,7 +2365,10 @@ export async function listLineSlips(
   return items;
 }
 
-export async function getLineSlipById(id: number, churchId = DEFAULT_CHURCH_ID) {
+export async function getLineSlipById(
+  id: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
 
@@ -2258,7 +2435,9 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
     const [slip] = await tx
       .select()
       .from(lineSlips)
-      .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+      .where(
+        and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+      )
       .for("update")
       .limit(1);
 
@@ -2267,7 +2446,9 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
     }
 
     if (slip.status === "approved" || slip.approvedOfferingId) {
-      throw new Error(`สลิป #${input.slipId} ได้รับการอนุมัติไปแล้ว (Offering #${slip.approvedOfferingId})`);
+      throw new Error(
+        `สลิป #${input.slipId} ได้รับการอนุมัติไปแล้ว (Offering #${slip.approvedOfferingId})`
+      );
     }
 
     if (slip.status === "rejected") {
@@ -2316,7 +2497,9 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
       .limit(1);
 
     if (!fund) {
-      throw new Error(`ไม่พบบัญชีกองทุนรหัส #${input.fundId} หรือกองทุนไม่ได้เปิดใช้งาน`);
+      throw new Error(
+        `ไม่พบบัญชีกองทุนรหัส #${input.fundId} หรือกองทุนไม่ได้เปิดใช้งาน`
+      );
     }
 
     // 3. Resolve donor name
@@ -2325,14 +2508,17 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
       const [member] = await tx
         .select({ id: members.id, name: members.name })
         .from(members)
-        .where(and(eq(members.id, input.memberId), eq(members.churchId, churchId)))
+        .where(
+          and(eq(members.id, input.memberId), eq(members.churchId, churchId))
+        )
         .limit(1);
       if (member && !donorName) {
         donorName = member.name;
       }
     }
     if (!donorName) {
-      donorName = slip.extractedSenderName || slip.lineDisplayName || "ผู้ถวายผ่าน LINE";
+      donorName =
+        slip.extractedSenderName || slip.lineDisplayName || "ผู้ถวายผ่าน LINE";
     }
 
     // 4. Create Offering in offerings table (Official Financial Ledger)
@@ -2348,7 +2534,8 @@ export async function approveLineSlip(input: ApproveLineSlipInput) {
         receiptDate: input.receiptDate ?? slip.extractedDate ?? new Date(),
         method: "transfer",
         reference: slip.extractedRef || `LINE-${slip.id}`,
-        notes: `[LINE Slip #${slip.id}] ${input.reviewNote ? input.reviewNote : ""}`.trim(),
+        notes:
+          `[LINE Slip #${slip.id}] ${input.reviewNote ? input.reviewNote : ""}`.trim(),
         recordedBy: input.approvedBy,
         status: "active",
       })
@@ -2425,7 +2612,9 @@ export async function rejectLineSlip(input: RejectLineSlipInput) {
     const [slip] = await tx
       .select()
       .from(lineSlips)
-      .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+      .where(
+        and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+      )
       .for("update")
       .limit(1);
 
@@ -2482,10 +2671,13 @@ export async function updateLineSlipReview(input: UpdateLineSlipReviewInput) {
   };
 
   if (input.fundId !== undefined) updateSet.fundId = input.fundId;
-  if (input.matchedMemberId !== undefined) updateSet.matchedMemberId = input.matchedMemberId;
-  if (input.matchedMemberName !== undefined) updateSet.matchedMemberName = input.matchedMemberName;
+  if (input.matchedMemberId !== undefined)
+    updateSet.matchedMemberId = input.matchedMemberId;
+  if (input.matchedMemberName !== undefined)
+    updateSet.matchedMemberName = input.matchedMemberName;
   if (input.approvedAmount !== undefined) {
-    updateSet.approvedAmount = input.approvedAmount !== null ? String(input.approvedAmount) : null;
+    updateSet.approvedAmount =
+      input.approvedAmount !== null ? String(input.approvedAmount) : null;
   }
   if (input.reviewNote !== undefined) updateSet.reviewNote = input.reviewNote;
   if (input.status !== undefined) updateSet.status = input.status;
@@ -2493,7 +2685,9 @@ export async function updateLineSlipReview(input: UpdateLineSlipReviewInput) {
   const [updated] = await db
     .update(lineSlips)
     .set(updateSet as any)
-    .where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId)))
+    .where(
+      and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+    )
     .returning();
 
   return updated;
@@ -2596,7 +2790,8 @@ export async function getLineInboxStats(churchId = DEFAULT_CHURCH_ID) {
     }
   }
 
-  const reviewRequired = (stats.needs_review || 0) + (stats.matched || 0) + (stats.extracted || 0);
+  const reviewRequired =
+    (stats.needs_review || 0) + (stats.matched || 0) + (stats.extracted || 0);
 
   return {
     ...stats,
@@ -2620,14 +2815,19 @@ export async function createManualSlip(input: {
   const dateStr = new Date().toISOString().slice(0, 10);
   const storageKey = `manual/${churchId}/${input.userId}/${dateStr}/${hash.slice(0, 16)}.jpg`;
 
-  const { key } = await storagePutPrivate(storageKey, input.imageBuffer, "image/jpeg");
+  const { key } = await storagePutPrivate(
+    storageKey,
+    input.imageBuffer,
+    "image/jpeg"
+  );
 
   const [slip] = await db
     .insert(lineSlips)
     .values({
       churchId,
       lineUserId: `manual-${input.userId}`,
-      lineDisplayName: input.donorName || `อัปโหลดโดย ${input.userName || "เจ้าหน้าที่"}`,
+      lineDisplayName:
+        input.donorName || `อัปโหลดโดย ${input.userName || "เจ้าหน้าที่"}`,
       lineEventId: `manual-${Date.now()}-${hash.slice(0, 8)}`,
       slipImageKey: key,
       slipHash: hash,
@@ -2646,12 +2846,19 @@ export async function createManualSlip(input: {
   return slip;
 }
 
-export async function rescanLineSlip(slipId: number, churchId = DEFAULT_CHURCH_ID) {
+export async function rescanLineSlip(
+  slipId: number,
+  churchId = DEFAULT_CHURCH_ID
+) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
 
   const [slip] = await db
-    .select({ id: lineSlips.id, status: lineSlips.status, approvedOfferingId: lineSlips.approvedOfferingId })
+    .select({
+      id: lineSlips.id,
+      status: lineSlips.status,
+      approvedOfferingId: lineSlips.approvedOfferingId,
+    })
     .from(lineSlips)
     .where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)))
     .limit(1);
@@ -2661,10 +2868,14 @@ export async function rescanLineSlip(slipId: number, churchId = DEFAULT_CHURCH_I
   // Resetting a booked slip to "pending" would show an offering that is already in
   // the ledger as unapproved in the inbox.
   if (slip.status === "approved" || slip.approvedOfferingId) {
-    throw new Error(`ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากอนุมัติและบันทึกลงบัญชีแล้ว`);
+    throw new Error(
+      `ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากอนุมัติและบันทึกลงบัญชีแล้ว`
+    );
   }
   if (slip.status === "rejected") {
-    throw new Error(`ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากถูกปฏิเสธไปแล้ว`);
+    throw new Error(
+      `ไม่สามารถสแกนสลิป #${slipId} ซ้ำได้ เนื่องจากถูกปฏิเสธไปแล้ว`
+    );
   }
 
   await db

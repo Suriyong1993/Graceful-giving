@@ -6,6 +6,11 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { storagePut } from "./storage";
 import {
   approveWithdrawal,
+  createBudgetPlan,
+  deleteBudgetPlan,
+  getBudgetPlanById,
+  listBudgetPlans,
+  updateBudgetPlan,
   createChurchEvent,
   createChurchNews,
   createAuditLog,
@@ -145,6 +150,15 @@ function canManageMinistries(user: User): boolean {
   return hasAnyRole(user, "SUPER_ADMIN", "PASTOR", "DEACON");
 }
 
+/**
+ * Budget plans are set by the people who both approve and pay for spending:
+ * the treasurer, the pastor and the super admin. This matches the /budgets
+ * entry in client/src/lib/routeAccess.ts.
+ */
+function canManageBudgets(user: User): boolean {
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "PASTOR");
+}
+
 /** COUNTER records the count; finance roles may also record it. */
 function canCountOfferings(user: User): boolean {
   return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "COUNTER");
@@ -202,6 +216,16 @@ const ministryProcedure = protectedProcedure.use(({ ctx, next }) => {
   return next();
 });
 
+const budgetProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canManageBudgets(ctx.user)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "เฉพาะเหรัญญิก ศิษยาภิบาล หรือผู้ดูแลระบบเท่านั้น",
+    });
+  }
+  return next();
+});
+
 // ─── Zod Enums ────────────────────────────────────────────────────────────────
 
 const newsCategory = z.enum([
@@ -226,6 +250,8 @@ const churchRoleEnum = z.enum([
   "COUNTER",
   "MEMBER",
 ]);
+const budgetYear = z.number().int().min(2000).max(2100);
+const budgetMonth = z.number().int().min(1).max(12);
 const reportDateRange = z
   .object({ fromDate: z.coerce.date(), toDate: z.coerce.date() })
   .refine(data => data.fromDate <= data.toDate, {
@@ -875,6 +901,104 @@ export const appRouter = router({
         if (updated === null)
           throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบฝ่ายงาน" });
         return { id: updated };
+      }),
+  }),
+
+  // ── Budgets ──────────────────────────────────────────────────────────────────
+  // Plans are compared against recorded expenses, so reading them exposes
+  // spending totals: both reading and writing are limited to budget managers.
+  budgets: router({
+    list: budgetProcedure
+      .input(z.object({ year: budgetYear }))
+      .query(async ({ input }) =>
+        listBudgetPlans(input.year, DEFAULT_CHURCH_ID)
+      ),
+    getById: budgetProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .query(async ({ input }) =>
+        getBudgetPlanById(input.id, DEFAULT_CHURCH_ID)
+      ),
+    create: budgetProcedure
+      .input(
+        z.object({
+          year: budgetYear,
+          month: budgetMonth.nullable().default(null),
+          category: expenseCategory.nullable().default(null),
+          fundId: z.number().int().positive().nullable().default(null),
+          plannedAmount: z.number().positive().max(9_999_999_999_999),
+          notes: z.string().trim().max(1000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const id = await createBudgetPlan({
+          ...input,
+          plannedAmount: input.plannedAmount.toFixed(2),
+          notes: input.notes || null,
+        });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "CREATE",
+          entity: "budget_plan",
+          entityId: id,
+          metadata: input,
+        });
+        return { id };
+      }),
+    update: budgetProcedure
+      .input(
+        z
+          .object({
+            id: z.number().int().positive(),
+            year: budgetYear.optional(),
+            month: budgetMonth.nullable().optional(),
+            category: expenseCategory.nullable().optional(),
+            fundId: z.number().int().positive().nullable().optional(),
+            plannedAmount: z
+              .number()
+              .positive()
+              .max(9_999_999_999_999)
+              .optional(),
+            notes: z.string().trim().max(1000).nullable().optional(),
+          })
+          .refine(input => Object.keys(input).length > 1, {
+            message: "ต้องระบุอย่างน้อยหนึ่งฟิลด์ที่ต้องการแก้ไข",
+          })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, plannedAmount, ...rest } = input;
+        const updated = await updateBudgetPlan(id, {
+          ...rest,
+          ...(plannedAmount !== undefined
+            ? { plannedAmount: plannedAmount.toFixed(2) }
+            : {}),
+        });
+        if (updated === null)
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบงบประมาณ" });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "UPDATE",
+          entity: "budget_plan",
+          entityId: id,
+          metadata: input,
+        });
+        return { id: updated };
+      }),
+    delete: budgetProcedure
+      .input(z.object({ id: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const deleted = await deleteBudgetPlan(input.id);
+        if (deleted === null)
+          throw new TRPCError({ code: "NOT_FOUND", message: "ไม่พบงบประมาณ" });
+        await createAuditLog({
+          churchId: DEFAULT_CHURCH_ID,
+          userId: ctx.user.id,
+          action: "DELETE",
+          entity: "budget_plan",
+          entityId: input.id,
+        });
+        return { id: deleted };
       }),
   }),
 
@@ -1938,7 +2062,8 @@ export const appRouter = router({
         } catch (err: any) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
+            message:
+              err?.message || "เกิดข้อผิดพลาดในการเชื่อมโยงสมาชิกกับ LINE",
           });
         }
       }),
@@ -1955,7 +2080,10 @@ export const appRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         try {
-          const rawBase64 = input.base64Data.replace(/^data:image\/\w+;base64,/, "");
+          const rawBase64 = input.base64Data.replace(
+            /^data:image\/\w+;base64,/,
+            ""
+          );
           const buffer = Buffer.from(rawBase64, "base64");
 
           const slip = await createManualSlip({
@@ -1990,7 +2118,7 @@ export const appRouter = router({
           await rescanLineSlip(input.id, DEFAULT_CHURCH_ID);
 
           // Run worker batch immediately with Gemini AI
-          await runWorkerBatch().catch((err) =>
+          await runWorkerBatch().catch(err =>
             console.warn("[Rescan] Worker error:", err)
           );
 
