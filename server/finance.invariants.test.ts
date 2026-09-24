@@ -327,6 +327,48 @@ describeDb("financial invariants", () => {
       ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
+    it("still allows a notes edit that resends the same amount", async () => {
+      const slipId = await insertSlip(610);
+      const { offeringId } = await approveSlip(slipId, 610);
+      await verifiedRound(new Date("2026-11-15T01:00:00Z"), [
+        { amount: 610, method: "transfer", linkedOfferingId: offeringId },
+      ]);
+      // TransactionDetail always sends the amount with the notes.
+      await callerFor(treasurer).offerings.update({
+        id: offeringId,
+        amount: 610,
+        notes: "แก้หมายเหตุอย่างเดียว",
+      });
+      const [row] = await rows(
+        sql`SELECT notes, amount FROM offerings WHERE id = ${offeringId}`
+      );
+      expect(row.notes).toBe("แก้หมายเหตุอย่างเดียว");
+      expect(num(row.amount)).toBe(610);
+    });
+
+    it("refuses to link a cash envelope and logs nothing", async () => {
+      const slipId = await insertSlip(420);
+      const { offeringId } = await approveSlip(slipId, 420);
+      const sessionId = await verifiedRound(new Date("2026-11-22T01:00:00Z"), [
+        { amount: 420, method: "cash" },
+      ]);
+      const [envelope] = await rows(
+        sql`SELECT id FROM offering_envelopes WHERE "sessionId" = ${sessionId}`
+      );
+      await expect(
+        callerFor(treasurer).counting.linkTransfer({
+          sessionId,
+          envelopeId: Number(envelope.id),
+          linkedOfferingId: offeringId,
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const [log] = await rows(
+        sql`SELECT count(*) AS n FROM audit_logs
+            WHERE action = 'LINK_TRANSFER' AND "entityId" = ${Number(envelope.id)}`
+      );
+      expect(Number(log.n)).toBe(0);
+    });
+
     it("refuses to link one offering to two envelopes", async () => {
       const slipId = await insertSlip(400);
       const { offeringId } = await approveSlip(slipId, 400);
@@ -496,24 +538,84 @@ describeDb("financial invariants", () => {
       expect(await fundBalance()).toBe(balance);
     });
 
-    it("does not pay a request without a fund", async () => {
-      const { id } = await callerFor(counter).withdrawals.create({
-        amount: 450,
-        purpose: "ไม่ระบุกองทุน",
-      });
-      await callerFor(treasurer).withdrawals.approve({
-        id,
-        action: "approved",
-        note: "",
-      });
+    it("requires a fund when a request is created", async () => {
+      await expect(
+        callerFor(counter).withdrawals.create({
+          amount: 450,
+          purpose: "ไม่ระบุกองทุน",
+        } as Parameters<
+          ReturnType<typeof callerFor>["withdrawals"]["create"]
+        >[0])
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    });
+
+    it("pays an older request without a fund once the payer names one", async () => {
+      // Requests created before the fund became required.
+      const [legacy] = await rows(
+        sql`INSERT INTO withdrawal_requests
+              ("churchId", amount, purpose, "requestedBy", status, "approvedBy",
+               "approvalDate", "requiredApprovals")
+            VALUES (${TEST_CHURCH_ID}, 450, 'คำขอเก่าไม่มีกองทุน', ${counter.id},
+                    'approved', ${treasurer.id}, now(), 1)
+            RETURNING id`
+      );
+      const id = Number(legacy.id);
+
       await expect(
         callerFor(treasurer).withdrawals.disburse({ id })
       ).rejects.toMatchObject({ code: "BAD_REQUEST" });
       expect(await expensesFor(id)).toHaveLength(0);
-      const [withdrawal] = await rows(
+      let [withdrawal] = await rows(
         sql`SELECT status FROM withdrawal_requests WHERE id = ${id}`
       );
       expect(withdrawal.status).toBe("approved");
+
+      const balance = await fundBalance();
+      await callerFor(treasurer).withdrawals.disburse({ id, fundId });
+      [withdrawal] = await rows(
+        sql`SELECT status, "fundId" FROM withdrawal_requests WHERE id = ${id}`
+      );
+      expect(withdrawal.status).toBe("disbursed");
+      expect(Number(withdrawal.fundId)).toBe(fundId);
+      expect(await expensesFor(id)).toHaveLength(1);
+      expect(await fundBalance()).toBe(balance - 450);
+    });
+
+    it("does not let the payer switch the fund a request named", async () => {
+      const id = await approvedWithdrawal(90);
+      const [other] = await rows(
+        sql`INSERT INTO finance_accounts ("churchId", name, type, balance, "isActive")
+            VALUES (${TEST_CHURCH_ID}, 'กองทุนอื่น', 'general', 0, true)
+            RETURNING id`
+      );
+      await expect(
+        callerFor(treasurer).withdrawals.disburse({
+          id,
+          fundId: Number(other.id),
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(await expensesFor(id)).toHaveLength(0);
+    });
+
+    it("still allows a description edit that resends the same amount", async () => {
+      const id = await approvedWithdrawal(75);
+      const { expenseId } = await callerFor(treasurer).withdrawals.disburse({
+        id,
+      });
+      // TransactionDetail always sends the amount with the description.
+      await callerFor(treasurer).expenses.update({
+        id: expenseId,
+        amount: 75,
+        description: "แก้คำอธิบายอย่างเดียว",
+      });
+      const [row] = await rows(
+        sql`SELECT description, amount FROM expenses WHERE id = ${expenseId}`
+      );
+      expect(row.description).toBe("แก้คำอธิบายอย่างเดียว");
+      expect(num(row.amount)).toBe(75);
+      await expect(
+        callerFor(treasurer).expenses.update({ id: expenseId, amount: 80 })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
     it("keeps the paid expense: no void, no second expense in SQL", async () => {

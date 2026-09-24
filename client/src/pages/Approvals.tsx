@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Swal } from "@/lib/sweetalert";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { canManageFinance } from "@shared/roles";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type WithdrawalItem = RouterOutputs["withdrawals"]["list"][number];
 
@@ -24,6 +25,7 @@ export interface ApprovalRequest {
   requester: string;
   requestedBy: number;
   fund: string;
+  fundId: number | null;
   details: string;
   approvedBy: number | null;
   requiredApprovals: number | null;
@@ -80,12 +82,25 @@ export default function Approvals() {
     },
   });
 
+  // Older requests were saved without a fund; the payer names it here.
+  const [payFund, setPayFund] = useState<Record<number, number>>({});
+
   const handleDisburse = async (req: ApprovalRequest) => {
+    const fundId = req.fundId ?? payFund[req.id];
+    if (!fundId) {
+      toast.error("เลือกกองทุนที่จะจ่ายก่อน");
+      return;
+    }
+    const fundName =
+      (fundsQuery.data ?? []).find(f => f.id === fundId)?.name ?? req.fund;
     const confirmed = await Swal.confirm(
       "ยืนยันการจ่ายเงิน",
-      `ระบบจะบันทึกรายจ่าย ${req.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท จาก${req.fund} และหักยอดกองทุนทันที ทำซ้ำไม่ได้`
+      `ระบบจะบันทึกรายจ่าย ${req.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท จาก${fundName} และหักยอดกองทุนทันที ทำซ้ำไม่ได้`
     );
-    if (confirmed) disburseMutation.mutate({ id: req.id });
+    if (confirmed)
+      disburseMutation.mutate(
+        req.fundId ? { id: req.id } : { id: req.id, fundId }
+      );
   };
 
   const requests = useMemo(() => {
@@ -104,6 +119,7 @@ export default function Approvals() {
           fund:
             (fundsQuery.data ?? []).find(f => f.id === w.fundId)?.name ??
             "ไม่ระบุกองทุน",
+          fundId: w.fundId,
           details: w.details || "",
         })
       );
@@ -290,6 +306,28 @@ export default function Approvals() {
                       size="md"
                     />
                   </div>
+
+                  {req.status === "approved" && canPay && !req.fundId && (
+                    <NativeSelect
+                      aria-label="กองทุนที่จะจ่าย"
+                      value={payFund[req.id] ?? ""}
+                      onChange={e =>
+                        setPayFund(prev => ({
+                          ...prev,
+                          [req.id]: Number(e.target.value),
+                        }))
+                      }
+                    >
+                      <option value="" disabled>
+                        เลือกกองทุนที่จะจ่าย
+                      </option>
+                      {(fundsQuery.data ?? []).map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  )}
 
                   {req.status === "approved" && canPay && (
                     <button

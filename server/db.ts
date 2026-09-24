@@ -640,13 +640,7 @@ export async function updateOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  if (
-    input.amount !== undefined ||
-    input.fundId !== undefined ||
-    input.method !== undefined
-  ) {
-    await assertOfferingNotCounted(id);
-  }
+  await assertCountedOfferingKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: offerings.amount, fundId: offerings.fundId })
@@ -807,13 +801,7 @@ export async function updateExpense(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  if (
-    input.amount !== undefined ||
-    input.fundId !== undefined ||
-    input.status !== undefined
-  ) {
-    await assertExpenseNotAPayment(id);
-  }
+  await assertPaymentKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: expenses.amount, fundId: expenses.fundId })
@@ -922,6 +910,35 @@ async function assertExpenseNotAPayment(id: number) {
       `รายจ่ายนี้คือการจ่ายเงินตามคำขอเบิก #${row.withdrawalId} จึงยกเลิกหรือแก้ยอดไม่ได้`
     );
   }
+}
+
+/**
+ * A payment expense may change its description or receipt details, not its
+ * amount, fund or status. Forms resend the current amount with every save,
+ * so compare values instead of checking which fields are present.
+ */
+async function assertPaymentKeepsMoney(
+  id: number,
+  input: Partial<Pick<InsertExpense, "amount" | "fundId" | "status">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const [current] = await db
+    .select({
+      amount: expenses.amount,
+      fundId: expenses.fundId,
+      status: expenses.status,
+    })
+    .from(expenses)
+    .where(eq(expenses.id, id))
+    .limit(1);
+  if (!current) return;
+  const changesMoney =
+    (input.amount !== undefined &&
+      Number(input.amount) !== Number(current.amount)) ||
+    (input.fundId !== undefined && input.fundId !== current.fundId) ||
+    (input.status !== undefined && input.status !== current.status);
+  if (changesMoney) await assertExpenseNotAPayment(id);
 }
 
 export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
@@ -1129,6 +1146,11 @@ export async function disburseWithdrawal(
   input: {
     id: number;
     disbursedBy: number;
+    /**
+     * Only for a request created before the fund was required: names the fund
+     * to pay from. A request that already names a fund must be paid from it.
+     */
+    fundId?: number;
     category?: string;
     payee?: string | null;
     receiptRef?: string | null;
@@ -1175,11 +1197,28 @@ export async function disburseWithdrawal(
             : "ต้องอนุมัติคำขอเบิกก่อนจ่ายเงิน"
         );
       }
-      if (!claimed.fundId) {
+      if (
+        claimed.fundId &&
+        input.fundId !== undefined &&
+        input.fundId !== claimed.fundId
+      ) {
         throw new FinanceRuleError(
           "BAD_REQUEST",
-          "คำขอเบิกนี้ไม่ได้ระบุกองทุน จึงจ่ายเงินไม่ได้"
+          "คำขอเบิกนี้ระบุกองทุนไว้แล้ว ต้องจ่ายจากกองทุนนั้น"
         );
+      }
+      if (!claimed.fundId && input.fundId === undefined) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "คำขอเบิกนี้ไม่ได้ระบุกองทุน ต้องเลือกกองทุนที่จะจ่ายก่อน"
+        );
+      }
+      if (!claimed.fundId) {
+        claimed.fundId = input.fundId!;
+        await tx
+          .update(withdrawalRequests)
+          .set({ fundId: claimed.fundId })
+          .where(eq(withdrawalRequests.id, claimed.id));
       }
       const [fund] = await tx
         .select({ id: financeAccounts.id })
@@ -1907,6 +1946,35 @@ async function assertOfferingNotCounted(offeringId: number) {
   }
 }
 
+/**
+ * An edit to a counted offering may change its notes, donor or date, but not
+ * the money: amount, fund or method. Forms resend the current amount with
+ * every save, so compare values instead of checking which fields are present.
+ */
+async function assertCountedOfferingKeepsMoney(
+  offeringId: number,
+  input: Partial<Pick<InsertOffering, "amount" | "fundId" | "method">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const [current] = await db
+    .select({
+      amount: offerings.amount,
+      fundId: offerings.fundId,
+      method: offerings.method,
+    })
+    .from(offerings)
+    .where(eq(offerings.id, offeringId))
+    .limit(1);
+  if (!current) return;
+  const changesMoney =
+    (input.amount !== undefined &&
+      Number(input.amount) !== Number(current.amount)) ||
+    (input.fundId !== undefined && input.fundId !== current.fundId) ||
+    (input.method !== undefined && input.method !== current.method);
+  if (changesMoney) await assertOfferingNotCounted(offeringId);
+}
+
 type Tx = Parameters<
   Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]
 >[0];
@@ -2065,6 +2133,12 @@ export async function updateOfferingEnvelope(
       if (!current) return null;
 
       const method = input.method ?? current.method;
+      if (input.linkedOfferingId && method !== "transfer") {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "ผูกรายการเงินโอนได้เฉพาะซองที่ชำระด้วยการโอน"
+        );
+      }
       // Switching away from transfer drops the link instead of keeping a
       // pointer the CHECK constraint would reject.
       const linkedOfferingId =
