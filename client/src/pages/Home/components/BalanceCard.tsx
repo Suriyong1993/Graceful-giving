@@ -1,5 +1,4 @@
 import { BarChart3, ChevronRight, Eye, EyeOff, Info } from "lucide-react";
-import { Illustration } from "@/components/Illustration";
 
 interface BalanceCardProps {
   showBalance: boolean;
@@ -117,20 +116,6 @@ export function BalanceCard({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Right: Balance illustration tucked cleanly in corner */}
-        <div className="hidden sm:block shrink-0 z-10">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden border border-[#E4DED7] bg-[#FAF8F5] p-1.5 shadow-2xs">
-            <Illustration
-              src="/illustrations/balance_wallet.jpg"
-              alt="กระเป๋าสตางค์ยอดคงเหลือ"
-              className="w-full h-full object-cover rounded-xl"
-              width={176}
-              height={176}
-              aria-hidden="true"
-            />
-          </div>
         </div>
       </div>
     </section>

@@ -1,5 +1,4 @@
 import { Sprout } from "lucide-react";
-import { Illustration } from "@/components/Illustration";
 
 export function HeroSection() {
   return (
@@ -10,7 +9,7 @@ export function HeroSection() {
       {/* Hero Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 lg:gap-10 items-center relative z-10 w-full">
         {/* Left Column: Generous typography & clear hierarchy */}
-        <div className="min-w-0 md:col-span-7 space-y-4 w-full flex flex-col justify-center">
+        <div className="min-w-0 md:col-span-12 space-y-4 w-full flex flex-col justify-center">
           {/* Brand Title */}
           <h1 className="flex flex-col">
             <span className="flex items-center gap-2 sm:gap-3">
@@ -22,7 +21,7 @@ export function HeroSection() {
               </span>
             </span>
             <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#B9530F] tracking-tight leading-none font-display mt-1">
-              Ledger
+              -giving
             </span>
           </h1>
 
@@ -39,27 +38,6 @@ export function HeroSection() {
             <span className="text-stone-700 font-medium">
               “ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก”
             </span>
-          </div>
-        </div>
-
-        {/* Right Column: Clean illustration card */}
-        <div className="min-w-0 md:col-span-5 flex items-center justify-center md:justify-end w-full">
-          <div className="relative w-full max-w-sm sm:max-w-md md:max-w-none aspect-[16/10] rounded-2xl overflow-hidden border border-[#E4DED7] bg-[#F4F1ED]/50 shadow-xs">
-            <Illustration
-              src="/illustrations/hero_jesus_shepherd.jpg"
-              alt="พระเยซูคริสต์และลูกแกะ"
-              className="w-full h-full object-cover object-[center_20%]"
-              priority
-              width={512}
-              height={384}
-            />
-            <div className="absolute bottom-3 left-3 pointer-events-none">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/95 backdrop-blur-xs border border-[#E4DED7] shadow-2xs">
-                <span className="text-xs font-bold text-[#3F3833]">
-                  พระเยซูผู้เลี้ยงที่ดี ♥
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

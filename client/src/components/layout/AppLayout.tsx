@@ -127,7 +127,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             </div>
             <div className="min-w-0">
               <p className="text-lg font-bold leading-tight tracking-tight text-[#1F1A17]">
-                Grace <span className="text-[#B9530F]">Ledger</span>
+                Grace<span className="text-[#B9530F]">-giving</span>
               </p>
               <p className="text-xs text-[#736A63] leading-tight">
                 การเงินเชื่อมใจ เพื่อคริสตจักร
