@@ -1,10 +1,12 @@
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 /**
  * Terms of use and privacy policy. The text describes what the code actually
  * stores and which third parties receive data (Clerk, Neon, Supabase Storage,
- * LINE, Google Gemini). The church that runs the system must review it and
- * fill in its own contact details before it goes live.
+ * LINE, Google Gemini). The church name and the privacy contact come from
+ * church_profiles through church.publicContact; the church must still review
+ * the text before it goes live.
  */
 
 type Section = { heading: string; body: string[] };
@@ -82,11 +84,26 @@ const PRIVACY: Section[] = [
       "คริสตจักรอาจต้องเก็บหลักฐานทางการเงินไว้ตามระยะเวลาที่กฎหมายกำหนด แม้ท่านขอลบข้อมูล",
     ],
   },
-  {
-    heading: "5. ติดต่อ",
-    body: ["ส่งคำขอเกี่ยวกับข้อมูลส่วนบุคคลถึงผู้ดูแลระบบของคริสตจักร"],
-  },
 ];
+
+type Contact = {
+  churchName: string | null;
+  privacyContactEmail: string | null;
+};
+
+/** Section 5 of the privacy policy, built from church_profiles. */
+function contactSection(contact: Contact | undefined): Section {
+  const controller = contact?.churchName
+    ? `ผู้ควบคุมข้อมูลส่วนบุคคล: ${contact.churchName}`
+    : "ผู้ควบคุมข้อมูลส่วนบุคคล: คริสตจักรที่ใช้ระบบนี้ (ยังไม่ได้ตั้งชื่อในหน้าตั้งค่า)";
+  const channel = contact?.privacyContactEmail
+    ? `ส่งคำขอเกี่ยวกับข้อมูลส่วนบุคคลทางอีเมล ${contact.privacyContactEmail}`
+    : "ส่งคำขอเกี่ยวกับข้อมูลส่วนบุคคลถึงผู้ดูแลระบบของคริสตจักร (ยังไม่ได้ตั้งอีเมลติดต่อ)";
+  return {
+    heading: "5. ผู้ควบคุมข้อมูลและช่องทางติดต่อ",
+    body: [controller, channel],
+  };
+}
 
 function LegalPage({
   title,
@@ -126,7 +143,14 @@ export function Terms() {
 }
 
 export function Privacy() {
-  return <LegalPage title="นโยบายความเป็นส่วนตัว" sections={PRIVACY} />;
+  const contact = trpc.church.publicContact.useQuery(undefined, {
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+  const sections = contact.isLoading
+    ? PRIVACY
+    : [...PRIVACY, contactSection(contact.data)];
+  return <LegalPage title="นโยบายความเป็นส่วนตัว" sections={sections} />;
 }
 
 /** Footer links shown under the sign-in and sign-up forms. */

@@ -66,6 +66,7 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "church_profiles" ADD COLUMN IF NOT EXISTS "privacyContactEmail" varchar(320);`,
 
   `CREATE TABLE IF NOT EXISTS "finance_accounts" (
     "id" serial PRIMARY KEY NOT NULL,
