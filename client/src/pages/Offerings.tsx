@@ -9,30 +9,13 @@ import {
   MoneyDisplay,
 } from "@/components/common/CommonUI";
 import { Illustration } from "@/components/Illustration";
-import {
-  Download,
-  HandCoins,
-  Heart,
-  Plus,
-  Sparkles,
-  Printer,
-} from "lucide-react";
-import { toast } from "sonner";
+import { ArrowUpRight, HandCoins, Plus, ReceiptText, Search } from "lucide-react";
 import { offeringCategoryLabel } from "@shared/categories";
-import {
-  VoucherModal,
-  type VoucherData,
-} from "@/components/finance/VoucherModal";
-import { paymentMethodLabel } from "@shared/categories";
-import { formatThaiDateTime } from "@/lib/format";
 
 export default function Offerings() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [selectedVoucher, setSelectedVoucher] = useState<VoucherData | null>(
-    null
-  );
 
   const {
     data: offeringsData,
@@ -41,34 +24,23 @@ export default function Offerings() {
     refetch,
   } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
-  // Rows store a fundId, so the fund's name has to come from the account list.
-  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
-    retry: false,
-    staleTime: 60_000,
-  });
-
   const offerings = useMemo(() => {
-    const fundName = (id: number | null | undefined) =>
-      (id != null && (accountsData ?? []).find(a => a.id === id)?.name) ||
-      "ไม่ระบุกองทุน";
     return (offeringsData ?? []).map(o => ({
       id: o.id,
       category: o.category,
       title: offeringCategoryLabel(o.category),
       amount: Number(o.amount),
       date: o.receiptDate,
-      method: paymentMethodLabel(o.method || "cash"),
-      fund: fundName(o.fundId),
-      donorName: o.donorName || "ผู้ถวายนิรนาม",
-      notes: o.notes,
+      method: o.method || "เงินสด",
+      fund: "บัญชีทั่วไป",
     }));
-  }, [offeringsData, accountsData]);
+  }, [offeringsData]);
 
   const filtered = useMemo(() => {
     return offerings.filter(o => {
-      const matchSearch =
-        o.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.donorName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = o.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
       const matchCat =
         categoryFilter === "all" || o.category === categoryFilter;
       return matchSearch && matchCat;
@@ -79,31 +51,8 @@ export default function Offerings() {
     () => filtered.reduce((sum, o) => sum + o.amount, 0),
     [filtered]
   );
-
-  const exportCSV = () => {
-    const headers =
-      "ID,วันที่,ประเภทการถวาย,ผู้ถวาย,จำนวนเงิน,ช่องทาง,กองทุน\n";
-    const rows = filtered
-      .map(
-        o =>
-          `"${o.id}","${new Date(o.date).toLocaleDateString("th-TH")}","${o.title}","${o.donorName}",${o.amount},"${o.method}","${o.fund}"`
-      )
-      .join("\n");
-    const blob = new Blob(["\uFEFF" + headers + rows], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `grace-giving-offerings-${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("ส่งออกข้อมูลการถวายสำเร็จ");
-  };
+  const latestOffering = filtered[0];
+  const averageAmount = filtered.length > 0 ? totalAmount / filtered.length : 0;
 
   return (
     <AppLayout
@@ -111,166 +60,203 @@ export default function Offerings() {
       title="ถวายทรัพย์"
       subtitle="บันทึกและตรวจสอบรายการเงินถวายทุกประเภทของคริสตจักร"
       action={
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportCSV}
-            className="px-3.5 py-2 rounded-2xl bg-white border border-[#E4DED7] text-[#57504A] hover:bg-[#F4F1ED]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>ส่งออก CSV</span>
-          </button>
-          <button
-            onClick={() => setLocation("/offerings/new")}
-            className="px-4 py-2 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-xs font-bold button-elevation transition-all flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>บันทึกถวายใหม่</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setLocation("/offerings/new")}
+          className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-2xl bg-[#E99A4A] px-4 py-2.5 text-xs font-bold text-white clay-button-shadow transition-colors hover:bg-[#DE8640] focus-visible:ring-2 focus-visible:ring-[#E99A4A]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFF9EE] disabled:opacity-60"
+        >
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>บันทึกถวายใหม่</span>
+        </button>
       }
     >
-      {/* 1. Header Banner with 3D Offering Box Illustration */}
-      <div className="bg-gradient-to-r from-[#FFFFFF] via-[#FAF8F5] to-[#F4F1ED] rounded-2xl p-5 sm:p-7 border border-[#E4DED7] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
-        <div className="space-y-2 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#E4DED7] text-xs font-bold text-[#57504A]">
-            <Sparkles className="w-3.5 h-3.5 text-[#B9530F]" />
-            <span>ยอดถวายรวมเดือนนี้</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1F5C33]">
-            <MoneyDisplay amount={totalAmount} type="income" size="xl" />
-          </h2>
-          <p className="text-xs text-[#736A63]">
-            "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" — 2 โครินธ์ 9:7
-          </p>
-        </div>
-
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-white p-1.5 border border-[#E4DED7] shadow-xs shrink-0">
-          <Illustration
-            src="/illustrations/offering_box.jpg"
-            alt="กล่องถวาย"
-            className="w-full h-full object-cover rounded-2xl"
-            width={112}
-            height={112}
-          />
-        </div>
-      </div>
-
-      {/* 2. Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 md:p-5 border border-[#E4DED7] card-elevation-sm">
-        <FilterBar
-          searchPlaceholder="ค้นหาประเภทถวายหรือกองทุน..."
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={[
-            { id: "all", label: "ทั้งหมด", count: offerings.length },
-            {
-              id: "tithe",
-              label: "สิบลด",
-              count: offerings.filter(o => o.category === "tithe").length,
-            },
-            {
-              id: "general",
-              label: "ถวายทั่วไป",
-              count: offerings.filter(o => o.category === "general").length,
-            },
-            {
-              id: "mission",
-              label: "พันธกิจ",
-              count: offerings.filter(o => o.category === "mission").length,
-            },
-            {
-              id: "building",
-              label: "สร้างอาคาร",
-              count: offerings.filter(o => o.category === "building").length,
-            },
-          ]}
-          activeFilter={categoryFilter}
-          onFilterChange={setCategoryFilter}
-        />
-      </div>
-
-      {/* 3. Offerings List */}
-      {isLoading ? (
-        <LoadingSkeleton count={3} />
-      ) : isError ? (
-        <EmptyState
-          title="โหลดรายการถวายไม่สำเร็จ"
-          description="เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
-          actionText="ลองใหม่"
-          onAction={() => refetch()}
-        />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          title="ยังไม่มีรายการถวาย"
-          description="เริ่มบันทึกการถวายรายการแรกของคริสตจักรของคุณ เพื่อความโปร่งใสและเป็นระเบียบ"
-          actionText="บันทึกการถวายรายการแรก"
-          onAction={() => setLocation("/offerings/new")}
-        />
-      ) : (
-        <div className="bg-white rounded-2xl border border-[#E4DED7] card-elevation-sm divide-y divide-[#EDE8E3]/60 overflow-hidden">
-          {filtered.map(o => (
-            <div
-              key={o.id}
-              onClick={() => setLocation(`/transactions/offering-${o.id}`)}
-              className="p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-[#FAF8F5]/70 cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-[#E4F3E7] text-[#2F7A45] flex items-center justify-center shrink-0 shadow-2xs">
-                  <HandCoins className="w-6 h-6 stroke-[2.2]" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-[#1F1A17] truncate">
-                    {o.title}
-                  </h3>
-                  <p className="text-[11px] text-[#736A63] pt-0.5">
-                    {formatThaiDateTime(o.date)} · {o.method} · {o.fund}
+      <div className="space-y-4 sm:space-y-5">
+        <section className="overflow-hidden rounded-[28px] border border-[#E9D9BF] bg-white clay-card-shadow">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+            <div className="relative p-5 sm:p-6 md:p-7">
+              <div className="absolute inset-x-0 top-0 h-1 bg-[#E99A4A]" aria-hidden="true" />
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-2">
+                  <p className="text-xs font-bold text-[#70452E]">ภาพรวมถวายทรัพย์</p>
+                  <h2 className="max-w-xl text-2xl font-black leading-tight tracking-tight text-[#38251B] sm:text-3xl">
+                    รายการถวายที่พร้อมตรวจสอบและออกใบรับเงิน
+                  </h2>
+                  <p className="max-w-2xl text-sm leading-6 text-[#674F42]">
+                    แสดงยอดถวายตามตัวกรองปัจจุบัน พร้อมรายละเอียดช่องทางรับเงินและกองทุนเพื่อให้ทีมการเงินตรวจสอบต่อได้เร็วขึ้น
                   </p>
                 </div>
+                <div className="hidden size-20 shrink-0 overflow-hidden rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-1.5 sm:block">
+                  <Illustration
+                    src="/illustrations/offering_box.jpg"
+                    alt="กล่องถวาย"
+                    className="h-full w-full rounded-[20px] object-cover"
+                    width={80}
+                    height={80}
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <MoneyDisplay amount={o.amount} type="income" size="md" />
-                  <span className="block text-[10px] text-[#9BCBA5] font-bold">
-                    บันทึกเรียบร้อย
-                  </span>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-[#D2EAC7] bg-[#EAF5E4] p-4">
+                  <p className="text-xs font-bold text-[#4F8B33]">ยอดรวมตามตัวกรอง</p>
+                  <MoneyDisplay amount={totalAmount} type="income" size="lg" />
                 </div>
-
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    setSelectedVoucher({
-                      id: o.id,
-                      docNumber: `OR-${o.id}`,
-                      date: o.date,
-                      amount: o.amount,
-                      category: o.category,
-                      categoryLabel: o.title,
-                      titleOrDescription: `เงินถวาย${o.title}`,
-                      payeeOrDonor: o.donorName,
-                      fundName: o.fund,
-                      paymentMethod: o.method,
-                      notes: o.notes || undefined,
-                    });
-                  }}
-                  className="size-11 shrink-0 inline-flex items-center justify-center rounded-xl bg-stone-100 hover:bg-[#F4F1ED] hover:border-[#B9530F] text-[#57504A] border border-stone-200 transition-colors shadow-2xs"
-                  title="พิมพ์ใบเสร็จเงินถวาย"
-                >
-                  <Printer className="w-4 h-4 text-[#B9530F]" />
-                </button>
+                <div className="rounded-2xl border border-[#E9D9BF] bg-[#FFFDF8] p-4">
+                  <p className="text-xs font-bold text-[#70452E]">จำนวนรายการ</p>
+                  <p className="mt-1 text-2xl font-black tabular-nums text-[#38251B]">
+                    {filtered.length.toLocaleString("th-TH")}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#E9D9BF] bg-[#FFF9EE] p-4">
+                  <p className="text-xs font-bold text-[#70452E]">เฉลี่ยต่อรายการ</p>
+                  <MoneyDisplay amount={averageAmount} type="neutral" size="md" />
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
 
-      {/* Voucher / Receipt Modal */}
-      <VoucherModal
-        isOpen={Boolean(selectedVoucher)}
-        onClose={() => setSelectedVoucher(null)}
-        type="offering"
-        data={selectedVoucher}
-      />
+            <aside className="border-t border-[#E9D9BF] bg-[#FFF9EE] p-5 sm:p-6 lg:border-l lg:border-t-0">
+              <div className="rounded-3xl border border-[#E9D9BF] bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2 text-[#70452E]">
+                  <ReceiptText className="h-4 w-4 text-[#E99A4A]" />
+                  <p className="text-xs font-bold">สลิปล่าสุด</p>
+                </div>
+                {latestOffering ? (
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <p className="text-sm font-bold text-[#38251B]">{latestOffering.title}</p>
+                      <p className="mt-1 text-xs text-[#927D6D]">
+                        {new Intl.DateTimeFormat("th-TH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }).format(new Date(latestOffering.date))}{" "}
+                        · {latestOffering.method}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[#D2EAC7] bg-[#EAF5E4] p-3">
+                      <MoneyDisplay amount={latestOffering.amount} type="income" size="md" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLocation(`/transactions/offering-${latestOffering.id}`)}
+                      className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#E9D9BF] bg-[#FFFDF8] px-3 py-2 text-xs font-bold text-[#70452E] transition-colors hover:bg-[#FFF4DF] focus-visible:ring-2 focus-visible:ring-[#E99A4A]/45"
+                    >
+                      เปิดรายละเอียด
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-2xl border border-dashed border-[#E9D9BF] bg-[#FFFDF8] p-4 text-sm leading-6 text-[#674F42]">
+                    ยังไม่มีรายการที่ตรงกับตัวกรอง
+                  </p>
+                )}
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <div className="rounded-[28px] border border-[#E9D9BF] bg-white p-4 clay-card-shadow md:p-5">
+          <FilterBar
+            searchPlaceholder="ค้นหาประเภทถวายหรือกองทุน..."
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            filters={[
+              { id: "all", label: "ทั้งหมด", count: offerings.length },
+              {
+                id: "tithe",
+                label: "สิบลด",
+                count: offerings.filter(o => o.category === "tithe").length,
+              },
+              {
+                id: "general",
+                label: "ถวายทั่วไป",
+                count: offerings.filter(o => o.category === "general").length,
+              },
+              {
+                id: "mission",
+                label: "พันธกิจ",
+                count: offerings.filter(o => o.category === "mission").length,
+              },
+              {
+                id: "building",
+                label: "สร้างอาคาร",
+                count: offerings.filter(o => o.category === "building").length,
+              },
+            ]}
+            activeFilter={categoryFilter}
+            onFilterChange={setCategoryFilter}
+          />
+        </div>
+
+        {isLoading ? (
+          <LoadingSkeleton count={4} height="h-20" />
+        ) : isError ? (
+          <EmptyState
+            title="โหลดรายการถวายไม่สำเร็จ"
+            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+            actionText="ลองใหม่"
+            onAction={() => refetch()}
+          />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            title={searchTerm ? "ไม่พบรายการที่ค้นหา" : "ยังไม่มีรายการถวาย"}
+            description={
+              searchTerm
+                ? "ลองเปลี่ยนคำค้นหาหรือตัวกรอง เพื่อดูรายการถวายที่ต้องการ"
+                : "เริ่มบันทึกการถวายรายการแรกของคริสตจักร เพื่อให้การเงินโปร่งใสและตรวจสอบง่าย"
+            }
+            actionText={searchTerm ? undefined : "บันทึกการถวายรายการแรก"}
+            onAction={searchTerm ? undefined : () => setLocation("/offerings/new")}
+          />
+        ) : (
+          <section className="overflow-hidden rounded-[28px] border border-[#E9D9BF] bg-white clay-card-shadow">
+            <div className="flex items-center justify-between gap-3 border-b border-[#E9D9BF] bg-[#FFFDF8] px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-2">
+                <Search className="h-4 w-4 shrink-0 text-[#927D6D]" />
+                <p className="truncate text-sm font-bold text-[#38251B]">รายการถวาย</p>
+              </div>
+              <p className="whitespace-nowrap text-xs font-semibold text-[#927D6D]">
+                {filtered.length.toLocaleString("th-TH")} รายการ
+              </p>
+            </div>
+
+            <div className="divide-y divide-[#F0E6D8]/80">
+              {filtered.map(o => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setLocation(`/transactions/offering-${o.id}`)}
+                  className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3 p-4 text-left transition-colors hover:bg-[#FFF9EE] focus-visible:bg-[#FFF9EE] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E99A4A]/45 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:p-5"
+                >
+                  <span className="flex size-11 items-center justify-center rounded-2xl border border-[#D2EAC7] bg-[#EAF5E4] text-[#4F8B33]">
+                    <HandCoins className="h-5 w-5 stroke-[2.2]" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-[#38251B]">
+                      {o.title}
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-[#674F42]">
+                      {new Intl.DateTimeFormat("th-TH", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(new Date(o.date))}{" "}
+                      · {o.method} · {o.fund}
+                    </span>
+                  </span>
+                  <span className="col-span-2 flex items-center justify-between gap-3 rounded-2xl bg-[#FFFDF8] px-3 py-2 sm:col-span-1 sm:block sm:bg-transparent sm:px-0 sm:py-0 sm:text-right">
+                    <MoneyDisplay amount={o.amount} type="income" size="md" />
+                    <span className="block whitespace-nowrap text-[10px] font-bold text-[#4F8B33]">
+                      บันทึกแล้ว
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </AppLayout>
   );
 }

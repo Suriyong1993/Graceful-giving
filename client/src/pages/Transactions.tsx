@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc, type RouterOutputs } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   ErrorState,
@@ -17,39 +17,18 @@ import {
   Landmark,
   Plus,
   ReceiptText,
-  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatThaiDate } from "@/lib/format";
-import {
-  expenseCategoryLabel,
-  offeringCategoryLabel,
-} from "@shared/categories";
-
-type OfferingItem = RouterOutputs["offerings"]["list"][number];
-type ExpenseItem = RouterOutputs["expenses"]["list"][number];
-
-interface TransactionItem {
-  id: string;
-  rawId: number;
-  title: string;
-  date: string | Date;
-  type: "income" | "expense";
-  category: string;
-  /** Resolved from fundId against finance.accounts; "—" when the row has none. */
-  fund: string;
-  categoryLabel: string;
-  amount: number;
-  status: string;
-  icon: typeof Heart | typeof Landmark;
-  tone: string;
-}
+import { offeringCategoryLabel } from "@shared/categories";
 
 export default function Transactions() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [fundFilter, setFundFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const {
     data: offeringsData,
@@ -58,14 +37,6 @@ export default function Transactions() {
     refetch: refetchOfferings,
   } = trpc.offerings.list.useQuery({ limit: 50 }, { retry: false });
 
-  // Rows carry a fundId only, so the fund column needs the account list to
-  // show a name. It used to print the constant "บัญชีทั่วไป" on every row
-  // regardless of which fund the money actually went to.
-  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
-    retry: false,
-    staleTime: 60_000,
-  });
-
   const {
     data: expensesData,
     isLoading: loadingExpenses,
@@ -73,74 +44,72 @@ export default function Transactions() {
     refetch: refetchExpenses,
   } = trpc.expenses.list.useQuery({ limit: 50 }, { retry: false });
 
-  const fundNameById = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const a of accountsData ?? []) m.set(a.id, a.name);
-    return m;
-  }, [accountsData]);
+  type TransactionRow = {
+    id: string;
+    title: string;
+    date: Date;
+    type: "income" | "expense";
+    category: string;
+    fund: string;
+    ministry: string;
+    amount: number;
+    status: Parameters<typeof StatusBadge>[0]["status"];
+    icon: typeof Heart | typeof Landmark;
+    tone: string;
+  };
 
-  // Map and combine transactions
-  const transactions = useMemo(() => {
-    const list: TransactionItem[] = [];
-    const fundName = (id: number | null | undefined) =>
-      (id != null && fundNameById.get(id)) || "—";
-    if (offeringsData && offeringsData.length > 0) {
-      offeringsData.forEach((o: OfferingItem) => {
-        list.push({
-          id: `offering-${o.id}`,
-          rawId: o.id,
-          title: offeringCategoryLabel(o.category),
-          date: o.receiptDate,
-          type: "income",
-          category: o.category,
-          fund: fundName(o.fundId),
-          categoryLabel: offeringCategoryLabel(o.category),
-          amount: Number(o.amount),
-          status: "approved",
-          icon: Heart,
-          tone: "bg-[#FDECEA] text-[#E06250]",
-        });
+  const transactions = useMemo<TransactionRow[]>(() => {
+    const list: TransactionRow[] = [];
+    offeringsData?.forEach(offering => {
+      list.push({
+        id: `offering-${offering.id}`,
+        title: offeringCategoryLabel(offering.category),
+        date: offering.receiptDate,
+        type: "income",
+        category: offeringCategoryLabel(offering.category),
+        fund: "ไม่ระบุกองทุน",
+        ministry: "บันทึกทะเบียน",
+        amount: Number(offering.amount),
+        status: "completed",
+        icon: Heart,
+        tone: "bg-[#FFEBE5] text-[#E06250]",
       });
-    }
+    });
 
-    if (expensesData && expensesData.length > 0) {
-      expensesData.forEach((e: ExpenseItem) => {
-        list.push({
-          id: `expense-${e.id}`,
-          rawId: e.id,
-          title: e.description,
-          date: e.expenseDate,
-          type: "expense",
-          category: e.category,
-          fund: fundName(e.fundId),
-          categoryLabel: expenseCategoryLabel(e.category),
-          amount: Number(e.amount),
-          status: e.status || "approved",
-          icon: Landmark,
-          tone: "bg-[#F4F1ED] text-[#B9530F]",
-        });
+    expensesData?.forEach(expense => {
+      list.push({
+        id: `expense-${expense.id}`,
+        title: expense.description,
+        date: expense.expenseDate,
+        type: "expense",
+        category: expense.category,
+        fund: "ไม่ระบุกองทุน",
+        ministry: "บันทึกทะเบียน",
+        amount: Number(expense.amount),
+        status:
+          expense.status === "pending"
+            ? "pending"
+            : expense.status === "rejected" || expense.status === "voided"
+              ? "failed"
+              : "completed",
+        icon: Landmark,
+        tone: "bg-[#FDF0E2] text-[#B3702A]",
       });
-    }
+    });
 
-    if (list.length === 0) return [];
-
-    return list.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [offeringsData, expensesData, fundNameById]);
+    return list.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [offeringsData, expensesData]);
 
   // Filtered transactions
   const filtered = useMemo(() => {
     return transactions.filter(t => {
       const matchSearch =
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.categoryLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.fund.toLowerCase().includes(searchTerm.toLowerCase());
+        t.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchType = typeFilter === "all" || t.type === typeFilter;
-      const matchFund = fundFilter === "all" || t.fund === fundFilter;
-      return matchSearch && matchType && matchFund;
+      return matchSearch && matchType;
     });
-  }, [transactions, searchTerm, typeFilter, fundFilter]);
+  }, [transactions, searchTerm, typeFilter]);
 
   // Summary figures
   const totalIncome = useMemo(
@@ -158,9 +127,46 @@ export default function Transactions() {
     [filtered]
   );
   const netTotal = totalIncome - totalExpense;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleTransactions = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   const handleExport = () => {
-    toast.success("ดาวน์โหลดรายงานธุรกรรมสำเร็จ (CSV)");
+    const escapeCsv = (value: string | number) =>
+      `"${String(value).replaceAll('"', '""')}"`;
+    const rows: (string | number)[][] = filtered.map(tx => [
+      tx.date.toISOString().slice(0, 10),
+      tx.type === "income" ? "รายรับ" : "รายจ่าย",
+      tx.title,
+      tx.category,
+      tx.fund,
+      tx.amount.toFixed(2),
+    ]);
+    const csv = [
+      ["วันที่", "ประเภท", "รายการ", "หมวด", "กองทุน", "จำนวนเงิน"],
+      ...rows,
+    ]
+      .map(row => row.map(escapeCsv).join(","))
+      .join("\r\n");
+    const url = URL.createObjectURL(
+      new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `transactions-filtered-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(
+      `ส่งออกรายการที่กรองแล้ว ${filtered.length} รายการเป็นไฟล์ CSV แล้ว`
+    );
+  };
+
+  const updateFilter = (setter: (value: string) => void, value: string) => {
+    setter(value);
+    setPage(1);
   };
 
   const isLoading = loadingOfferings || loadingExpenses;
@@ -170,19 +176,19 @@ export default function Transactions() {
     <AppLayout
       activeRoute="/transactions"
       title="รายการธุรกรรม"
-      subtitle="บันทึกการรับถวายและค่าใช้จ่ายทั้งหมดของคริสตจักร"
+      subtitle="ข้อมูลรายการรับถวายและรายจ่ายจากทะเบียนล่าสุด (ไม่เกิน 50 รายการต่อประเภท)"
       action={
         <div className="flex items-center gap-2">
           <button
             onClick={handleExport}
-            className="px-3.5 py-2 rounded-2xl bg-[#F4F1ED] hover:bg-[#FDEBD8] text-[#57504A] text-xs font-bold border border-[#E4DED7] flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-2 rounded-2xl bg-[#FFF4DF] hover:bg-[#FBE9CD] text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 transition-all"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">ส่งออก CSV</span>
           </button>
           <button
             onClick={() => setLocation("/offerings/new")}
-            className="px-4 py-2 rounded-xl bg-primary hover:bg-[#A34A0C] text-white text-xs font-bold button-elevation transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>บันทึกใหม่</span>
@@ -192,32 +198,32 @@ export default function Transactions() {
     >
       {/* 1. Summary Cards (รายรับ, รายจ่าย, ยอดสุทธิ) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-        <div className="bg-white border border-[#E4DED7] rounded-2xl p-4 md:p-5 space-y-1">
-          <span className="text-sm font-medium text-[#736A63]">
-            รายรับทั้งหมด
+        <div className="bg-[#FFF0ED] border border-[#FCE7DF] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+          <span className="text-xs font-bold text-[#70452E]">
+            รายรับในผลที่กรอง
           </span>
           <div>
             <MoneyDisplay amount={totalIncome} type="income" size="lg" />
           </div>
-          <p className="text-xs text-[#736A63]">
+          <p className="text-sm text-[#674F42]">
             {filtered.filter(t => t.type === "income").length} รายการ
           </p>
         </div>
 
-        <div className="bg-white border border-[#E4DED7] rounded-2xl p-4 md:p-5 space-y-1">
-          <span className="text-sm font-medium text-[#736A63]">
-            รายจ่ายทั้งหมด
+        <div className="bg-[#EFF8E8] border border-[#DCECC5] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+          <span className="text-xs font-bold text-[#70452E]">
+            รายจ่ายในผลที่กรอง
           </span>
           <div>
             <MoneyDisplay amount={totalExpense} type="expense" size="lg" />
           </div>
-          <p className="text-xs text-[#736A63]">
+          <p className="text-sm text-[#674F42]">
             {filtered.filter(t => t.type === "expense").length} รายการ
           </p>
         </div>
 
-        <div className="bg-white border border-[#E4DED7] rounded-2xl p-4 md:p-5 space-y-1">
-          <span className="text-sm font-medium text-[#736A63]">ยอดสุทธิ</span>
+        <div className="bg-[#FFF8EB] border border-[#FBE9CD] rounded-[28px] p-4 md:p-5 shadow-2xs space-y-1">
+          <span className="text-xs font-bold text-[#70452E]">ยอดสุทธิ</span>
           <div>
             <MoneyDisplay
               amount={netTotal}
@@ -225,16 +231,18 @@ export default function Transactions() {
               size="lg"
             />
           </div>
-          <p className="text-xs text-[#736A63]">คงเหลือในรอบที่เลือก</p>
+          <p className="text-sm text-[#674F42]">
+            ยอดสุทธิของ {filtered.length} รายการที่แสดงผล
+          </p>
         </div>
       </div>
 
       {/* 2. Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 md:p-5 border border-[#E4DED7] card-elevation-sm space-y-3">
+      <div className="bg-white rounded-[28px] p-4 md:p-5 border border-[#E9D9BF] clay-card-shadow space-y-3">
         <FilterBar
           searchPlaceholder="ค้นหารายการ, หมวดหมู่, หรือพันธกิจ..."
           searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={value => updateFilter(setSearchTerm, value)}
           filters={[
             { id: "all", label: "ทั้งหมด", count: transactions.length },
             {
@@ -249,7 +257,7 @@ export default function Transactions() {
             },
           ]}
           activeFilter={typeFilter}
-          onFilterChange={setTypeFilter}
+          onFilterChange={value => updateFilter(setTypeFilter, value)}
         />
       </div>
 
@@ -259,7 +267,7 @@ export default function Transactions() {
       ) : isError ? (
         <ErrorState
           title="โหลดรายการธุรกรรมไม่สำเร็จ"
-          description="เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+          description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
           onRetry={() => {
             void refetchOfferings();
             void refetchExpenses();
@@ -273,38 +281,44 @@ export default function Transactions() {
           onAction={() => setLocation("/offerings/new")}
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E4DED7] card-elevation-sm overflow-hidden">
+        <div className="bg-white rounded-[28px] border border-[#E9D9BF] clay-card-shadow overflow-hidden">
           {/* DESKTOP TABLE VIEW (Hidden on Mobile) */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-[#FFFFFF] border-b border-[#E4DED7] text-[#57504A] font-bold">
+              <thead className="bg-[#FFFDF8] border-b border-[#E9D9BF] text-[#70452E] font-bold">
                 <tr>
                   <th className="p-4">วันที่</th>
                   <th className="p-4">รายการ</th>
                   <th className="p-4">ประเภท</th>
                   <th className="p-4">กองทุน</th>
+                  <th className="p-4">พันธกิจ</th>
                   <th className="p-4 text-right">จำนวนเงิน</th>
                   <th className="p-4 text-center">สถานะ</th>
+                  <th className="p-4 text-right">ดูรายละเอียด</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EDE8E3]/60">
-                {filtered.map(tx => (
+              <tbody className="divide-y divide-[#F0E6D8]/60">
+                {visibleTransactions.map(tx => (
                   <tr
                     key={tx.id}
-                    onClick={() => setLocation(`/transactions/${tx.id}`)}
-                    className="hover:bg-[#FAF8F5]/70 cursor-pointer transition-colors"
+                    className="hover:bg-[#FFF9EE]/70 transition-colors"
                   >
-                    <td className="p-4 text-[#736A63] whitespace-nowrap font-medium">
-                      {formatThaiDate(tx.date)}
+                    <td className="p-4 text-[#927D6D] whitespace-nowrap font-medium">
+                      {new Intl.DateTimeFormat("th-TH", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }).format(new Date(tx.date))}
                     </td>
-                    <td className="p-4 font-bold text-[#1F1A17]">{tx.title}</td>
+                    <td className="p-4 font-bold text-[#38251B]">{tx.title}</td>
                     <td className="p-4">
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#F4F1ED] text-[#57504A] text-xs font-medium">
-                        {tx.categoryLabel}
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#FFF4DF] text-[#70452E] text-xs font-medium">
+                        {tx.category}
                       </span>
                     </td>
-                    <td className="p-4 text-[#57504A]">{tx.fund}</td>
-                    <td className="p-4 text-right font-bold">
+                    <td className="p-4 text-[#70452E]">{tx.fund}</td>
+                    <td className="p-4 text-[#927D6D]">{tx.ministry}</td>
+                    <td className="p-4 text-right font-black">
                       <MoneyDisplay
                         amount={tx.amount}
                         type={tx.type}
@@ -314,6 +328,16 @@ export default function Transactions() {
                     <td className="p-4 text-center">
                       <StatusBadge status={tx.status} />
                     </td>
+                    <td className="p-4 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setLocation(`/transactions/${tx.id}`)}
+                        className="rounded-lg px-3 py-2 font-semibold text-[#70452E] hover:bg-[#FFF4DF] focus-visible:outline-2 focus-visible:outline-offset-2"
+                      >
+                        ดูรายละเอียด
+                        <span className="sr-only"> {tx.title}</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -321,14 +345,13 @@ export default function Transactions() {
           </div>
 
           {/* MOBILE CARDS VIEW (Visible on Mobile) */}
-          <div className="md:hidden divide-y divide-[#EDE8E3]/60">
-            {filtered.map(tx => {
+          <div className="md:hidden divide-y divide-[#F0E6D8]/60">
+            {visibleTransactions.map(tx => {
               const Icon = tx.icon || ReceiptText;
               return (
-                <div
+                <article
                   key={tx.id}
-                  onClick={() => setLocation(`/transactions/${tx.id}`)}
-                  className="p-4 flex items-center justify-between gap-3 active:bg-[#FAF8F5] cursor-pointer"
+                  className="p-4 flex items-center justify-between gap-3 active:bg-[#FFF9EE]"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -337,11 +360,16 @@ export default function Transactions() {
                       <Icon className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-[#1F1A17] truncate">
+                      <p className="text-sm font-bold text-[#38251B] truncate">
                         {tx.title}
                       </p>
-                      <p className="text-sm text-[#57504A] pt-0.5">
-                        {formatThaiDate(tx.date)} · {tx.fund}
+                      <p className="text-sm text-[#674F42] pt-0.5">
+                        {new Intl.DateTimeFormat("th-TH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }).format(new Date(tx.date))}{" "}
+                        · {tx.fund}
                       </p>
                     </div>
                   </div>
@@ -351,11 +379,46 @@ export default function Transactions() {
                     <div>
                       <StatusBadge status={tx.status} />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setLocation(`/transactions/${tx.id}`)}
+                      className="mt-1 rounded-lg px-2 py-1 text-xs font-semibold text-[#70452E] hover:bg-[#FFF4DF]"
+                    >
+                      ดูรายละเอียด<span className="sr-only"> {tx.title}</span>
+                    </button>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
+          {totalPages > 1 && (
+            <nav
+              aria-label="แบ่งหน้ารายการธุรกรรม"
+              className="flex items-center justify-between border-t border-[#E9D9BF] bg-[#FFFDF8] px-4 py-3"
+            >
+              <button
+                type="button"
+                onClick={() => setPage(current => Math.max(1, current - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" /> ก่อนหน้า
+              </button>
+              <span className="text-xs text-[#70452E]">
+                หน้า {currentPage} จาก {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setPage(current => Math.min(totalPages, current + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40"
+              >
+                ถัดไป <ChevronRight className="h-4 w-4" />
+              </button>
+            </nav>
+          )}
         </div>
       )}
     </AppLayout>
