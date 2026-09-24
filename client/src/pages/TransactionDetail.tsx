@@ -232,7 +232,7 @@ export default function TransactionDetail() {
           {transaction && (
             <button
               onClick={() => setShowVoucher(true)}
-              className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#FFF4DF] hover:bg-[#E99A4A] hover:text-white text-[#70452E] text-xs font-bold border border-[#E9D9BF] flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="min-h-11 px-3.5 py-2 rounded-xl bg-[#F4F1ED] hover:bg-[#B9530F] hover:text-white text-[#57504A] text-xs font-bold border border-[#E4DED7] flex items-center gap-1.5 transition-colors shadow-2xs"
             >
               <Printer className="w-4 h-4" />
               <span>{isExpense ? "พิมพ์ใบสำคัญจ่าย" : "พิมพ์ใบเสร็จ"}</span>
@@ -244,7 +244,7 @@ export default function TransactionDetail() {
                 if (isEditing && !confirmDiscardChanges(isDirty)) return;
                 setIsEditing(value => !value);
               }}
-              className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#EAF5E4] text-[#4F8B33] text-xs font-bold border border-[#A8C978] flex items-center gap-1.5"
+              className="min-h-11 px-3.5 py-2 rounded-2xl bg-[#E4F3E7] text-[#2F7A45] text-xs font-bold border border-[#9BCBA5] flex items-center gap-1.5"
             >
               <Pencil className="w-4 h-4" />
               <span>{isEditing ? "ยกเลิก" : "แก้ไข"}</span>
@@ -293,17 +293,17 @@ export default function TransactionDetail() {
           onAction={() => setLocation("/transactions")}
         />
       ) : (
-        <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-[#E9D9BF] card-elevation-sm space-y-6">
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DED7] card-elevation-sm space-y-6">
           {isEditing && (
             <form
               onSubmit={submitEdit}
-              className="rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF] p-4 space-y-3"
+              className="rounded-2xl bg-[#FAF8F5] border border-[#E4DED7] p-4 space-y-3"
             >
-              <p className="text-sm font-bold text-[#38251B]">
+              <p className="text-sm font-bold text-[#1F1A17]">
                 แก้ไขข้อมูลรายการ
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-[#70452E]">
+                <label className="text-xs font-semibold text-[#57504A]">
                   จำนวนเงิน
                   <input
                     type="number"
@@ -311,44 +311,44 @@ export default function TransactionDetail() {
                     step="0.01"
                     value={editAmount}
                     onChange={event => setEditAmount(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm"
+                    className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 text-sm"
                   />
                 </label>
-                <label className="text-xs font-semibold text-[#70452E]">
+                <label className="text-xs font-semibold text-[#57504A]">
                   {isOffering ? "หมายเหตุ" : "รายละเอียดรายการ"}
                   <input
                     value={editText}
                     onChange={event => setEditText(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm"
+                    className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 text-sm"
                   />
                 </label>
               </div>
               <button
                 disabled={updateOffering.isPending || updateExpense.isPending}
-                className="rounded-xl bg-[#4F8B33] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+                className="rounded-xl bg-[#2F7A45] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
                 บันทึกการแก้ไข
               </button>
             </form>
           )}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E9D9BF]/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E4DED7]/60">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#927D6D]">
+                <span className="text-xs font-bold text-[#736A63]">
                   {transaction.type === "income" ? "รายรับ (ถวาย)" : "รายจ่าย"}
                 </span>
                 <StatusBadge status={transaction.status} />
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-[#38251B]">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#1F1A17]">
                 {transaction.title}
               </h2>
-              <p className="text-xs text-[#927D6D] flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#E99A4A]" />
+              <p className="text-xs text-[#736A63] flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#B9530F]" />
                 {new Date(transaction.date).toLocaleString("th-TH")}
               </p>
             </div>
             <div className="text-left sm:text-right">
-              <span className="text-xs text-[#927D6D] block">
+              <span className="text-xs text-[#736A63] block">
                 จำนวนเงินสุทธิ
               </span>
               <MoneyDisplay
@@ -362,13 +362,13 @@ export default function TransactionDetail() {
             <Detail
               label="กองทุนบัญชี"
               value={transaction.fund}
-              icon={<Landmark className="w-4 h-4 text-[#E99A4A]" />}
+              icon={<Landmark className="w-4 h-4 text-[#B9530F]" />}
             />
             <Detail label="หมวดหมู่" value={transaction.category} />
             <Detail
               label="ช่องทางการเงิน"
               value={transaction.paymentMethod}
-              icon={<CreditCard className="w-4 h-4 text-[#A8C978]" />}
+              icon={<CreditCard className="w-4 h-4 text-[#9BCBA5]" />}
             />
             <Detail
               label={
@@ -382,18 +382,18 @@ export default function TransactionDetail() {
             <Detail label="เลขอ้างอิง" value={transaction.refCode} />
           </div>
           {transaction.notes && (
-            <div className="rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF]/70 p-4">
-              <p className="text-xs text-[#927D6D]">หมายเหตุ</p>
-              <p className="text-sm text-[#38251B] mt-1">{transaction.notes}</p>
+            <div className="rounded-2xl bg-[#FFFFFF] border border-[#E4DED7]/70 p-4">
+              <p className="text-xs text-[#736A63]">หมายเหตุ</p>
+              <p className="text-sm text-[#1F1A17] mt-1">{transaction.notes}</p>
             </div>
           )}
 
           {/* Receipt Attachment from Supabase Storage */}
           {transaction.receiptUrl && (
-            <div className="rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF]/70 p-5 space-y-3">
+            <div className="rounded-2xl bg-[#FFFFFF] border border-[#E4DED7]/70 p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#70452E] flex items-center gap-1.5">
-                  <Paperclip className="w-4 h-4 text-[#E99A4A]" />
+                <span className="text-xs font-bold text-[#57504A] flex items-center gap-1.5">
+                  <Paperclip className="w-4 h-4 text-[#B9530F]" />
                   หลักฐานสลิป / ใบเสร็จแนบ (Supabase Storage)
                 </span>
                 <button
@@ -411,7 +411,7 @@ export default function TransactionDetail() {
               >
                 {transaction.receiptUrl.toLowerCase().includes(".pdf") ? (
                   <div className="text-center p-4">
-                    <FileText className="w-12 h-12 text-[#E99A4A] mx-auto mb-2" />
+                    <FileText className="w-12 h-12 text-[#B9530F] mx-auto mb-2" />
                     <span className="text-xs font-bold text-stone-700">
                       เอกสารแนบ PDF
                     </span>
@@ -484,9 +484,9 @@ function Detail({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#FFFDF8] p-4 rounded-2xl border border-[#E9D9BF]/70 space-y-1">
-      <span className="text-xs text-[#927D6D] block">{label}</span>
-      <span className="text-sm font-bold text-[#70452E] flex items-center gap-1.5">
+    <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#E4DED7]/70 space-y-1">
+      <span className="text-xs text-[#736A63] block">{label}</span>
+      <span className="text-sm font-bold text-[#57504A] flex items-center gap-1.5">
         {icon}
         {value}
       </span>

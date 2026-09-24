@@ -1,5 +1,6 @@
 import {
   canCountOfferings,
+  canManageBudgets,
   canManageChurchSettings,
   canManageFinance,
   canViewReports,
@@ -26,7 +27,7 @@ export const ROUTE_ACCESS: Record<string, (user: AuthUser) => boolean> = {
   "/giving/inbox": canManageFinance,
   "/expenses": u => canManageFinance(u) || canManageChurchSettings(u),
   "/funds": u => canManageFinance(u) || canManageChurchSettings(u),
-  "/budgets": u => canManageFinance(u) || canManageChurchSettings(u),
+  "/budgets": canManageBudgets,
   "/reports": canViewReports,
   "/approvals": u => canManageFinance(u) || canManageChurchSettings(u),
   "/members": u =>

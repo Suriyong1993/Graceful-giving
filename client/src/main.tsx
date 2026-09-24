@@ -28,17 +28,19 @@ function TrpcProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const unsubscribeQuery = queryClient.getQueryCache().subscribe((event) => {
+    const unsubscribeQuery = queryClient.getQueryCache().subscribe(event => {
       if (event.type === "updated" && event.action.type === "error") {
         redirectToLoginIfUnauthorized(event.query.state.error);
       }
     });
 
-    const unsubscribeMutation = queryClient.getMutationCache().subscribe((event) => {
-      if (event.type === "updated" && event.action.type === "error") {
-        redirectToLoginIfUnauthorized(event.mutation.state.error);
-      }
-    });
+    const unsubscribeMutation = queryClient
+      .getMutationCache()
+      .subscribe(event => {
+        if (event.type === "updated" && event.action.type === "error") {
+          redirectToLoginIfUnauthorized(event.mutation.state.error);
+        }
+      });
 
     return () => {
       unsubscribeQuery();
@@ -59,7 +61,10 @@ function TrpcProvider({ children }: { children: React.ReactNode }) {
               return token ? { Authorization: `Bearer ${token}` } : {};
             },
             fetch(input, init) {
-              return globalThis.fetch(input, { ...(init ?? {}), credentials: "include" });
+              return globalThis.fetch(input, {
+                ...(init ?? {}),
+                credentials: "include",
+              });
             },
           }),
         ],
@@ -69,9 +74,7 @@ function TrpcProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </trpc.Provider>
   );
 }

@@ -29,24 +29,24 @@ export function RecentTransactions({
   return (
     <section
       aria-label="รายการธุรกรรมล่าสุด"
-      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E9D9BF] shadow-xs space-y-4 w-full"
+      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E4DED7] shadow-xs space-y-4 w-full"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-lg sm:text-xl font-bold text-[#2C1810]">
+        <h2 className="text-lg sm:text-xl font-bold text-[#1F1A17]">
           รายการล่าสุด
         </h2>
         <button
           onClick={onViewAll}
-          className="min-h-11 -mr-2 px-2 text-sm font-bold text-[#B85E0E] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#D47012]"
+          className="min-h-11 -mr-2 px-2 text-sm font-bold text-[#A34A0C] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#B9530F]"
         >
           <span>ดูทั้งหมด</span>
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="divide-y divide-[#F0E6D8]">
+      <div className="divide-y divide-[#EDE8E3]">
         {allTransactions.length === 0 && (
-          <p className="py-8 text-center text-sm text-[#4A2E1B] font-medium">
+          <p className="py-8 text-center text-sm text-[#3F3833] font-medium">
             ยังไม่มีรายการธุรกรรมล่าสุดจากระบบ
           </p>
         )}
@@ -65,7 +65,7 @@ export function RecentTransactions({
                   <IconComponent className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm sm:text-base font-bold text-[#2C1810] leading-tight truncate">
+                  <p className="text-sm sm:text-base font-bold text-[#1F1A17] leading-tight truncate">
                     {tx.title}
                   </p>
                   <p className="text-xs text-stone-500 font-medium pt-0.5">
@@ -78,7 +78,8 @@ export function RecentTransactions({
                 <p
                   className={`text-base sm:text-lg font-bold tabular-nums tracking-tight ${isIncome ? "text-[#155724]" : "text-[#9E2D12]"}`}
                 >
-                  {isIncome ? "+" : "-"}฿{fmtBaht(tx.amount).replace(/^฿/, "")}
+                  {isIncome ? "+" : "-"}
+                  {fmtBaht(Math.abs(tx.amount))}
                 </p>
                 <p className="text-xs text-stone-500 font-medium">
                   {tx.subCategory}

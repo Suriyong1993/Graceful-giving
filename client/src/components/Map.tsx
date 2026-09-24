@@ -110,7 +110,7 @@ function loadMapScript(): Promise<void> {
     script.onload = () => {
       resolve();
     };
-    script.onerror = (err) => {
+    script.onerror = err => {
       console.error("Failed to load Google Maps script", err);
       mapScriptPromise = null;
       reject(new Error("Failed to load Google Maps script"));

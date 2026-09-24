@@ -61,7 +61,14 @@ export function useAuth(options?: UseAuthOptions) {
       error: meQuery.error ?? null,
       isAuthenticated: Boolean(isSignedIn),
     };
-  }, [isLoaded, isSignedIn, clerkUser, meQuery.data, meQuery.error, meQuery.isLoading]);
+  }, [
+    isLoaded,
+    isSignedIn,
+    clerkUser,
+    meQuery.data,
+    meQuery.error,
+    meQuery.isLoading,
+  ]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;

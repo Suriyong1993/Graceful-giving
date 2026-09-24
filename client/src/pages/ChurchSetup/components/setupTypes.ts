@@ -49,8 +49,8 @@ export const STEPS: StepConfig[] = [
     title: "ข้อมูลพื้นฐาน",
     subtitle: "ชื่อและที่ตั้งคริสตจักร",
     icon: Church,
-    color: "text-[#8d5e30]",
-    bgColor: "bg-[#fff3de]",
+    color: "text-[#A34A0C]",
+    bgColor: "bg-[#F4F1ED]",
   },
   {
     id: 2,
@@ -65,7 +65,7 @@ export const STEPS: StepConfig[] = [
     title: "บัญชีธนาคาร",
     subtitle: "ข้อมูลการรับโอนเงิน",
     icon: CreditCard,
-    color: "text-[#6ba33e]",
+    color: "text-[#3F9156]",
     bgColor: "bg-[#e5f3da]",
   },
   {
@@ -89,8 +89,8 @@ export const STEPS: StepConfig[] = [
     title: "ปีงบประมาณ",
     subtitle: "รอบปีการเงินและงบประมาณ",
     icon: Landmark,
-    color: "text-[#aa7e35]",
-    bgColor: "bg-[#fff0c9]",
+    color: "text-[#B9530F]",
+    bgColor: "bg-[#FDEBD8]",
   },
   {
     id: 7,
@@ -105,8 +105,8 @@ export const STEPS: StepConfig[] = [
     title: "ยืนยันการตั้งค่า",
     subtitle: "ตรวจสอบและเริ่มใช้งาน",
     icon: Check,
-    color: "text-[#5d4a3d]",
-    bgColor: "bg-[#f4ede3]",
+    color: "text-[#57504A]",
+    bgColor: "bg-[#F4F1ED]",
   },
 ];
 

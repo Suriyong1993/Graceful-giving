@@ -32,90 +32,76 @@ import {
 } from "@/components/ui/sheet";
 
 export const navItems = [
-  { label: "หน้าหลัก", path: "/", icon: Home, iconColor: "text-[#E99A4A]" },
+  { label: "หน้าหลัก", path: "/", icon: Home },
   {
     label: "รายการ",
     path: "/transactions",
     icon: ReceiptText,
-    iconColor: "text-[#A8C978]",
   },
   {
     label: "นับเงินถวาย",
     path: "/counting",
     icon: Coins,
-    iconColor: "text-[#E99A4A]",
   },
   {
     label: "ถวายทรัพย์",
     path: "/offerings",
     icon: HandCoins,
-    iconColor: "text-[#F7B6A6]",
   },
   {
     label: "กล่องสลิป LINE",
     path: "/giving/inbox",
     icon: Inbox,
-    iconColor: "text-[#4F8B33]",
   },
   {
     label: "รายจ่าย",
     path: "/expenses",
     icon: CreditCard,
-    iconColor: "text-[#E99A4A]",
   },
   {
     label: "กองทุน",
     path: "/funds",
     icon: Landmark,
-    iconColor: "text-[#85C1E9]",
   },
   {
     label: "งบประมาณ",
     path: "/budgets",
     icon: PieChart,
-    iconColor: "text-[#C39BD3]",
   },
   {
     label: "พันธกิจ",
     path: "/ministries",
     icon: Sprout,
-    iconColor: "text-[#A8C978]",
   },
   {
     label: "สมาชิก",
     path: "/members",
     icon: UsersRound,
-    iconColor: "text-[#E99A4A]",
   },
   {
     label: "รายงาน",
     path: "/reports",
     icon: FileBarChart,
-    iconColor: "text-[#A9D4ED]",
   },
   {
     label: "การอนุมัติ",
     path: "/approvals",
     icon: CheckCircle2,
-    iconColor: "text-[#A8C978]",
   },
   {
     label: "ข่าวสารและกิจกรรม",
     path: "/updates",
     icon: CalendarDays,
-    iconColor: "text-[#D45945]",
   },
   {
     label: "โปรไฟล์",
     path: "/profile",
     icon: CircleUserRound,
-    iconColor: "text-[#E99A4A]",
   },
   {
     label: "ตั้งค่า",
     path: "/settings",
     icon: Settings2,
-    iconColor: "text-[#70452E]",
   },
 ];
 
@@ -142,30 +128,30 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         {children || (
           <button
             type="button"
-            className="flex min-h-12 shrink-0 items-center gap-2.5 rounded-2xl border-2 border-[#E9D9BF] bg-white px-4 text-base font-bold text-[#70452E] hover:bg-[#FFF4DF] shadow-2xs"
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-3.5 text-sm font-semibold text-[#1F1A17] hover:bg-[#F4F1ED]"
           >
-            <Menu className="size-6" aria-hidden="true" />
+            <Menu className="size-5" aria-hidden="true" />
             <span>เมนูทั้งหมด</span>
           </button>
         )}
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-[#FFF9EE]"
+        className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-white"
       >
-        <SheetHeader className="border-b-2 border-[#E9D9BF] p-6 pr-16">
-          <SheetTitle className="text-xl sm:text-2xl font-black text-[#70452E]">
+        <SheetHeader className="border-b border-[#E4DED7] p-5 pr-16">
+          <SheetTitle className="text-lg font-bold text-[#1F1A17]">
             เมนูทั้งหมด
           </SheetTitle>
-          <SheetDescription className="text-sm font-medium text-[#927D6D] mt-0.5">
+          <SheetDescription className="text-sm text-[#736A63] mt-0.5">
             จัดการการเงินและพันธกิจคริสตจักร
           </SheetDescription>
         </SheetHeader>
         <nav
           aria-label="เมนูทุกหมวด"
-          className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
-          {authorizedNavItems.map(({ path, label, icon: Icon, iconColor }) => {
+          {authorizedNavItems.map(({ path, label, icon: Icon }) => {
             const active = isActiveRoute(location, path);
             return (
               <SheetClose asChild key={path}>
@@ -175,14 +161,14 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                   onFocus={e =>
                     e.currentTarget.scrollIntoView({ block: "nearest" })
                   }
-                  className={`flex min-h-13 items-center gap-3.5 rounded-2xl border-2 px-4 py-3 text-base ${
+                  className={`flex min-h-12 items-center gap-3 rounded-xl px-3.5 text-[15px] ${
                     active
-                      ? "border-[#E9D9BF] bg-[#FFF4DF] font-black text-[#70452E] shadow-2xs"
-                      : "border-transparent text-[#70452E] hover:bg-[#FFF4DF] font-bold"
+                      ? "bg-[#FDEBD8] font-semibold text-[#A34A0C]"
+                      : "font-medium text-[#3F3833] hover:bg-[#F4F1ED]"
                   }`}
                 >
                   <Icon
-                    className={`size-6 shrink-0 ${iconColor}`}
+                    className={`size-5 shrink-0 ${active ? "text-[#B9530F]" : "text-[#736A63]"}`}
                     aria-hidden="true"
                   />
                   <span>{label}</span>

@@ -9,7 +9,18 @@ export function bahtText(num: number): string {
   const isNegative = num < 0;
   const absNum = Math.abs(num);
 
-  const numWords = ["ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+  const numWords = [
+    "ศูนย์",
+    "หนึ่ง",
+    "สอง",
+    "สาม",
+    "สี่",
+    "ห้า",
+    "หก",
+    "เจ็ด",
+    "แปด",
+    "เก้า",
+  ];
   const unitWords = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
 
   function convertGroup(nStr: string): string {
@@ -23,7 +34,12 @@ export function bahtText(num: number): string {
           res += "สิบ";
         } else if (pos === 1 && digit === 2) {
           res += "ยี่สิบ";
-        } else if (pos === 0 && digit === 1 && len > 1 && parseInt(nStr.charAt(i - 1), 10) !== 0) {
+        } else if (
+          pos === 0 &&
+          digit === 1 &&
+          len > 1 &&
+          parseInt(nStr.charAt(i - 1), 10) !== 0
+        ) {
           res += "เอ็ด";
         } else {
           res += numWords[digit] + unitWords[pos];

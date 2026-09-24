@@ -170,6 +170,7 @@ import {
   desc,
   eq,
   gte,
+  lt,
   lte,
   ne,
   sql,
@@ -1985,6 +1986,107 @@ async function getFinancialReportData(churchId = DEFAULT_CHURCH_ID, fromDate, to
   ];
   return rows.sort((a, b) => a.date.localeCompare(b.date));
 }
+function budgetPeriod(year, month) {
+  const from = new Date(Date.UTC(year, month ? month - 1 : 0, 1));
+  const to = month ? new Date(Date.UTC(year, month, 1)) : new Date(Date.UTC(year + 1, 0, 1));
+  return { from, to };
+}
+function budgetExpenseFilter(plan) {
+  const { from, to } = budgetPeriod(plan.year, plan.month);
+  return and(
+    eq(expenses.churchId, plan.churchId),
+    ne(expenses.status, "voided"),
+    gte(expenses.expenseDate, from),
+    lt(expenses.expenseDate, to),
+    plan.category ? eq(
+      expenses.category,
+      plan.category
+    ) : void 0,
+    plan.fundId ? eq(expenses.fundId, plan.fundId) : void 0
+  );
+}
+function toBudgetView(plan, actualAmount) {
+  const plannedAmount = parseFloat(plan.plannedAmount ?? "0");
+  return {
+    ...plan,
+    plannedAmount,
+    actualAmount,
+    remainingAmount: plannedAmount - actualAmount
+  };
+}
+async function listBudgetPlans(year, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return [];
+  const plans = await db.select().from(budgetPlans).where(and(eq(budgetPlans.churchId, churchId), eq(budgetPlans.year, year))).orderBy(
+    sql`${budgetPlans.month} asc nulls first`,
+    sql`${budgetPlans.category} asc nulls first`,
+    asc(budgetPlans.id)
+  );
+  if (plans.length === 0) return [];
+  const { from, to } = budgetPeriod(year, null);
+  const monthExpr = sql`extract(month from ${expenses.expenseDate})::int`;
+  const buckets = await db.select({
+    category: expenses.category,
+    fundId: expenses.fundId,
+    month: monthExpr,
+    total: sum(expenses.amount)
+  }).from(expenses).where(
+    and(
+      eq(expenses.churchId, churchId),
+      ne(expenses.status, "voided"),
+      gte(expenses.expenseDate, from),
+      lt(expenses.expenseDate, to)
+    )
+  ).groupBy(expenses.category, expenses.fundId, monthExpr);
+  return plans.map((plan) => {
+    const actual = buckets.filter(
+      (b) => (!plan.category || b.category === plan.category) && (!plan.fundId || b.fundId === plan.fundId) && (!plan.month || Number(b.month) === plan.month)
+    ).reduce((total, b) => total + parseFloat(b.total ?? "0"), 0);
+    return toBudgetView(plan, actual);
+  });
+}
+async function getBudgetPlanById(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(budgetPlans).where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId))).limit(1);
+  const plan = rows[0];
+  if (!plan) return null;
+  const filter = budgetExpenseFilter(plan);
+  const [totals, recent] = await Promise.all([
+    db.select({ total: sum(expenses.amount), count: count(expenses.id) }).from(expenses).where(filter),
+    db.select({
+      id: expenses.id,
+      amount: expenses.amount,
+      category: expenses.category,
+      description: expenses.description,
+      expenseDate: expenses.expenseDate,
+      payee: expenses.payee
+    }).from(expenses).where(filter).orderBy(desc(expenses.expenseDate), desc(expenses.id)).limit(50)
+  ]);
+  return {
+    ...toBudgetView(plan, parseFloat(totals[0]?.total ?? "0")),
+    expenseCount: Number(totals[0]?.count ?? 0),
+    expenses: recent.map((e) => ({ ...e, amount: parseFloat(e.amount) }))
+  };
+}
+async function createBudgetPlan(input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.insert(budgetPlans).values({ ...input, churchId }).returning({ id: budgetPlans.id });
+  return rows[0].id;
+}
+async function updateBudgetPlan(id, input, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.update(budgetPlans).set(input).where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId))).returning({ id: budgetPlans.id });
+  return rows[0]?.id ?? null;
+}
+async function deleteBudgetPlan(id, churchId = DEFAULT_CHURCH_ID) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+  const rows = await db.delete(budgetPlans).where(and(eq(budgetPlans.id, id), eq(budgetPlans.churchId, churchId))).returning({ id: budgetPlans.id });
+  return rows[0]?.id ?? null;
+}
 async function listPublishedChurchNews(limit = 12) {
   const db = await getDb();
   if (!db) return [];
@@ -2457,7 +2559,10 @@ async function listLineSlips(churchId = DEFAULT_CHURCH_ID, filters = {}) {
           signedUrl = await getSlipSignedUrl(slip.slipImageKey);
         }
       } catch (e) {
-        console.warn(`[listLineSlips] Failed to sign URL for slip #${slip.id}:`, e);
+        console.warn(
+          `[listLineSlips] Failed to sign URL for slip #${slip.id}:`,
+          e
+        );
       }
       return {
         ...slip,
@@ -2494,12 +2599,16 @@ async function approveLineSlip(input) {
     throw new Error("\u0E22\u0E2D\u0E14\u0E40\u0E07\u0E34\u0E19\u0E16\u0E27\u0E32\u0E22\u0E15\u0E49\u0E2D\u0E07\u0E21\u0E32\u0E01\u0E01\u0E27\u0E48\u0E32 0 \u0E1A\u0E32\u0E17");
   }
   return db.transaction(async (tx) => {
-    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
+    const [slip] = await tx.select().from(lineSlips).where(
+      and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+    ).for("update").limit(1);
     if (!slip) {
       throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
     }
     if (slip.status === "approved" || slip.approvedOfferingId) {
-      throw new Error(`\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 (Offering #${slip.approvedOfferingId})`);
+      throw new Error(
+        `\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27 (Offering #${slip.approvedOfferingId})`
+      );
     }
     if (slip.status === "rejected") {
       throw new Error(`\u0E2A\u0E25\u0E34\u0E1B #${input.slipId} \u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`);
@@ -2532,11 +2641,15 @@ async function approveLineSlip(input) {
       )
     ).limit(1);
     if (!fund) {
-      throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E23\u0E2B\u0E31\u0E2A #${input.fundId} \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19`);
+      throw new Error(
+        `\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E23\u0E2B\u0E31\u0E2A #${input.fundId} \u0E2B\u0E23\u0E37\u0E2D\u0E01\u0E2D\u0E07\u0E17\u0E38\u0E19\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19`
+      );
     }
     let donorName = input.donorName?.trim() || null;
     if (input.memberId) {
-      const [member] = await tx.select({ id: members.id, name: members.name }).from(members).where(and(eq(members.id, input.memberId), eq(members.churchId, churchId))).limit(1);
+      const [member] = await tx.select({ id: members.id, name: members.name }).from(members).where(
+        and(eq(members.id, input.memberId), eq(members.churchId, churchId))
+      ).limit(1);
       if (member && !donorName) {
         donorName = member.name;
       }
@@ -2604,7 +2717,9 @@ async function rejectLineSlip(input) {
     throw new Error("\u0E01\u0E23\u0E38\u0E13\u0E32\u0E23\u0E30\u0E1A\u0E38\u0E40\u0E2B\u0E15\u0E38\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B");
   }
   return db.transaction(async (tx) => {
-    const [slip] = await tx.select().from(lineSlips).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).for("update").limit(1);
+    const [slip] = await tx.select().from(lineSlips).where(
+      and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+    ).for("update").limit(1);
     if (!slip) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${input.slipId}`);
     if (slip.status === "approved" || slip.approvedOfferingId) {
       throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E2A\u0E25\u0E34\u0E1B\u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E49\u0E27\u0E44\u0E14\u0E49`);
@@ -2638,14 +2753,18 @@ async function updateLineSlipReview(input) {
     updatedAt: /* @__PURE__ */ new Date()
   };
   if (input.fundId !== void 0) updateSet.fundId = input.fundId;
-  if (input.matchedMemberId !== void 0) updateSet.matchedMemberId = input.matchedMemberId;
-  if (input.matchedMemberName !== void 0) updateSet.matchedMemberName = input.matchedMemberName;
+  if (input.matchedMemberId !== void 0)
+    updateSet.matchedMemberId = input.matchedMemberId;
+  if (input.matchedMemberName !== void 0)
+    updateSet.matchedMemberName = input.matchedMemberName;
   if (input.approvedAmount !== void 0) {
     updateSet.approvedAmount = input.approvedAmount !== null ? String(input.approvedAmount) : null;
   }
   if (input.reviewNote !== void 0) updateSet.reviewNote = input.reviewNote;
   if (input.status !== void 0) updateSet.status = input.status;
-  const [updated] = await db.update(lineSlips).set(updateSet).where(and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))).returning();
+  const [updated] = await db.update(lineSlips).set(updateSet).where(
+    and(eq(lineSlips.id, input.slipId), eq(lineSlips.churchId, churchId))
+  ).returning();
   return updated;
 }
 async function linkLineUserToMember(churchId, lineUserId, memberId, adminUserId) {
@@ -2721,7 +2840,11 @@ async function createManualSlip(input) {
   const hash = createHash("sha256").update(input.imageBuffer).digest("hex");
   const dateStr = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   const storageKey = `manual/${churchId}/${input.userId}/${dateStr}/${hash.slice(0, 16)}.jpg`;
-  const { key } = await storagePutPrivate(storageKey, input.imageBuffer, "image/jpeg");
+  const { key } = await storagePutPrivate(
+    storageKey,
+    input.imageBuffer,
+    "image/jpeg"
+  );
   const [slip] = await db.insert(lineSlips).values({
     churchId,
     lineUserId: `manual-${input.userId}`,
@@ -2743,13 +2866,21 @@ async function createManualSlip(input) {
 async function rescanLineSlip(slipId, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const [slip] = await db.select({ id: lineSlips.id, status: lineSlips.status, approvedOfferingId: lineSlips.approvedOfferingId }).from(lineSlips).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId))).limit(1);
+  const [slip] = await db.select({
+    id: lineSlips.id,
+    status: lineSlips.status,
+    approvedOfferingId: lineSlips.approvedOfferingId
+  }).from(lineSlips).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId))).limit(1);
   if (!slip) throw new Error(`\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E2A\u0E25\u0E34\u0E1B #${slipId}`);
   if (slip.status === "approved" || slip.approvedOfferingId) {
-    throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E30\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E25\u0E49\u0E27`);
+    throw new Error(
+      `\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34\u0E41\u0E25\u0E30\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E25\u0E07\u0E1A\u0E31\u0E0D\u0E0A\u0E35\u0E41\u0E25\u0E49\u0E27`
+    );
   }
   if (slip.status === "rejected") {
-    throw new Error(`\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`);
+    throw new Error(
+      `\u0E44\u0E21\u0E48\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E2A\u0E41\u0E01\u0E19\u0E2A\u0E25\u0E34\u0E1B #${slipId} \u0E0B\u0E49\u0E33\u0E44\u0E14\u0E49 \u0E40\u0E19\u0E37\u0E48\u0E2D\u0E07\u0E08\u0E32\u0E01\u0E16\u0E39\u0E01\u0E1B\u0E0F\u0E34\u0E40\u0E2A\u0E18\u0E44\u0E1B\u0E41\u0E25\u0E49\u0E27`
+    );
   }
   await db.update(lineSlips).set({ status: "pending", lastErrorMessage: null, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(lineSlips.id, slipId), eq(lineSlips.churchId, churchId)));
   await db.insert(lineProcessingJobs).values({
@@ -4043,6 +4174,9 @@ function canManageChurchSettings(user) {
 function canManageMinistries(user) {
   return hasAnyRole(user, "SUPER_ADMIN", "PASTOR", "DEACON");
 }
+function canManageBudgets(user) {
+  return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "PASTOR");
+}
 function canCountOfferings(user) {
   return hasAnyRole(user, "SUPER_ADMIN", "TREASURER", "COUNTER");
 }
@@ -4088,6 +4222,15 @@ var ministryProcedure = protectedProcedure.use(({ ctx, next }) => {
   }
   return next();
 });
+var budgetProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!canManageBudgets(ctx.user)) {
+    throw new TRPCError3({
+      code: "FORBIDDEN",
+      message: "\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E40\u0E2B\u0E23\u0E31\u0E0D\u0E0D\u0E34\u0E01 \u0E28\u0E34\u0E29\u0E22\u0E32\u0E20\u0E34\u0E1A\u0E32\u0E25 \u0E2B\u0E23\u0E37\u0E2D\u0E1C\u0E39\u0E49\u0E14\u0E39\u0E41\u0E25\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19"
+    });
+  }
+  return next();
+});
 var newsCategory = z2.enum([
   "announcement",
   "ministry",
@@ -4108,6 +4251,8 @@ var churchRoleEnum = z2.enum([
   "COUNTER",
   "MEMBER"
 ]);
+var budgetYear = z2.number().int().min(2e3).max(2100);
+var budgetMonth = z2.number().int().min(1).max(12);
 var reportDateRange = z2.object({ fromDate: z2.coerce.date(), toDate: z2.coerce.date() }).refine((data) => data.fromDate <= data.toDate, {
   message: "\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E40\u0E23\u0E34\u0E48\u0E21\u0E15\u0E49\u0E19\u0E15\u0E49\u0E2D\u0E07\u0E44\u0E21\u0E48\u0E2D\u0E22\u0E39\u0E48\u0E2B\u0E25\u0E31\u0E07\u0E27\u0E31\u0E19\u0E17\u0E35\u0E48\u0E2A\u0E34\u0E49\u0E19\u0E2A\u0E38\u0E14",
   path: ["toDate"]
@@ -4664,6 +4809,85 @@ var appRouter = router({
       if (updated === null)
         throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E1D\u0E48\u0E32\u0E22\u0E07\u0E32\u0E19" });
       return { id: updated };
+    })
+  }),
+  // ── Budgets ──────────────────────────────────────────────────────────────────
+  // Plans are compared against recorded expenses, so reading them exposes
+  // spending totals: both reading and writing are limited to budget managers.
+  budgets: router({
+    list: budgetProcedure.input(z2.object({ year: budgetYear })).query(
+      async ({ input }) => listBudgetPlans(input.year, DEFAULT_CHURCH_ID)
+    ),
+    getById: budgetProcedure.input(z2.object({ id: z2.number().int().positive() })).query(
+      async ({ input }) => getBudgetPlanById(input.id, DEFAULT_CHURCH_ID)
+    ),
+    create: budgetProcedure.input(
+      z2.object({
+        year: budgetYear,
+        month: budgetMonth.nullable().default(null),
+        category: expenseCategory.nullable().default(null),
+        fundId: z2.number().int().positive().nullable().default(null),
+        plannedAmount: z2.number().positive().max(9999999999999),
+        notes: z2.string().trim().max(1e3).optional()
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const id = await createBudgetPlan({
+        ...input,
+        plannedAmount: input.plannedAmount.toFixed(2),
+        notes: input.notes || null
+      });
+      await createAuditLog({
+        churchId: DEFAULT_CHURCH_ID,
+        userId: ctx.user.id,
+        action: "CREATE",
+        entity: "budget_plan",
+        entityId: id,
+        metadata: input
+      });
+      return { id };
+    }),
+    update: budgetProcedure.input(
+      z2.object({
+        id: z2.number().int().positive(),
+        year: budgetYear.optional(),
+        month: budgetMonth.nullable().optional(),
+        category: expenseCategory.nullable().optional(),
+        fundId: z2.number().int().positive().nullable().optional(),
+        plannedAmount: z2.number().positive().max(9999999999999).optional(),
+        notes: z2.string().trim().max(1e3).nullable().optional()
+      }).refine((input) => Object.keys(input).length > 1, {
+        message: "\u0E15\u0E49\u0E2D\u0E07\u0E23\u0E30\u0E1A\u0E38\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E19\u0E49\u0E2D\u0E22\u0E2B\u0E19\u0E36\u0E48\u0E07\u0E1F\u0E34\u0E25\u0E14\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E32\u0E23\u0E41\u0E01\u0E49\u0E44\u0E02"
+      })
+    ).mutation(async ({ ctx, input }) => {
+      const { id, plannedAmount, ...rest } = input;
+      const updated = await updateBudgetPlan(id, {
+        ...rest,
+        ...plannedAmount !== void 0 ? { plannedAmount: plannedAmount.toFixed(2) } : {}
+      });
+      if (updated === null)
+        throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E07\u0E1A\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13" });
+      await createAuditLog({
+        churchId: DEFAULT_CHURCH_ID,
+        userId: ctx.user.id,
+        action: "UPDATE",
+        entity: "budget_plan",
+        entityId: id,
+        metadata: input
+      });
+      return { id: updated };
+    }),
+    delete: budgetProcedure.input(z2.object({ id: z2.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const deleted = await deleteBudgetPlan(input.id);
+      if (deleted === null)
+        throw new TRPCError3({ code: "NOT_FOUND", message: "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E07\u0E1A\u0E1B\u0E23\u0E30\u0E21\u0E32\u0E13" });
+      await createAuditLog({
+        churchId: DEFAULT_CHURCH_ID,
+        userId: ctx.user.id,
+        action: "DELETE",
+        entity: "budget_plan",
+        entityId: input.id
+      });
+      return { id: deleted };
     })
   }),
   // ── Notifications ────────────────────────────────────────────────────────────
@@ -5602,7 +5826,10 @@ var appRouter = router({
       })
     ).mutation(async ({ ctx, input }) => {
       try {
-        const rawBase64 = input.base64Data.replace(/^data:image\/\w+;base64,/, "");
+        const rawBase64 = input.base64Data.replace(
+          /^data:image\/\w+;base64,/,
+          ""
+        );
         const buffer = Buffer.from(rawBase64, "base64");
         const slip = await createManualSlip({
           churchId: DEFAULT_CHURCH_ID,
