@@ -31,6 +31,8 @@ import { LogOut } from "lucide-react";
 import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
 import { isSuperAdmin, getChurchRoleInfo, CHURCH_ROLES } from "@shared/roles";
 import { NativeSelect } from "@/components/ui/native-select";
+import { roleHolderLabel } from "@/lib/roleHolders";
+import type { ChurchRole } from "@shared/roles";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -211,11 +213,18 @@ export default function Settings() {
     });
   };
 
-  const churchRoles = [
+  const roleHoldersQuery = trpc.church.listRoleHolders.useQuery(undefined, {
+    retry: false,
+  });
+  const churchRoles: {
+    role: ChurchRole;
+    title: string;
+    desc: string;
+    duties: string[];
+  }[] = [
     {
       role: "SUPER_ADMIN",
       title: "ผู้ดูแลระบบสูงสุด",
-      appointee: "พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร",
       desc: "ดูแลระบบและโครงสร้างทั้งหมด จัดการผู้ใช้งานและสิทธิ์ ตั้งค่าคริสตจักร และตรวจสอบ Audit Log (สิทธิ์สูงสุดของระบบ)",
       duties: [
         "ดูแลระบบและโครงสร้างทั้งหมด",
@@ -228,7 +237,6 @@ export default function Settings() {
     {
       role: "TREASURER",
       title: "เหรัญญิกคริสตจักร",
-      appointee: "สุดารัตน์ จิณเซ่ง, อาจารย์ทัศนา ดวงจิตร",
       desc: "บันทึกรายรับ-รายจ่าย ตรวจสอบเงินถวายและบัญชี จัดการเบิกจ่าย ติดตามงบประมาณ ออกใบเสร็จ และจัดทำรายงานการเงิน",
       duties: [
         "บันทึกรายรับและรายจ่าย",
@@ -243,7 +251,6 @@ export default function Settings() {
     {
       role: "PASTOR",
       title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ",
-      appointee: "ศบ.อาจารย์สรรเสริญ ดวงจิตร",
       desc: "กำกับทิศทางและงานของคริสตจักร พิจารณาและอนุมัติโครงการ ตรวจสอบภาพรวมการเงิน และดูแลด้านอภิบาลสมาชิก",
       duties: [
         "กำกับทิศทางและงานของคริสตจักร",
@@ -257,7 +264,6 @@ export default function Settings() {
     {
       role: "DEACON",
       title: "มัคนายก / คณะกรรมการ",
-      appointee: "อาจารย์ทัศนา ดวงจิตร",
       desc: "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ ตรวจรับงานและติดตามโครงการ เสนอคำของบประมาณและรายการเบิกจ่าย",
       duties: [
         "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ",
@@ -271,7 +277,6 @@ export default function Settings() {
     {
       role: "MEMBER",
       title: "สมาชิกคริสตจักร",
-      appointee: "สมาชิกคริสตจักรทั่วไป",
       desc: "ดูข่าวสาร ประกาศ ตารางกิจกรรม ตารางรับใช้ และดูประวัติการถวายส่วนบุคคลอย่างปลอดภัย",
       duties: [
         "ดูข่าวสารและประกาศ",
@@ -735,11 +740,10 @@ export default function Settings() {
               <div>
                 <h3 className="text-lg font-bold text-[#1F1A17] flex items-center gap-2">
                   <Shield className="w-5 h-5 text-emerald-600" />
-                  โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
+                  บทบาทและผู้รับผิดชอบ
                 </h3>
                 <p className="text-xs text-[#736A63] mt-1">
-                  กำหนดบทบาท หน้าที่ความรับผิดชอบ
-                  และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
+                  รายชื่อผู้รับผิดชอบมาจากบทบาทที่กำหนดในตารางผู้ใช้ด้านบน
                 </p>
               </div>
 
@@ -761,7 +765,7 @@ export default function Settings() {
                       <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-white text-[#1F1A17] border-[#E4DED7] self-start sm:self-auto">
                         ผู้รับผิดชอบ:{" "}
                         <span className="text-[#B9530F] font-bold">
-                          {r.appointee}
+                          {roleHolderLabel(r.role, roleHoldersQuery)}
                         </span>
                       </div>
                     </div>

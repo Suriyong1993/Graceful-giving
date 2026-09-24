@@ -42,11 +42,19 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Updates = lazy(() => import("./pages/Updates"));
 const GivingInbox = lazy(() => import("./pages/GivingInbox"));
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
+const Terms = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Terms }))
+);
+const Privacy = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Privacy }))
+);
 
 /** Routes reachable without a session. Everything else needs one. */
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
 ];
@@ -80,6 +88,8 @@ const SETUP_EXEMPT_PATHS = [
   "/setup",
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   // Dev-only UI gallery; the route itself is also unmounted in prod (see Router).
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
@@ -198,6 +208,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/setup" component={ChurchSetup} />
 
       {/* Transactions & Ledgers */}

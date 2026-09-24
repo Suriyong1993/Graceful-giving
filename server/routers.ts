@@ -58,6 +58,7 @@ import {
   archiveMinistry,
   deactivateMember,
   getAllUsers,
+  listRoleHolderRows,
   updateUserProfile,
   markNotificationRead,
   markAllNotificationsRead,
@@ -96,6 +97,7 @@ import {
   rescanLineSlip,
 } from "./db";
 import { runWorkerBatch } from "./line/processWorker";
+import { groupRoleHolders } from "./roleHolders";
 import { TRPCError } from "@trpc/server";
 import type { User } from "../drizzle/schema";
 import type { CountingStatus } from "@shared/counting";
@@ -385,6 +387,9 @@ export const appRouter = router({
   church: router({
     getProfile: protectedProcedure.query(async () => {
       return await getChurchProfile();
+    }),
+    listRoleHolders: protectedProcedure.query(async () => {
+      return groupRoleHolders(await listRoleHolderRows());
     }),
     updateProfile: churchLeaderProcedure
       .input(
