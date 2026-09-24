@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canManageFinance } from "@shared/roles";
 import { AppLayout } from "@/components/layout/AppLayout";
 import {
   BackLink,
@@ -44,6 +46,7 @@ export default function CountingDetail() {
   const [, setLocation] = useLocation();
   const sessionId = Number(params.id);
   const utils = trpc.useUtils();
+  const { user } = useAuth();
   const [tab, setTab] = useState<TabId>("envelopes");
 
   const detailQuery = trpc.counting.get.useQuery(
@@ -384,6 +387,12 @@ export default function CountingDetail() {
             offeringTotal={r.offeringTotal}
             addEnvelope={addEnvelope}
             removeEnvelope={removeEnvelope}
+            canLinkTransfers={
+              canManageFinance(user) &&
+              (status === "counting" ||
+                status === "counted" ||
+                status === "verified")
+            }
           />
         )}
 

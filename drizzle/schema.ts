@@ -193,6 +193,11 @@ export const churchProfiles = pgTable("church_profiles", {
   setupCompleted: boolean("setupCompleted").default(false).notNull(),
   /** Custom verse or motto */
   motto: varchar("motto", { length: 280 }),
+  /**
+   * A withdrawal request above this amount needs a second, different
+   * approver. Null means one approver is always enough.
+   */
+  approvalThreshold: decimal("approvalThreshold", { precision: 15, scale: 2 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -358,6 +363,11 @@ export const expenses = pgTable("expenses", {
   status: expenseStatusEnum("status").default("approved").notNull(),
   approvedBy: integer("approvedBy"),
   recordedBy: integer("recordedBy").notNull(),
+  /**
+   * Set when this expense is the payment of a withdrawal request. Unique, so
+   * one request produces at most one expense.
+   */
+  withdrawalId: integer("withdrawalId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -385,6 +395,16 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   approvalDate: timestamp("approvalDate"),
   approvalNote: text("approvalNote"),
   rejectionReason: text("rejectionReason"),
+  /**
+   * 1 or 2, fixed at the first approval from the church's threshold, so a
+   * later threshold change does not move a request that is half-approved.
+   */
+  requiredApprovals: integer("requiredApprovals"),
+  secondApprovedBy: integer("secondApprovedBy"),
+  secondApprovalDate: timestamp("secondApprovalDate"),
+  /** Who paid it out, and when; set together with status "disbursed". */
+  disbursedBy: integer("disbursedBy"),
+  disbursedAt: timestamp("disbursedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -527,6 +547,13 @@ export const offeringEnvelopes = pgTable("offering_envelopes", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   /** Bank reference or cheque number when the gift did not arrive as cash. */
   reference: varchar("reference", { length: 120 }),
+  /**
+   * For a transfer: the offering that already records this money (usually
+   * the one an approved LINE slip created). Posting the round does not
+   * create a second offering for it. Unique, so one offering backs at most
+   * one envelope.
+   */
+  linkedOfferingId: integer("linkedOfferingId"),
   notes: text("notes"),
   recordedBy: integer("recordedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

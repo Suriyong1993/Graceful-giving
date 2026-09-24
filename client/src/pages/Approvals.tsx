@@ -7,20 +7,12 @@ import {
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import {
-  AlertCircle,
-  Banknote,
-  CheckCircle2,
-  Clock,
-  DollarSign,
-  FileText,
-  ShieldCheck,
-  ThumbsDown,
-  ThumbsUp,
-  User,
-  XCircle,
-} from "lucide-react";
+import { Banknote, CheckCircle2, Clock, User, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Swal } from "@/lib/sweetalert";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { canManageFinance } from "@shared/roles";
+import { NativeSelect } from "@/components/ui/native-select";
 
 type WithdrawalItem = RouterOutputs["withdrawals"]["list"][number];
 
@@ -31,15 +23,29 @@ export interface ApprovalRequest {
   status: string;
   date: string | Date;
   requester: string;
+  requestedBy: number;
   fund: string;
+  fundId: number | null;
   details: string;
+  approvedBy: number | null;
+  requiredApprovals: number | null;
 }
 
 export default function Approvals() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<
-    "pending" | "approved" | "rejected"
+    "pending" | "approved" | "disbursed" | "rejected"
   >("pending");
+  const { user } = useAuth();
+  const canPay = canManageFinance(user);
+  // Same roles the server accepts in withdrawals.approve.
+  const canApprove =
+    user?.role === "admin" ||
+    user?.churchRole === "SUPER_ADMIN" ||
+    user?.churchRole === "TREASURER";
+  const fundsQuery = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+  });
   const [selectedReq, setSelectedReq] = useState<ApprovalRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -51,14 +57,51 @@ export default function Approvals() {
   } = trpc.withdrawals.list.useQuery(undefined, { retry: false });
 
   const approveMutation = trpc.withdrawals.approve.useMutation({
-    onSuccess: () => {
-      toast.success("อนุมัติคำขอเบิกจ่ายเรียบร้อยแล้ว");
+    onSuccess: result => {
+      toast.success(
+        result.status === "approved"
+          ? "อนุมัติคำขอเบิกจ่ายแล้ว"
+          : result.status === "rejected"
+            ? "ปฏิเสธคำขอเบิกจ่ายแล้ว"
+            : "บันทึกการอนุมัติคนแรกแล้ว รอผู้อนุมัติคนที่สอง"
+      );
       refetch();
     },
     onError: error => {
       toast.error("ดำเนินการคำขอเบิกไม่สำเร็จ", { description: error.message });
     },
   });
+
+  const disburseMutation = trpc.withdrawals.disburse.useMutation({
+    onSuccess: () => {
+      toast.success("จ่ายเงินและบันทึกรายจ่ายแล้ว");
+      refetch();
+    },
+    onError: error => {
+      toast.error("จ่ายเงินไม่สำเร็จ", { description: error.message });
+    },
+  });
+
+  // Older requests were saved without a fund; the payer names it here.
+  const [payFund, setPayFund] = useState<Record<number, number>>({});
+
+  const handleDisburse = async (req: ApprovalRequest) => {
+    const fundId = req.fundId ?? payFund[req.id];
+    if (!fundId) {
+      toast.error("เลือกกองทุนที่จะจ่ายก่อน");
+      return;
+    }
+    const fundName =
+      (fundsQuery.data ?? []).find(f => f.id === fundId)?.name ?? req.fund;
+    const confirmed = await Swal.confirm(
+      "ยืนยันการจ่ายเงิน",
+      `ระบบจะบันทึกรายจ่าย ${req.amount.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท จาก${fundName} และหักยอดกองทุนทันที ทำซ้ำไม่ได้`
+    );
+    if (confirmed)
+      disburseMutation.mutate(
+        req.fundId ? { id: req.id } : { id: req.id, fundId }
+      );
+  };
 
   const requests = useMemo(() => {
     if (withdrawalsData && withdrawalsData.length > 0) {
@@ -69,15 +112,21 @@ export default function Approvals() {
           amount: Number(w.amount),
           status: w.status,
           date: w.requestDate || w.createdAt,
-          requester: "ผู้ประสานงานพันธกิจ",
-          fund: "บัญชีทั่วไป",
-          details: w.details || "เบิกจ่ายตามงบประมาณที่ได้รับอนุมัติ",
+          requester: w.requesterName ?? `ผู้ใช้ #${w.requestedBy}`,
+          requestedBy: w.requestedBy,
+          approvedBy: w.approvedBy,
+          requiredApprovals: w.requiredApprovals,
+          fund:
+            (fundsQuery.data ?? []).find(f => f.id === w.fundId)?.name ??
+            "ไม่ระบุกองทุน",
+          fundId: w.fundId,
+          details: w.details || "",
         })
       );
     }
 
     return [];
-  }, [withdrawalsData]);
+  }, [withdrawalsData, fundsQuery.data]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter(r => r.status === activeTab);
@@ -149,6 +198,18 @@ export default function Approvals() {
             </span>
           </button>
           <button
+            onClick={() => setActiveTab("disbursed")}
+            className={`min-h-11 shrink-0 whitespace-nowrap px-4 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
+              activeTab === "disbursed"
+                ? "bg-[#F4F1ED] text-foreground border border-[#E4DED7]"
+                : "text-[#736A63] hover:text-foreground"
+            }`}
+          >
+            <span>
+              จ่ายแล้ว ({requests.filter(r => r.status === "disbursed").length})
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab("rejected")}
             className={`min-h-11 shrink-0 whitespace-nowrap px-4 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "rejected"
@@ -190,8 +251,13 @@ export default function Approvals() {
                         req.status === "pending"
                           ? "pending"
                           : req.status === "approved"
-                            ? "completed"
-                            : "failed"
+                            ? "approved"
+                            : req.status === "disbursed"
+                              ? "posted"
+                              : "rejected"
+                      }
+                      label={
+                        req.status === "disbursed" ? "จ่ายเงินแล้ว" : undefined
                       }
                     />
                   </div>
@@ -200,9 +266,11 @@ export default function Approvals() {
                     {req.purpose}
                   </h3>
 
-                  <p className="text-xs text-[#736A63] leading-relaxed">
-                    {req.details}
-                  </p>
+                  {req.details && (
+                    <p className="text-xs text-[#736A63] leading-relaxed">
+                      {req.details}
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-4 text-xs text-[#736A63] pt-1">
                     <span className="flex items-center gap-1">
@@ -228,25 +296,76 @@ export default function Approvals() {
                     />
                   </div>
 
-                  {req.status === "pending" && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedReq(req);
-                          setShowRejectModal(true);
-                        }}
-                        className="min-h-11 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
-                      >
-                        ไม่อนุมัติ
-                      </button>
-                      <button
-                        onClick={() => handleApprove(req.id)}
-                        className="min-h-11 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
-                      >
-                        อนุมัติคำขอ
-                      </button>
-                    </div>
+                  {req.status === "approved" && canPay && !req.fundId && (
+                    <NativeSelect
+                      aria-label="กองทุนที่จะจ่าย"
+                      value={payFund[req.id] ?? ""}
+                      onChange={e =>
+                        setPayFund(prev => ({
+                          ...prev,
+                          [req.id]: Number(e.target.value),
+                        }))
+                      }
+                    >
+                      <option value="" disabled>
+                        เลือกกองทุนที่จะจ่าย
+                      </option>
+                      {(fundsQuery.data ?? []).map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </NativeSelect>
                   )}
+
+                  {req.status === "approved" && canPay && (
+                    <button
+                      onClick={() => handleDisburse(req)}
+                      disabled={disburseMutation.isPending}
+                      className="min-h-11 px-5 py-2 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {disburseMutation.isPending
+                        ? "กำลังบันทึก…"
+                        : "จ่ายเงินและบันทึกรายจ่าย"}
+                    </button>
+                  )}
+
+                  {req.status === "pending" &&
+                    req.approvedBy !== null &&
+                    req.requiredApprovals === 2 && (
+                      <p className="text-xs font-semibold text-amber-600">
+                        อนุมัติแล้ว 1 จาก 2 คน รอผู้อนุมัติคนที่สอง
+                      </p>
+                    )}
+
+                  {req.status === "pending" && user?.id === req.requestedBy && (
+                    <p className="text-xs text-[#736A63]">
+                      คำขอของคุณ ต้องให้ผู้อื่นอนุมัติ
+                    </p>
+                  )}
+
+                  {req.status === "pending" &&
+                    canApprove &&
+                    user?.id !== req.requestedBy &&
+                    user?.id !== req.approvedBy && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedReq(req);
+                            setShowRejectModal(true);
+                          }}
+                          className="min-h-11 px-4 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
+                        >
+                          ไม่อนุมัติ
+                        </button>
+                        <button
+                          onClick={() => handleApprove(req.id)}
+                          className="min-h-11 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm"
+                        >
+                          อนุมัติคำขอ
+                        </button>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}

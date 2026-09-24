@@ -11,6 +11,9 @@ const INTEGRITY_INDEX_NAMES = [
   "offerings_ref_active_uniq",
   "line_slips_ref_uniq",
   "line_slips_event_uniq",
+  "line_slips_offering_uniq",
+  "offering_envelopes_linked_offering_uniq",
+  "expenses_withdrawal_uniq",
 ];
 
 function statementFor(indexName: string): string {

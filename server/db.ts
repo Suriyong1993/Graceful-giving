@@ -66,6 +66,26 @@ import { runSchemaInit } from "./schema_init";
 import { getSlipSignedUrl, storagePutPrivate } from "./storage";
 import { createHash } from "crypto";
 
+/**
+ * A request that breaks a financial rule. The router turns `code` into the
+ * matching tRPC error, so callers see CONFLICT or BAD_REQUEST, not a 500.
+ */
+export class FinanceRuleError extends Error {
+  constructor(
+    public readonly code: "BAD_REQUEST" | "CONFLICT" | "FORBIDDEN",
+    message: string
+  ) {
+    super(message);
+    this.name = "FinanceRuleError";
+  }
+}
+
+/** Postgres unique_violation. */
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; cause?: { code?: string } };
+  return e?.code === "23505" || e?.cause?.code === "23505";
+}
+
 let _db: ReturnType<typeof drizzle> | null = null;
 let _schemaInitialized = false;
 
@@ -636,6 +656,7 @@ export async function updateOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  await assertCountedOfferingKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: offerings.amount, fundId: offerings.fundId })
@@ -796,6 +817,7 @@ export async function updateExpense(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  await assertPaymentKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: expenses.amount, fundId: expenses.fundId })
@@ -847,6 +869,7 @@ export async function deleteExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
 export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  await assertOfferingNotCounted(id);
   return db.transaction(async tx => {
     const existing = await tx
       .select({
@@ -884,9 +907,60 @@ export async function voidOffering(id: number, churchId = DEFAULT_CHURCH_ID) {
   });
 }
 
+/**
+ * An expense that pays a withdrawal request is the record that the money
+ * left. Voiding it or changing its amount or fund would leave a disbursed
+ * request with no payment behind it.
+ */
+async function assertExpenseNotAPayment(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  const [row] = await db
+    .select({ withdrawalId: expenses.withdrawalId })
+    .from(expenses)
+    .where(eq(expenses.id, id))
+    .limit(1);
+  if (row?.withdrawalId) {
+    throw new FinanceRuleError(
+      "CONFLICT",
+      `รายจ่ายนี้คือการจ่ายเงินตามคำขอเบิก #${row.withdrawalId} จึงยกเลิกหรือแก้ยอดไม่ได้`
+    );
+  }
+}
+
+/**
+ * A payment expense may change its description or receipt details, not its
+ * amount, fund or status. Forms resend the current amount with every save,
+ * so compare values instead of checking which fields are present.
+ */
+async function assertPaymentKeepsMoney(
+  id: number,
+  input: Partial<Pick<InsertExpense, "amount" | "fundId" | "status">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const [current] = await db
+    .select({
+      amount: expenses.amount,
+      fundId: expenses.fundId,
+      status: expenses.status,
+    })
+    .from(expenses)
+    .where(eq(expenses.id, id))
+    .limit(1);
+  if (!current) return;
+  const changesMoney =
+    (input.amount !== undefined &&
+      Number(input.amount) !== Number(current.amount)) ||
+    (input.fundId !== undefined && input.fundId !== current.fundId) ||
+    (input.status !== undefined && input.status !== current.status);
+  if (changesMoney) await assertExpenseNotAPayment(id);
+}
+
 export async function voidExpense(id: number, churchId = DEFAULT_CHURCH_ID) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  await assertExpenseNotAPayment(id);
   return db.transaction(async tx => {
     const existing = await tx
       .select({
@@ -937,15 +1011,20 @@ export async function listWithdrawalRequests(
     conditions.push(eq(withdrawalRequests.requestedBy, opts.userId));
 
   const rows = await db
-    .select()
+    .select({
+      request: withdrawalRequests,
+      requesterName: users.name,
+    })
     .from(withdrawalRequests)
+    .leftJoin(users, eq(users.id, withdrawalRequests.requestedBy))
     .where(and(...conditions))
     .orderBy(desc(withdrawalRequests.createdAt))
     .limit(50);
 
-  return rows.map(r => ({
-    ...r,
-    amount: parseFloat((r.amount as unknown as string) ?? "0"),
+  return rows.map(({ request, requesterName }) => ({
+    ...request,
+    requesterName,
+    amount: parseFloat((request.amount as unknown as string) ?? "0"),
   }));
 }
 
@@ -962,6 +1041,15 @@ export async function createWithdrawalRequest(
   return result[0].id;
 }
 
+/**
+ * Records one approval or a rejection on a pending request, under a row lock:
+ * - the requester can neither approve nor reject their own request
+ * - the first approval fixes requiredApprovals: 2 when the amount is above
+ *   church_profiles.approvalThreshold, else 1
+ * - with 2 required, the request stays pending until a different person
+ *   approves it; only then can it be paid
+ * - any eligible approver can reject it while it is pending
+ */
 export async function approveWithdrawal(
   id: number,
   approverId: number,
@@ -971,44 +1059,246 @@ export async function approveWithdrawal(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .update(withdrawalRequests)
-    .set({
-      status: action,
-      approvedBy: approverId,
-      approvalDate: new Date(),
-      approvalNote: action === "approved" ? note : null,
-      rejectionReason: action === "rejected" ? note : null,
-    })
-    .where(
-      and(
-        eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId),
-        eq(withdrawalRequests.status, "pending")
+  return db.transaction(async tx => {
+    const [request] = await tx
+      .select()
+      .from(withdrawalRequests)
+      .where(
+        and(
+          eq(withdrawalRequests.id, id),
+          eq(withdrawalRequests.churchId, churchId)
+        )
       )
-    )
-    .returning({ id: withdrawalRequests.id });
-  return rows.length > 0;
+      .for("update")
+      .limit(1);
+    if (!request) {
+      throw new FinanceRuleError("BAD_REQUEST", "ไม่พบคำขอเบิกนี้");
+    }
+    if (request.status !== "pending") {
+      throw new FinanceRuleError(
+        "CONFLICT",
+        "คำขอเบิกนี้ไม่ได้อยู่ในสถานะรออนุมัติ"
+      );
+    }
+    if (request.requestedBy === approverId) {
+      throw new FinanceRuleError(
+        "FORBIDDEN",
+        "ผู้ยื่นคำขอไม่สามารถอนุมัติหรือปฏิเสธคำขอของตัวเองได้"
+      );
+    }
+
+    const now = new Date();
+    if (action === "rejected") {
+      await tx
+        .update(withdrawalRequests)
+        .set({ status: "rejected", rejectionReason: note || null })
+        .where(eq(withdrawalRequests.id, id));
+    } else if (request.approvedBy === null) {
+      const [profile] = await tx
+        .select({ threshold: churchProfiles.approvalThreshold })
+        .from(churchProfiles)
+        .where(eq(churchProfiles.churchId, churchId))
+        .limit(1);
+      const threshold =
+        profile?.threshold === null || profile?.threshold === undefined
+          ? null
+          : Number(profile.threshold);
+      const required =
+        threshold !== null && Number(request.amount) > threshold ? 2 : 1;
+      await tx
+        .update(withdrawalRequests)
+        .set({
+          approvedBy: approverId,
+          approvalDate: now,
+          approvalNote: note || null,
+          requiredApprovals: required,
+          status: required === 1 ? "approved" : "pending",
+        })
+        .where(eq(withdrawalRequests.id, id));
+    } else {
+      if (request.approvedBy === approverId) {
+        throw new FinanceRuleError(
+          "CONFLICT",
+          "คำขอนี้ต้องได้รับอนุมัติจากผู้อนุมัติคนที่สองที่ไม่ใช่คนเดิม"
+        );
+      }
+      await tx
+        .update(withdrawalRequests)
+        .set({
+          secondApprovedBy: approverId,
+          secondApprovalDate: now,
+          status: "approved",
+        })
+        .where(eq(withdrawalRequests.id, id));
+    }
+
+    const [after] = await tx
+      .select({ status: withdrawalRequests.status })
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.id, id));
+    await tx.insert(auditLogs).values({
+      churchId,
+      userId: approverId,
+      action: action === "rejected" ? "REJECT" : "APPROVE",
+      entity: "withdrawal_request",
+      entityId: id,
+      metadata: { status: after.status, note: note || null },
+    });
+    return { status: after.status };
+  });
 }
 
+/**
+ * Pays an approved withdrawal request, as one transaction:
+ *   1. approved -> disbursed (compare-and-set, so a second or concurrent
+ *      call finds nothing to claim and pays nothing)
+ *   2. the fund must exist and be active (row locked)
+ *   3. write the expense, linked by withdrawalId (unique)
+ *   4. lower the fund balance by the amount
+ *   5. write the audit log
+ * Any failure rolls back every step, including the status change.
+ */
 export async function disburseWithdrawal(
-  id: number,
+  input: {
+    id: number;
+    disbursedBy: number;
+    /**
+     * Only for a request created before the fund was required: names the fund
+     * to pay from. A request that already names a fund must be paid from it.
+     */
+    fundId?: number;
+    category?: string;
+    payee?: string | null;
+    receiptRef?: string | null;
+  },
   churchId = DEFAULT_CHURCH_ID
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .update(withdrawalRequests)
-    .set({ status: "disbursed" })
-    .where(
-      and(
-        eq(withdrawalRequests.id, id),
-        eq(withdrawalRequests.churchId, churchId),
-        eq(withdrawalRequests.status, "approved")
-      )
-    )
-    .returning({ id: withdrawalRequests.id });
-  return rows.length > 0;
+  try {
+    return await db.transaction(async tx => {
+      const [claimed] = await tx
+        .update(withdrawalRequests)
+        .set({
+          status: "disbursed",
+          disbursedBy: input.disbursedBy,
+          disbursedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(withdrawalRequests.id, input.id),
+            eq(withdrawalRequests.churchId, churchId),
+            eq(withdrawalRequests.status, "approved")
+          )
+        )
+        .returning();
+      if (!claimed) {
+        const [current] = await tx
+          .select({ status: withdrawalRequests.status })
+          .from(withdrawalRequests)
+          .where(
+            and(
+              eq(withdrawalRequests.id, input.id),
+              eq(withdrawalRequests.churchId, churchId)
+            )
+          )
+          .limit(1);
+        if (!current) {
+          throw new FinanceRuleError("BAD_REQUEST", "ไม่พบคำขอเบิกนี้");
+        }
+        throw new FinanceRuleError(
+          "CONFLICT",
+          current.status === "disbursed"
+            ? "คำขอเบิกนี้จ่ายเงินไปแล้ว"
+            : "ต้องอนุมัติคำขอเบิกก่อนจ่ายเงิน"
+        );
+      }
+      if (
+        claimed.fundId &&
+        input.fundId !== undefined &&
+        input.fundId !== claimed.fundId
+      ) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "คำขอเบิกนี้ระบุกองทุนไว้แล้ว ต้องจ่ายจากกองทุนนั้น"
+        );
+      }
+      if (!claimed.fundId && input.fundId === undefined) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "คำขอเบิกนี้ไม่ได้ระบุกองทุน ต้องเลือกกองทุนที่จะจ่ายก่อน"
+        );
+      }
+      if (!claimed.fundId) {
+        claimed.fundId = input.fundId!;
+        await tx
+          .update(withdrawalRequests)
+          .set({ fundId: claimed.fundId })
+          .where(eq(withdrawalRequests.id, claimed.id));
+      }
+      const [fund] = await tx
+        .select({ id: financeAccounts.id })
+        .from(financeAccounts)
+        .where(
+          and(
+            eq(financeAccounts.id, claimed.fundId),
+            eq(financeAccounts.churchId, churchId),
+            eq(financeAccounts.isActive, true)
+          )
+        )
+        .for("update")
+        .limit(1);
+      if (!fund) {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          `กองทุน #${claimed.fundId} ไม่ได้เปิดใช้งาน`
+        );
+      }
+
+      const [expense] = await tx
+        .insert(expenses)
+        .values({
+          churchId,
+          amount: claimed.amount,
+          category: (input.category as InsertExpense["category"]) ?? "other",
+          fundId: claimed.fundId,
+          description: claimed.purpose,
+          details: claimed.details,
+          expenseDate: new Date(),
+          payee: input.payee ?? null,
+          receiptRef: input.receiptRef ?? null,
+          status: "paid",
+          approvedBy: claimed.approvedBy,
+          recordedBy: input.disbursedBy,
+          withdrawalId: claimed.id,
+        })
+        .returning({ id: expenses.id });
+
+      await tx.execute(
+        sql`UPDATE finance_accounts SET balance = balance - ${claimed.amount} WHERE id = ${claimed.fundId} AND "churchId" = ${churchId}`
+      );
+
+      await tx.insert(auditLogs).values({
+        churchId,
+        userId: input.disbursedBy,
+        action: "DISBURSE",
+        entity: "withdrawal_request",
+        entityId: claimed.id,
+        metadata: {
+          expenseId: expense.id,
+          amount: Number(claimed.amount),
+          fundId: claimed.fundId,
+        },
+      });
+
+      return { expenseId: expense.id };
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new FinanceRuleError("CONFLICT", "คำขอเบิกนี้จ่ายเงินไปแล้ว");
+    }
+    throw err;
+  }
 }
 
 // ─── Members / Notifications / Audit ──────────────────────────────────────────
@@ -1819,37 +2109,309 @@ export async function setCountingSessionStatus(
   return rows.length > 0;
 }
 
+/**
+ * A counted envelope already backs this offering, so its amount, fund and
+ * method are part of a Sunday round. Changing or voiding it here would make
+ * the round disagree with the ledger; unlink it in the round first.
+ */
+async function assertOfferingNotCounted(offeringId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const linked = await db
+    .select({ sessionId: offeringEnvelopes.sessionId })
+    .from(offeringEnvelopes)
+    .where(eq(offeringEnvelopes.linkedOfferingId, offeringId))
+    .limit(1);
+  if (linked[0]) {
+    throw new FinanceRuleError(
+      "CONFLICT",
+      `รายการนี้ถูกนับในรอบนับเงิน #${linked[0].sessionId} แล้ว ต้องยกเลิกการผูกในรอบนั้นก่อน`
+    );
+  }
+}
+
+/**
+ * An edit to a counted offering may change its notes, donor or date, but not
+ * the money: amount, fund or method. Forms resend the current amount with
+ * every save, so compare values instead of checking which fields are present.
+ */
+async function assertCountedOfferingKeepsMoney(
+  offeringId: number,
+  input: Partial<Pick<InsertOffering, "amount" | "fundId" | "method">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const [current] = await db
+    .select({
+      amount: offerings.amount,
+      fundId: offerings.fundId,
+      method: offerings.method,
+    })
+    .from(offerings)
+    .where(eq(offerings.id, offeringId))
+    .limit(1);
+  if (!current) return;
+  const changesMoney =
+    (input.amount !== undefined &&
+      Number(input.amount) !== Number(current.amount)) ||
+    (input.fundId !== undefined && input.fundId !== current.fundId) ||
+    (input.method !== undefined && input.method !== current.method);
+  if (changesMoney) await assertOfferingNotCounted(offeringId);
+}
+
+type Tx = Parameters<
+  Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]
+>[0];
+
+/**
+ * The offering a transfer envelope may point at: active, paid by transfer,
+ * not itself written by a counting round, and not already backing another
+ * envelope. Locks the offering row so two envelopes cannot claim it at once;
+ * the unique index on linkedOfferingId is the backstop.
+ */
+async function lockLinkableOffering(
+  tx: Tx,
+  offeringId: number,
+  churchId: string,
+  exceptEnvelopeId?: number
+) {
+  const [offering] = await tx
+    .select()
+    .from(offerings)
+    .where(and(eq(offerings.id, offeringId), eq(offerings.churchId, churchId)))
+    .for("update")
+    .limit(1);
+  if (!offering || offering.status !== "active") {
+    throw new FinanceRuleError(
+      "BAD_REQUEST",
+      `ไม่พบรายการเงินโอน #${offeringId} ที่ยังใช้งานอยู่`
+    );
+  }
+  if (offering.method !== "transfer") {
+    throw new FinanceRuleError(
+      "BAD_REQUEST",
+      `รายการ #${offeringId} ไม่ใช่เงินโอน จึงผูกกับซองเงินโอนไม่ได้`
+    );
+  }
+  if (offering.sessionId !== null) {
+    throw new FinanceRuleError(
+      "BAD_REQUEST",
+      `รายการ #${offeringId} ถูกสร้างจากรอบนับเงิน จึงผูกซ้ำไม่ได้`
+    );
+  }
+  const [other] = await tx
+    .select({ id: offeringEnvelopes.id, sessionId: offeringEnvelopes.sessionId })
+    .from(offeringEnvelopes)
+    .where(eq(offeringEnvelopes.linkedOfferingId, offeringId))
+    .limit(1);
+  if (other && other.id !== exceptEnvelopeId) {
+    throw new FinanceRuleError(
+      "CONFLICT",
+      `รายการเงินโอน #${offeringId} ถูกนับในรอบนับเงิน #${other.sessionId} แล้ว`
+    );
+  }
+  return offering;
+}
+
+/**
+ * Applies the transfer rules to an envelope about to be written:
+ * a link is only valid on a transfer, and a linked envelope takes its amount,
+ * fund and category from the offering it points at. A different amount on
+ * the form is an error, not something to silently overwrite.
+ */
+async function applyTransferLink(
+  tx: Tx,
+  envelope: {
+    method: string;
+    linkedOfferingId: number | null;
+    amount: string;
+    fundId: number | null;
+    category: string;
+  },
+  churchId: string,
+  exceptEnvelopeId?: number
+) {
+  if (envelope.linkedOfferingId === null) return {};
+  if (envelope.method !== "transfer") {
+    throw new FinanceRuleError(
+      "BAD_REQUEST",
+      "ผูกรายการเงินโอนได้เฉพาะซองที่ชำระด้วยการโอน"
+    );
+  }
+  const offering = await lockLinkableOffering(
+    tx,
+    envelope.linkedOfferingId,
+    churchId,
+    exceptEnvelopeId
+  );
+  if (Number(envelope.amount) !== Number(offering.amount)) {
+    throw new FinanceRuleError(
+      "BAD_REQUEST",
+      `ยอดในซอง (${Number(envelope.amount).toFixed(2)}) ไม่ตรงกับรายการเงินโอน #${offering.id} (${Number(offering.amount).toFixed(2)})`
+    );
+  }
+  return {
+    amount: offering.amount,
+    fundId: offering.fundId ?? envelope.fundId,
+    category: offering.category,
+  };
+}
+
 export async function addOfferingEnvelope(
   input: Omit<InsertOfferingEnvelope, "churchId">,
   churchId = DEFAULT_CHURCH_ID
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  const rows = await db
-    .insert(offeringEnvelopes)
-    .values({ ...input, churchId })
-    .returning({ id: offeringEnvelopes.id });
-  return rows[0].id;
+  try {
+    return await db.transaction(async tx => {
+      const fromLink = await applyTransferLink(
+        tx,
+        {
+          method: input.method ?? "cash",
+          linkedOfferingId: input.linkedOfferingId ?? null,
+          amount: input.amount,
+          fundId: input.fundId ?? null,
+          category: input.category ?? "general",
+        },
+        churchId
+      );
+      const rows = await tx
+        .insert(offeringEnvelopes)
+        .values({ ...input, ...fromLink, churchId })
+        .returning({ id: offeringEnvelopes.id });
+      return rows[0].id;
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new FinanceRuleError(
+        "CONFLICT",
+        "รายการเงินโอนนี้ถูกนับในรอบนับเงินอื่นแล้ว"
+      );
+    }
+    throw err;
+  }
 }
 
 export async function updateOfferingEnvelope(
   id: number,
   sessionId: number,
-  input: Partial<Omit<InsertOfferingEnvelope, "churchId" | "sessionId">>
+  input: Partial<Omit<InsertOfferingEnvelope, "churchId" | "sessionId">>,
+  churchId = DEFAULT_CHURCH_ID
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
+  try {
+    return await db.transaction(async tx => {
+      const [current] = await tx
+        .select()
+        .from(offeringEnvelopes)
+        .where(
+          and(
+            eq(offeringEnvelopes.id, id),
+            eq(offeringEnvelopes.sessionId, sessionId)
+          )
+        )
+        .for("update")
+        .limit(1);
+      if (!current) return null;
+
+      const method = input.method ?? current.method;
+      if (input.linkedOfferingId && method !== "transfer") {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "ผูกรายการเงินโอนได้เฉพาะซองที่ชำระด้วยการโอน"
+        );
+      }
+      // Switching away from transfer drops the link instead of keeping a
+      // pointer the CHECK constraint would reject.
+      const linkedOfferingId =
+        method !== "transfer"
+          ? null
+          : input.linkedOfferingId === undefined
+            ? current.linkedOfferingId
+            : input.linkedOfferingId;
+      const fromLink = await applyTransferLink(
+        tx,
+        {
+          method,
+          linkedOfferingId,
+          amount: input.amount ?? current.amount,
+          fundId: input.fundId === undefined ? current.fundId : input.fundId,
+          category: input.category ?? current.category,
+        },
+        churchId,
+        id
+      );
+      const rows = await tx
+        .update(offeringEnvelopes)
+        .set({ ...input, linkedOfferingId, ...fromLink })
+        .where(eq(offeringEnvelopes.id, id))
+        .returning({ id: offeringEnvelopes.id });
+      return rows[0]?.id ?? null;
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new FinanceRuleError(
+        "CONFLICT",
+        "รายการเงินโอนนี้ถูกนับในรอบนับเงินอื่นแล้ว"
+      );
+    }
+    throw err;
+  }
+}
+
+/**
+ * Transfer offerings a round may link: active, not written by a round, and
+ * not linked to an envelope outside this session. Received from 30 days
+ * before the service to 7 days after, newest first.
+ */
+export async function listLinkableTransfers(
+  sessionId: number,
+  serviceDate: Date,
+  churchId = DEFAULT_CHURCH_ID
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const from = new Date(serviceDate.getTime() - 30 * 86_400_000);
+  const to = new Date(serviceDate.getTime() + 7 * 86_400_000);
   const rows = await db
-    .update(offeringEnvelopes)
-    .set(input)
+    .select({
+      id: offerings.id,
+      amount: offerings.amount,
+      receiptDate: offerings.receiptDate,
+      reference: offerings.reference,
+      fundId: offerings.fundId,
+      category: offerings.category,
+      donorName: offerings.donorName,
+      linkedSessionId: offeringEnvelopes.sessionId,
+    })
+    .from(offerings)
+    .leftJoin(
+      offeringEnvelopes,
+      eq(offeringEnvelopes.linkedOfferingId, offerings.id)
+    )
     .where(
       and(
-        eq(offeringEnvelopes.id, id),
-        eq(offeringEnvelopes.sessionId, sessionId)
+        eq(offerings.churchId, churchId),
+        eq(offerings.status, "active"),
+        eq(offerings.method, "transfer"),
+        sql`${offerings.sessionId} IS NULL`,
+        between(offerings.receiptDate, from, to),
+        sql`(${offeringEnvelopes.sessionId} IS NULL OR ${offeringEnvelopes.sessionId} = ${sessionId})`
       )
     )
-    .returning({ id: offeringEnvelopes.id });
-  return rows[0]?.id ?? null;
+    .orderBy(desc(offerings.receiptDate))
+    .limit(100);
+  return rows.map(r => ({
+    id: r.id,
+    amount: Number(r.amount),
+    receiptDate: r.receiptDate,
+    reference: r.reference,
+    fundId: r.fundId,
+    category: r.category,
+    donorName: r.donorName,
+  }));
 }
 
 export async function deleteOfferingEnvelope(id: number, sessionId: number) {
@@ -2031,8 +2593,41 @@ export async function postCountingSession(
       .from(offeringEnvelopes)
       .where(eq(offeringEnvelopes.sessionId, id));
 
+    // A transfer is money the ledger already holds, recorded when the slip
+    // was approved. Posting must point at that offering, never add another.
+    const unlinked = envelopeRows.filter(
+      e => e.method === "transfer" && e.linkedOfferingId === null
+    );
+    if (unlinked.length > 0) {
+      throw new FinanceRuleError(
+        "CONFLICT",
+        `มีซองเงินโอน ${unlinked.length} ซองที่ยังไม่ได้ผูกกับรายการเงินโอน ต้องผูกก่อนลงบัญชี`
+      );
+    }
+
     let offeringCount = 0;
+    let linkedTransferCount = 0;
     for (const envelope of envelopeRows) {
+      if (envelope.linkedOfferingId !== null) {
+        const [linked] = await tx
+          .select({ amount: offerings.amount, status: offerings.status })
+          .from(offerings)
+          .where(eq(offerings.id, envelope.linkedOfferingId))
+          .for("update")
+          .limit(1);
+        if (
+          !linked ||
+          linked.status !== "active" ||
+          Number(linked.amount) !== Number(envelope.amount)
+        ) {
+          throw new FinanceRuleError(
+            "CONFLICT",
+            `รายการเงินโอน #${envelope.linkedOfferingId} ถูกแก้ไขหรือยกเลิกหลังจากนับ ต้องตรวจซองนี้ใหม่`
+          );
+        }
+        linkedTransferCount += 1;
+        continue;
+      }
       await tx.insert(offerings).values({
         churchId,
         sessionId: id,
@@ -2089,7 +2684,7 @@ export async function postCountingSession(
       deductionCount += 1;
     }
 
-    return { offeringCount, deductionCount };
+    return { offeringCount, linkedTransferCount, deductionCount };
   });
 }
 
