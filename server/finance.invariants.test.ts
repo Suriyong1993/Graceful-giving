@@ -321,6 +321,48 @@ describeDb("financial invariants", () => {
       ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
+    it("still allows a notes edit that resends the same amount", async () => {
+      const slipId = await insertSlip(610);
+      const { offeringId } = await approveSlip(slipId, 610);
+      await verifiedRound(new Date("2026-11-15T01:00:00Z"), [
+        { amount: 610, method: "transfer", linkedOfferingId: offeringId },
+      ]);
+      // TransactionDetail always sends the amount with the notes.
+      await callerFor(treasurer).offerings.update({
+        id: offeringId,
+        amount: 610,
+        notes: "แก้หมายเหตุอย่างเดียว",
+      });
+      const [row] = await rows(
+        sql`SELECT notes, amount FROM offerings WHERE id = ${offeringId}`
+      );
+      expect(row.notes).toBe("แก้หมายเหตุอย่างเดียว");
+      expect(num(row.amount)).toBe(610);
+    });
+
+    it("refuses to link a cash envelope and logs nothing", async () => {
+      const slipId = await insertSlip(420);
+      const { offeringId } = await approveSlip(slipId, 420);
+      const sessionId = await verifiedRound(new Date("2026-11-22T01:00:00Z"), [
+        { amount: 420, method: "cash" },
+      ]);
+      const [envelope] = await rows(
+        sql`SELECT id FROM offering_envelopes WHERE "sessionId" = ${sessionId}`
+      );
+      await expect(
+        callerFor(treasurer).counting.linkTransfer({
+          sessionId,
+          envelopeId: Number(envelope.id),
+          linkedOfferingId: offeringId,
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      const [log] = await rows(
+        sql`SELECT count(*) AS n FROM audit_logs
+            WHERE action = 'LINK_TRANSFER' AND "entityId" = ${Number(envelope.id)}`
+      );
+      expect(Number(log.n)).toBe(0);
+    });
+
     it("refuses to link one offering to two envelopes", async () => {
       const slipId = await insertSlip(400);
       const { offeringId } = await approveSlip(slipId, 400);

@@ -640,13 +640,7 @@ export async function updateOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  if (
-    input.amount !== undefined ||
-    input.fundId !== undefined ||
-    input.method !== undefined
-  ) {
-    await assertOfferingNotCounted(id);
-  }
+  await assertCountedOfferingKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: offerings.amount, fundId: offerings.fundId })
@@ -1684,6 +1678,35 @@ async function assertOfferingNotCounted(offeringId: number) {
   }
 }
 
+/**
+ * An edit to a counted offering may change its notes, donor or date, but not
+ * the money: amount, fund or method. Forms resend the current amount with
+ * every save, so compare values instead of checking which fields are present.
+ */
+async function assertCountedOfferingKeepsMoney(
+  offeringId: number,
+  input: Partial<Pick<InsertOffering, "amount" | "fundId" | "method">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const [current] = await db
+    .select({
+      amount: offerings.amount,
+      fundId: offerings.fundId,
+      method: offerings.method,
+    })
+    .from(offerings)
+    .where(eq(offerings.id, offeringId))
+    .limit(1);
+  if (!current) return;
+  const changesMoney =
+    (input.amount !== undefined &&
+      Number(input.amount) !== Number(current.amount)) ||
+    (input.fundId !== undefined && input.fundId !== current.fundId) ||
+    (input.method !== undefined && input.method !== current.method);
+  if (changesMoney) await assertOfferingNotCounted(offeringId);
+}
+
 type Tx = Parameters<
   Parameters<NonNullable<Awaited<ReturnType<typeof getDb>>>["transaction"]>[0]
 >[0];
@@ -1842,6 +1865,12 @@ export async function updateOfferingEnvelope(
       if (!current) return null;
 
       const method = input.method ?? current.method;
+      if (input.linkedOfferingId && method !== "transfer") {
+        throw new FinanceRuleError(
+          "BAD_REQUEST",
+          "ผูกรายการเงินโอนได้เฉพาะซองที่ชำระด้วยการโอน"
+        );
+      }
       // Switching away from transfer drops the link instead of keeping a
       // pointer the CHECK constraint would reject.
       const linkedOfferingId =
