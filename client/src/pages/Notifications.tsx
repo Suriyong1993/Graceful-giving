@@ -5,6 +5,7 @@ import { EmptyState, LoadingSkeleton } from "@/components/common/CommonUI";
 import { trpc } from "@/lib/trpc";
 import { Bell, CheckCheck } from "lucide-react";
 import { toast } from "sonner";
+import { formatThaiDate } from "@/lib/format";
 
 export default function Notifications() {
   const [, setLocation] = useLocation();
@@ -27,41 +28,26 @@ export default function Notifications() {
   return (
     <AppLayout
       title="การแจ้งเตือน"
-      subtitle="สถานะการอ่านถูกบันทึกในฐานข้อมูลจริง"
+      subtitle="ความเคลื่อนไหวของรายการเงินและคำขอที่เกี่ยวกับคุณ"
+      action={
+        <button
+          type="button"
+          onClick={() => markAllRead.mutate()}
+          disabled={markAllRead.isPending || !query.data?.some(n => !n.readAt)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-4 text-sm font-medium text-[#3F3833] hover:bg-[#F4F1ED] disabled:opacity-50"
+        >
+          <CheckCheck className="size-4" />
+          อ่านแล้วทั้งหมด
+        </button>
+      }
     >
       <div className="space-y-6">
-        <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
-                <Bell className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-[#38251B]">
-                  ศูนย์การแจ้งเตือน
-                </h1>
-                <p className="mt-1 text-sm text-[#70452E]/80">
-                  การแจ้งเตือนที่เกิดจากระบบจะแสดงที่นี่
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => markAllRead.mutate()}
-              disabled={markAllRead.isPending}
-              className="min-h-11 inline-flex items-center gap-2 rounded-2xl border border-[#E9D9BF] bg-white px-3 py-2 text-xs font-semibold text-[#70452E] disabled:opacity-50"
-            >
-              <CheckCheck className="h-4 w-4" />
-              อ่านแล้วทั้งหมด
-            </button>
-          </div>
-        </section>
         {query.isLoading ? (
           <LoadingSkeleton count={4} />
         ) : query.isError ? (
           <EmptyState
             title="โหลดการแจ้งเตือนไม่สำเร็จ"
-            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่"
+            description="เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองใหม่"
             actionText="ลองใหม่"
             onAction={() => query.refetch()}
           />
@@ -82,17 +68,30 @@ export default function Notifications() {
                   if (!item.readAt) markRead.mutate({ id: item.id });
                   if (item.link) setLocation(item.link);
                 }}
-                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${item.readAt ? "border-[#E9D9BF] bg-white" : "border-[#A8C978] bg-[#F7FAF0]"}`}
+                className={`relative w-full rounded-2xl border bg-white p-4 pl-8 text-left hover:bg-[#FAF8F5] ${item.readAt ? "border-[#E4DED7]" : "border-[#F9D2AE]"}`}
               >
+                {!item.readAt && (
+                  <span
+                    className="absolute left-3.5 top-6 size-2 rounded-full bg-[#B9530F]"
+                    aria-hidden="true"
+                  />
+                )}
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="font-bold text-[#38251B]">{item.title}</h2>
-                    <p className="mt-1 text-sm text-[#70452E]/80">
+                    <h2
+                      className={`text-[15px] text-[#1F1A17] ${item.readAt ? "font-medium" : "font-semibold"}`}
+                    >
+                      {item.title}
+                    </h2>
+                    <p className="mt-0.5 text-sm text-[#736A63]">
                       {item.description || ""}
                     </p>
                   </div>
-                  <span className="text-[11px] text-[#927D6D]">
-                    {item.readAt ? "อ่านแล้ว" : "ยังไม่อ่าน"}
+                  <span className="shrink-0 text-xs text-[#736A63]">
+                    {formatThaiDate(item.createdAt)}
+                    <span className="sr-only">
+                      {item.readAt ? " อ่านแล้ว" : " ยังไม่อ่าน"}
+                    </span>
                   </span>
                 </div>
               </button>

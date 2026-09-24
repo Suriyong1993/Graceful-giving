@@ -33,13 +33,17 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
   data,
 }) => {
   const printAreaRef = useRef<HTMLDivElement>(null);
-  const churchQuery = trpc.church.getProfile.useQuery(undefined, { retry: false });
+  const churchQuery = trpc.church.getProfile.useQuery(undefined, {
+    retry: false,
+  });
   const church = churchQuery.data;
 
   if (!isOpen || !data) return null;
 
   const isExpense = type === "expense";
-  const docTitle = isExpense ? "ใบสำคัญจ่าย (PAYMENT VOUCHER)" : "ใบเสร็จรับเงินถวาย (OFFERING RECEIPT)";
+  const docTitle = isExpense
+    ? "ใบสำคัญจ่าย (PAYMENT VOUCHER)"
+    : "ใบเสร็จรับเงินถวาย (OFFERING RECEIPT)";
   const defaultDocNum = isExpense
     ? `PV-${new Date(data.date).getFullYear() + 543}-${String(data.id).padStart(4, "0")}`
     : `OR-${new Date(data.date).getFullYear() + 543}-${String(data.id).padStart(4, "0")}`;
@@ -58,24 +62,26 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:overflow-visible">
       {/* Container */}
-      <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-[#E9D9BF] overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
+      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-[#E4DED7] overflow-hidden flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:rounded-none">
         {/* Modal Action Bar (Hidden in print) */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#FFF9EE] border-b border-[#E9D9BF] print:hidden">
-          <div className="flex items-center gap-2 text-[#70452E]">
-            <Building2 className="w-5 h-5 text-[#E99A4A]" />
-            <span className="font-bold text-sm">เอกสารทางการคริสตจักร (A4 Printable)</span>
+        <div className="flex items-center justify-between px-6 py-4 bg-[#FAF8F5] border-b border-[#E4DED7] print:hidden">
+          <div className="flex items-center gap-2 text-[#57504A]">
+            <Building2 className="w-5 h-5 text-[#B9530F]" />
+            <span className="font-bold text-sm">
+              เอกสารทางการคริสตจักร (A4 Printable)
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#E99A4A] hover:bg-[#d88939] text-white font-medium text-xs shadow-xs transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white font-medium text-xs shadow-xs transition-colors"
             >
               <Printer className="w-4 h-4" />
               <span>พิมพ์เอกสาร (Print / PDF)</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-[#70452E]/70 hover:text-[#38251B] hover:bg-black/5 rounded-xl transition-colors"
+              className="p-2 text-[#736A63] hover:text-[#1F1A17] hover:bg-black/5 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -92,7 +98,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
             {/* Header / Church Info */}
             <div className="border-b-2 border-stone-800 pb-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
                   {church?.name || "คริสตจักร"}
                 </h1>
                 <p className="text-xs text-stone-600 mt-1 max-w-md">
@@ -107,14 +113,18 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
                 <p className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">
                   {isExpense ? "เลขที่ใบสำคัญจ่าย" : "เลขที่ใบเสร็จ"}
                 </p>
-                <p className="text-sm font-bold text-stone-900 font-mono">{docNumber}</p>
-                <p className="text-[11px] text-stone-600 mt-1">วันที่: {formattedDate}</p>
+                <p className="text-sm font-bold text-stone-900 font-mono">
+                  {docNumber}
+                </p>
+                <p className="text-[11px] text-stone-600 mt-1">
+                  วันที่: {formattedDate}
+                </p>
               </div>
             </div>
 
             {/* Document Title Banner */}
             <div className="text-center my-6">
-              <span className="inline-block px-6 py-1.5 bg-stone-100 border border-stone-300 rounded-lg text-sm sm:text-base font-black text-stone-900 tracking-wide">
+              <span className="inline-block px-6 py-1.5 bg-stone-100 border border-stone-300 rounded-lg text-sm sm:text-base font-bold text-stone-900 tracking-wide">
                 {docTitle}
               </span>
             </div>
@@ -126,17 +136,22 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
                   {isExpense ? "จ่ายให้แก่ (Payee):" : "ได้รับเงินจาก (Donor):"}
                 </span>
                 <p className="font-bold text-stone-900 text-sm mt-0.5">
-                  {data.payeeOrDonor || (isExpense ? "ทั่วไป" : "ผู้ถวายนิรนาม")}
+                  {data.payeeOrDonor ||
+                    (isExpense ? "ทั่วไป" : "ผู้ถวายนิรนาม")}
                 </p>
               </div>
               <div>
-                <span className="text-stone-500 font-medium">หักจาก / เข้ากองทุน:</span>
+                <span className="text-stone-500 font-medium">
+                  หักจาก / เข้ากองทุน:
+                </span>
                 <p className="font-bold text-stone-900 text-sm mt-0.5">
                   {data.fundName || "กองทุนทั่วไป"}
                 </p>
               </div>
               <div>
-                <span className="text-stone-500 font-medium">หมวดหมู่รายการ:</span>
+                <span className="text-stone-500 font-medium">
+                  หมวดหมู่รายการ:
+                </span>
                 <p className="font-semibold text-stone-800 mt-0.5">
                   {data.categoryLabel || data.category || "ทั่วไป"}
                 </p>
@@ -147,8 +162,10 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
                 </span>
                 <p className="font-semibold text-stone-800 font-mono mt-0.5">
                   {isExpense
-                    ? (data.receiptRef || "-")
-                    : (data.paymentMethod === "promptpay" ? "โอนเงินพร้อมเพย์" : data.paymentMethod || "เงินสด")}
+                    ? data.receiptRef || "-"
+                    : data.paymentMethod === "promptpay"
+                      ? "โอนเงินพร้อมเพย์"
+                      : data.paymentMethod || "เงินสด"}
                 </p>
               </div>
             </div>
@@ -159,17 +176,27 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
                 <thead className="bg-stone-100 border-b border-stone-300 text-stone-700 font-bold">
                   <tr>
                     <th className="py-2.5 px-4 w-12 text-center">ลำดับ</th>
-                    <th className="py-2.5 px-4">รายการ / คำอธิบาย (Description)</th>
-                    <th className="py-2.5 px-4 text-right w-28">จำนวนเงิน (บาท)</th>
+                    <th className="py-2.5 px-4">
+                      รายการ / คำอธิบาย (Description)
+                    </th>
+                    <th className="py-2.5 px-4 text-right w-28">
+                      จำนวนเงิน (บาท)
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200">
                   <tr>
-                    <td className="py-4 px-4 text-center font-mono text-stone-500">1</td>
+                    <td className="py-4 px-4 text-center font-mono text-stone-500">
+                      1
+                    </td>
                     <td className="py-4 px-4">
-                      <p className="font-bold text-stone-900 text-sm">{data.titleOrDescription}</p>
+                      <p className="font-bold text-stone-900 text-sm">
+                        {data.titleOrDescription}
+                      </p>
                       {data.notes && (
-                        <p className="text-stone-500 text-xs mt-1">{data.notes}</p>
+                        <p className="text-stone-500 text-xs mt-1">
+                          {data.notes}
+                        </p>
                       )}
                     </td>
                     <td className="py-4 px-4 text-right font-mono font-bold text-stone-900 text-sm">
@@ -204,7 +231,9 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
               <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 print:hidden">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>รายการนี้มีหลักฐานสลิป/ใบเสร็จแนบในระบบ Supabase Storage</span>
+                  <span>
+                    รายการนี้มีหลักฐานสลิป/ใบเสร็จแนบในระบบ Supabase Storage
+                  </span>
                 </div>
                 <a
                   href={data.receiptUrl}
@@ -222,45 +251,79 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
               {isExpense ? (
                 <div className="grid grid-cols-3 gap-6 text-center text-xs">
                   <div className="space-y-12">
-                    <p className="text-stone-600 font-medium">ผู้ขอเบิก / ผู้รับเงิน</p>
+                    <p className="text-stone-600 font-medium">
+                      ผู้ขอเบิก / ผู้รับเงิน
+                    </p>
                     <div className="border-b border-stone-400 mx-2"></div>
                     <p className="text-stone-500">
-                      ({data.payeeOrDonor || "........................................"})
+                      (
+                      {data.payeeOrDonor ||
+                        "........................................"}
+                      )
                     </p>
-                    <p className="text-[10px] text-stone-400">วันที่ ......./......./.......</p>
+                    <p className="text-[10px] text-stone-400">
+                      วันที่ ......./......./.......
+                    </p>
                   </div>
                   <div className="space-y-12">
-                    <p className="text-stone-600 font-medium">เหรัญญิก / ผู้จ่ายเงิน</p>
+                    <p className="text-stone-600 font-medium">
+                      เหรัญญิก / ผู้จ่ายเงิน
+                    </p>
                     <div className="border-b border-stone-400 mx-2"></div>
                     <p className="text-stone-500">
-                      ({church?.treasurerName || "........................................"})
+                      (
+                      {church?.treasurerName ||
+                        "........................................"}
+                      )
                     </p>
-                    <p className="text-[10px] text-stone-400">วันที่ ......./......./.......</p>
+                    <p className="text-[10px] text-stone-400">
+                      วันที่ ......./......./.......
+                    </p>
                   </div>
                   <div className="space-y-12">
-                    <p className="text-stone-600 font-medium">ศิษยาภิบาล / ผู้อนุมัติ</p>
+                    <p className="text-stone-600 font-medium">
+                      ศิษยาภิบาล / ผู้อนุมัติ
+                    </p>
                     <div className="border-b border-stone-400 mx-2"></div>
                     <p className="text-stone-500">
-                      ({church?.pastorName || "........................................"})
+                      (
+                      {church?.pastorName ||
+                        "........................................"}
+                      )
                     </p>
-                    <p className="text-[10px] text-stone-400">วันที่ ......./......./.......</p>
+                    <p className="text-[10px] text-stone-400">
+                      วันที่ ......./......./.......
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-10 text-center text-xs max-w-md mx-auto">
                   <div className="space-y-12">
-                    <p className="text-stone-600 font-medium">ผู้รับเงินถวาย / ผู้บันทึก</p>
-                    <div className="border-b border-stone-400 mx-4"></div>
-                    <p className="text-stone-500">(........................................)</p>
-                    <p className="text-[10px] text-stone-400">วันที่ ......./......./.......</p>
-                  </div>
-                  <div className="space-y-12">
-                    <p className="text-stone-600 font-medium">เหรัญญิกคริสตจักร</p>
+                    <p className="text-stone-600 font-medium">
+                      ผู้รับเงินถวาย / ผู้บันทึก
+                    </p>
                     <div className="border-b border-stone-400 mx-4"></div>
                     <p className="text-stone-500">
-                      ({church?.treasurerName || "........................................"})
+                      (........................................)
                     </p>
-                    <p className="text-[10px] text-stone-400">วันที่ ......./......./.......</p>
+                    <p className="text-[10px] text-stone-400">
+                      วันที่ ......./......./.......
+                    </p>
+                  </div>
+                  <div className="space-y-12">
+                    <p className="text-stone-600 font-medium">
+                      เหรัญญิกคริสตจักร
+                    </p>
+                    <div className="border-b border-stone-400 mx-4"></div>
+                    <p className="text-stone-500">
+                      (
+                      {church?.treasurerName ||
+                        "........................................"}
+                      )
+                    </p>
+                    <p className="text-[10px] text-stone-400">
+                      วันที่ ......./......./.......
+                    </p>
                   </div>
                 </div>
               )}

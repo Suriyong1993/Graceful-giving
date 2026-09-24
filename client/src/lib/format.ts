@@ -37,7 +37,9 @@ export function formatAmount(value: number, decimals: 0 | 2 = 2): string {
  * `MoneyDisplay` anywhere the value is rendered into the page.
  */
 export function formatBaht(value: number, decimals: 0 | 2 = 2): string {
-  return `฿\u202F${formatAmount(value, decimals)}`;
+  // The sign goes before the symbol ("-฿500"), not between symbol and digits.
+  const sign = Number.isFinite(value) && value < 0 ? "-" : "";
+  return `${sign}฿\u202F${formatAmount(Math.abs(value), decimals)}`;
 }
 
 /** Accepts the ISO strings the API returns as well as real Date objects. */

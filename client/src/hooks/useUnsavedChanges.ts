@@ -25,15 +25,11 @@ export async function confirmDiscardPendingChanges(
   message: string = UNSAVED_CHANGES_MESSAGE
 ): Promise<boolean> {
   if (!hasUnsavedChanges()) return true;
-  return await Swal.confirm(
-    "มีข้อมูลที่ยังไม่ได้บันทึก",
-    message,
-    {
-      confirmButtonText: "ออกจากหน้านี้",
-      cancelButtonText: "กรอกข้อมูลต่อ",
-      icon: "warning",
-    }
-  );
+  return await Swal.confirm("มีข้อมูลที่ยังไม่ได้บันทึก", message, {
+    confirmButtonText: "ออกจากหน้านี้",
+    cancelButtonText: "กรอกข้อมูลต่อ",
+    icon: "warning",
+  });
 }
 
 /**
@@ -110,15 +106,11 @@ export async function confirmDiscardChanges(
   message: string = UNSAVED_CHANGES_MESSAGE
 ): Promise<boolean> {
   if (!isDirty) return true;
-  return await Swal.confirm(
-    "มีข้อมูลที่ยังไม่ได้บันทึก",
-    message,
-    {
-      confirmButtonText: "ออกจากหน้านี้",
-      cancelButtonText: "กรอกข้อมูลต่อ",
-      icon: "warning",
-    }
-  );
+  return await Swal.confirm("มีข้อมูลที่ยังไม่ได้บันทึก", message, {
+    confirmButtonText: "ออกจากหน้านี้",
+    cancelButtonText: "กรอกข้อมูลต่อ",
+    icon: "warning",
+  });
 }
 
 /**

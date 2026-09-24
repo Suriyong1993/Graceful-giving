@@ -22,15 +22,15 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-[#E9D9BF] overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-[#E4DED7] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#FFF9EE] border-b border-[#E9D9BF]">
+        <div className="flex items-center justify-between px-6 py-4 bg-[#FAF8F5] border-b border-[#E4DED7]">
           <div>
-            <h3 className="font-bold text-sm text-[#38251B]">
+            <h3 className="font-bold text-sm text-[#1F1A17]">
               หลักฐานสลิป / ใบเสร็จแนบ
             </h3>
             {refCode && (
-              <p className="text-xs text-[#70452E]/70 font-mono">
+              <p className="text-xs text-[#736A63] font-mono">
                 {refCode} {title && `• ${title}`}
               </p>
             )}
@@ -40,14 +40,14 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               href={receiptUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E9D9BF] text-[#70452E] hover:bg-[#FFF4DF] text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E4DED7] text-[#57504A] hover:bg-[#F4F1ED] text-xs font-medium transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>เปิดลิงก์เต็ม</span>
             </a>
             <button
               onClick={onClose}
-              className="p-1.5 text-[#70452E]/70 hover:text-[#38251B] hover:bg-black/5 rounded-xl transition-colors"
+              className="p-1.5 text-[#736A63] hover:text-[#1F1A17] hover:bg-black/5 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -58,8 +58,10 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
         <div className="p-4 sm:p-6 flex-1 overflow-y-auto flex items-center justify-center bg-stone-100 min-h-[300px]">
           {isPdf ? (
             <div className="text-center p-8 bg-white rounded-2xl border border-stone-200 shadow-xs max-w-sm">
-              <FileText className="w-16 h-16 text-[#E99A4A] mx-auto mb-3" />
-              <p className="font-bold text-sm text-stone-800">เอกสารแนบรูปแบบ PDF</p>
+              <FileText className="w-16 h-16 text-[#B9530F] mx-auto mb-3" />
+              <p className="font-bold text-sm text-stone-800">
+                เอกสารแนบรูปแบบ PDF
+              </p>
               <p className="text-xs text-stone-500 mt-1 mb-4">
                 ไฟล์เอกสาร PDF เก็บไว้ใน Supabase Storage อย่างปลอดภัย
               </p>
@@ -67,7 +69,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 href={receiptUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E99A4A] hover:bg-[#d88939] text-white text-xs font-bold shadow-xs transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-xs font-bold shadow-xs transition-colors"
               >
                 <Download className="w-4 h-4" />
                 <span>เปิดและดาวน์โหลด PDF</span>

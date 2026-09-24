@@ -14,6 +14,12 @@ import {
   useUnsavedChanges,
 } from "@/hooks/useUnsavedChanges";
 
+const MEMBER_STATUS_LABEL: Record<string, string> = {
+  active: "ใช้งาน",
+  inactive: "ไม่ใช้งาน",
+  pending: "รอยืนยัน",
+};
+
 export default function Members() {
   const [, setLocation] = useLocation();
   const [showCreate, setShowCreate] = useState(false);
@@ -63,7 +69,7 @@ export default function Members() {
   return (
     <AppLayout
       title="สมาชิกคริสตจักร"
-      subtitle="ข้อมูลสมาชิกจากฐานข้อมูลจริง"
+      subtitle="รายชื่อ ข้อมูลติดต่อ และสถานะของสมาชิก"
       action={
         <button
           type="button"
@@ -74,7 +80,7 @@ export default function Members() {
               setShowCreate(true);
             }
           }}
-          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2 text-xs font-bold text-white"
+          className="min-h-11 inline-flex items-center gap-2 rounded-xl bg-[#B9530F] px-4 py-2 text-xs font-bold text-white"
         >
           <Plus className="h-4 w-4" />
           เพิ่มสมาชิก
@@ -82,76 +88,61 @@ export default function Members() {
       }
     >
       <div className="space-y-6">
-        <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
-              <UsersRound className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-[#38251B]">
-                สมาชิกคริสตจักร
-              </h1>
-              <p className="mt-1 text-sm text-[#70452E]/80">
-                รายชื่อและสถานะจะถูกอ่านและบันทึกจากฐานข้อมูลของคริสตจักรนี้
-              </p>
-            </div>
-          </div>
-        </section>
         {showCreate && (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm"
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-bold text-[#38251B]">เพิ่มสมาชิกใหม่</h2>
+              <h2 className="font-bold text-[#1F1A17]">เพิ่มสมาชิกใหม่</h2>
               <button
                 type="button"
                 onClick={closeCreateForm}
-                className="text-[#927D6D]"
+                className="text-[#736A63]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-[#57504A]">
                 ชื่อ-นามสกุล *
                 <input
                   required
                   value={name}
                   onChange={event => setName(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 font-normal text-[#1F1A17]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-[#57504A]">
                 โทรศัพท์
                 <input
                   value={phone}
                   onChange={event => setPhone(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 font-normal text-[#1F1A17]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E]">
+              <label className="text-sm font-semibold text-[#57504A]">
                 อีเมล
                 <input
                   type="email"
                   value={email}
                   onChange={event => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 font-normal text-[#1F1A17]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#70452E] md:col-span-2">
+              <label className="text-sm font-semibold text-[#57504A] md:col-span-2">
                 หมายเหตุ
                 <textarea
                   value={notes}
                   onChange={event => setNotes(event.target.value)}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-normal text-[#38251B]"
+                  className="mt-1 w-full rounded-xl border border-[#E4DED7] p-3 font-normal text-[#1F1A17]"
                 />
               </label>
             </div>
             <button
               disabled={createMember.isPending}
-              className="mt-5 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="mt-5 min-h-11 rounded-xl bg-[#2F7A45] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {createMember.isPending ? "กำลังบันทึก…" : "บันทึกสมาชิก"}
             </button>
@@ -162,13 +153,13 @@ export default function Members() {
         ) : membersQuery.isError ? (
           <ErrorState
             title="โหลดข้อมูลสมาชิกไม่สำเร็จ"
-            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่"
+            description="เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองใหม่"
             onRetry={() => membersQuery.refetch()}
           />
         ) : !membersQuery.data?.length ? (
           <EmptyState
             title="ยังไม่มีข้อมูลสมาชิก"
-            description="เพิ่มสมาชิกด้วยแบบฟอร์มด้านบนเพื่อบันทึกลงฐานข้อมูลจริง"
+            description="เริ่มต้นด้วยการเพิ่มสมาชิกคนแรก"
             actionText="เพิ่มสมาชิก"
             onAction={() => setShowCreate(true)}
           />
@@ -179,20 +170,20 @@ export default function Members() {
                 key={member.id}
                 type="button"
                 onClick={() => setLocation(`/members/${member.id}`)}
-                className="rounded-2xl border border-[#E9D9BF] bg-white p-5 text-left shadow-sm hover:bg-[#FFF9EE]"
+                className="rounded-2xl border border-[#E4DED7] bg-white p-5 text-left shadow-sm hover:bg-[#FAF8F5]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="font-bold text-[#38251B]">{member.name}</h2>
+                  <h2 className="font-bold text-[#1F1A17]">{member.name}</h2>
                   <span
-                    className={`rounded-full px-2 py-1 text-[11px] ${member.status === "active" ? "bg-[#DCECC5] text-[#38251B]" : "bg-stone-100 text-stone-600"}`}
+                    className={`rounded-full px-2 py-1 text-[11px] ${member.status === "active" ? "bg-[#E4F3E7] text-[#1F1A17]" : "bg-stone-100 text-stone-600"}`}
                   >
-                    {member.status}
+                    {MEMBER_STATUS_LABEL[member.status] ?? member.status}
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-[#70452E]/80">
+                <p className="mt-2 text-sm text-[#736A63]">
                   {member.phone || "ไม่ระบุเบอร์โทรศัพท์"}
                 </p>
-                <p className="text-sm text-[#70452E]/80">
+                <p className="text-sm text-[#736A63]">
                   {member.email || "ไม่ระบุอีเมล"}
                 </p>
               </button>

@@ -23,7 +23,10 @@ const THAI_CHAR_RANGE_END = 0x0e7f;
 function containsThaiChars(text: string): boolean {
   for (const char of text) {
     const codePoint = char.codePointAt(0) ?? 0;
-    if (codePoint >= THAI_CHAR_RANGE_START && codePoint <= THAI_CHAR_RANGE_END) {
+    if (
+      codePoint >= THAI_CHAR_RANGE_START &&
+      codePoint <= THAI_CHAR_RANGE_END
+    ) {
       return true;
     }
   }
@@ -58,7 +61,7 @@ export function FlipText({
   if (import.meta.env.DEV && containsThaiChars(children)) {
     console.warn(
       `[FlipText] Received Thai text ("${children}"). FlipText only supports Latin/CJK ` +
-        'characters — per-character splitting breaks Thai combining marks. Reserve this ' +
+        "characters — per-character splitting breaks Thai combining marks. Reserve this " +
         'component for short English wordmarks (e.g. the "Graceful Giving" logotype); do ' +
         "not use it for general Thai UI copy."
     );

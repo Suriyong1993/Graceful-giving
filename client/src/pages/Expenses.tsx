@@ -9,7 +9,7 @@ import {
   MoneyDisplay,
   StatusBadge,
 } from "@/components/common/CommonUI";
-import { Illustration } from "@/components/Illustration";
+import { formatThaiDate } from "@/lib/format";
 import {
   Download,
   Plus,
@@ -122,6 +122,19 @@ export default function Expenses() {
     toast.success("ส่งออกข้อมูลรายจ่ายสำเร็จ");
   };
 
+  const toVoucher = (e: (typeof expenses)[number]): VoucherData => ({
+    id: e.id,
+    date: e.date,
+    amount: e.amount,
+    category: e.category,
+    categoryLabel: expenseCategoryLabel(e.category),
+    titleOrDescription: e.description,
+    payeeOrDonor: e.payee,
+    fundName: fundName(e.fundId),
+    receiptRef: e.receiptRef,
+    receiptUrl: e.receiptUrl,
+  });
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "utilities":
@@ -143,123 +156,99 @@ export default function Expenses() {
     }
   };
 
+  // Both metrics come from the loaded rows. Nothing here is a fixed figure.
+  const topCategory = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const e of expenses)
+      totals.set(e.category, (totals.get(e.category) ?? 0) + e.amount);
+    const all = expenses.reduce((acc, e) => acc + e.amount, 0);
+    let best: { id: string; amount: number } | null = null;
+    totals.forEach((amount, id) => {
+      if (!best || amount > best.amount) best = { id, amount };
+    });
+    const top = best as { id: string; amount: number } | null;
+    return top && all > 0
+      ? { label: expenseCategoryLabel(top.id), share: (top.amount / all) * 100 }
+      : null;
+  }, [expenses]);
+
+  const withReceipt = expenses.filter(
+    e => e.receiptUrl || e.receiptRef !== "-"
+  ).length;
+
   return (
-    <AppLayout>
+    <AppLayout
+      title="รายจ่าย"
+      subtitle="บันทึกและตรวจสอบค่าใช้จ่ายของคริสตจักร พร้อมหลักฐานการจ่าย"
+      action={
+        <>
+          <button
+            onClick={exportCSV}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-4 text-sm font-medium text-[#3F3833] hover:bg-[#F4F1ED]"
+          >
+            <Download className="size-4" />
+            ส่งออก CSV
+          </button>
+          <button
+            onClick={() => setLocation("/expenses/new")}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#B9530F] px-4 text-sm font-semibold text-white hover:bg-[#A34A0C]"
+          >
+            <Plus className="size-4" />
+            บันทึกรายจ่าย
+          </button>
+        </>
+      }
+    >
       <div className="space-y-6">
-        {/* Header Banner */}
-        <div className="bg-[#FFF4DF] border border-[#E9D9BF] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="space-y-2 text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F7B6A6]/20 text-[#70452E]">
-              <TrendingDown className="w-3.5 h-3.5 text-[#F7B6A6]" />
-              การเบิกจ่ายและค่าใช้จ่ายคริสตจักร
-            </span>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              บันทึกรายจ่าย (Expenses)
-            </h1>
-            <p className="text-sm text-[#70452E]/80 max-w-xl">
-              บันทึกและตรวจสอบทุกการใช้จ่ายเพื่อพันธกิจของพระเจ้า
-              ด้วยความโปร่งใส สัตย์ซื่อ และมีหลักฐานครบถ้วน
-            </p>
-          </div>
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-white/60 p-1">
-            <Illustration
-              src="/illustrations/expense_hand_coin.jpg"
-              alt="Expense illustration"
-              className="w-full h-full object-cover rounded-xl"
-            />
-          </div>
-        </div>
-
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
-              <span className="text-sm font-medium">รวมรายจ่ายตามตัวกรอง</span>
-              <div className="w-8 h-8 rounded-full bg-[#F7B6A6]/20 flex items-center justify-center text-[#70452E]">
-                <TrendingDown className="w-4 h-4" />
-              </div>
-            </div>
-            <MoneyDisplay
-              amount={totalAmount}
-              type="expense"
-              size="lg"
-              className="font-bold text-foreground"
-            />
-            <p className="text-xs text-[#70452E]/60 mt-1">
-              {filteredExpenses.length} รายการที่แสดง
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <MetricCard
+            label="รวมรายจ่ายตามตัวกรอง"
+            icon={TrendingDown}
+            note={`${filteredExpenses.length} รายการที่แสดง`}
+          >
+            <MoneyDisplay amount={totalAmount} size="lg" />
+          </MetricCard>
+          <MetricCard
+            label="หมวดที่ใช้จ่ายมากที่สุด"
+            icon={Receipt}
+            note={
+              topCategory
+                ? `${topCategory.share.toFixed(0)}% ของรายจ่ายที่โหลด`
+                : "ยังไม่มีข้อมูล"
+            }
+          >
+            <p className="text-xl font-bold text-[#1F1A17]">
+              {topCategory?.label ?? "—"}
             </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
-              <span className="text-sm font-medium">
-                หมวดหมู่หลักประจำเดือน
-              </span>
-              <div className="w-8 h-8 rounded-full bg-[#A9D4ED]/20 flex items-center justify-center text-sky-700">
-                <Receipt className="w-4 h-4" />
-              </div>
-            </div>
-            <p className="text-xl font-bold text-foreground">
-              สาธารณูปโภค & พันธกิจ
+          </MetricCard>
+          <MetricCard
+            label="มีหลักฐานการจ่าย"
+            icon={Paperclip}
+            note="มีเลขที่ใบเสร็จหรือไฟล์แนบ"
+          >
+            <p className="text-xl font-bold tabular-nums text-[#1F1A17]">
+              {withReceipt} / {expenses.length}{" "}
+              <span className="text-sm font-medium text-[#736A63]">รายการ</span>
             </p>
-            <p className="text-xs text-[#70452E]/60 mt-1">
-              สัดส่วน 62% ของงบประมาณ
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-[#E9D9BF] shadow-sm">
-            <div className="flex items-center justify-between text-[#70452E]/70 mb-2">
-              <span className="text-sm font-medium">สถานะการตรวจสอบ</span>
-              <div className="w-8 h-8 rounded-full bg-[#DCECC5] flex items-center justify-center text-[#70452E]">
-                <HeartHandshake className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground">100%</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[#A8C978]/20 text-foreground font-medium">
-                มีใบเสร็จครบ
-              </span>
-            </div>
-            <p className="text-xs text-[#70452E]/60 mt-1">
-              ผ่านการอนุมัติเรียบร้อย
-            </p>
-          </div>
+          </MetricCard>
         </div>
 
-        {/* Action Controls & Filters */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <FilterBar
-            searchPlaceholder="ค้นหารายการ, ผู้รับเงิน, เลขที่ใบเสร็จ..."
-            searchValue={searchTerm}
-            onSearchChange={setSearchTerm}
-            activeFilter={categoryFilter}
-            onFilterChange={setCategoryFilter}
-            filters={[
-              { label: "ทุกหมวดหมู่", id: "all", count: expenses.length },
-              ...EXPENSE_CATEGORIES.map(c => ({
-                label: c.label,
-                id: c.id,
-                count: expenses.filter(e => e.category === c.id).length,
-              })),
-            ]}
-          />
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <button
-              onClick={exportCSV}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-[#E9D9BF] bg-white text-[#70452E] hover:bg-[#FFF4DF]/50 transition-colors text-sm font-medium shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              <span>ส่งออก CSV</span>
-            </button>
-            <button
-              onClick={() => setLocation("/expenses/new")}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-[#d88939] text-white font-medium text-sm shadow-sm transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              <span>บันทึกรายจ่าย</span>
-            </button>
-          </div>
-        </div>
+        <FilterBar
+          searchPlaceholder="ค้นหารายการ, ผู้รับเงิน, เลขที่ใบเสร็จ..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          activeFilter={categoryFilter}
+          onFilterChange={setCategoryFilter}
+          filters={[
+            { label: "ทุกหมวดหมู่", id: "all", count: expenses.length },
+            ...EXPENSE_CATEGORIES.map(c => ({
+              label: c.label,
+              id: c.id,
+              count: expenses.filter(e => e.category === c.id).length,
+            })),
+          ]}
+        />
 
         {/* Table & List */}
         {isLoading ? (
@@ -267,7 +256,7 @@ export default function Expenses() {
         ) : isError ? (
           <EmptyState
             title="โหลดรายการรายจ่ายไม่สำเร็จ"
-            description="เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูลจริง กรุณาลองใหม่อีกครั้ง"
+            description="เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
             actionText="ลองใหม่"
             onAction={() => refetch()}
           />
@@ -279,25 +268,25 @@ export default function Expenses() {
             onAction={() => setLocation("/expenses/new")}
           />
         ) : (
-          <div className="bg-white rounded-3xl border border-[#E9D9BF] overflow-hidden shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-[#E4DED7] bg-white">
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-sm text-foreground">
-                <thead className="bg-background border-b border-[#E9D9BF] text-xs font-semibold text-[#70452E]">
+              <table className="w-full text-left text-sm text-[#1F1A17]">
+                <thead className="border-b border-[#E4DED7] bg-[#FAF8F5] text-xs font-medium text-[#736A63]">
                   <tr>
-                    <th className="py-4 px-6">วันที่</th>
-                    <th className="py-4 px-6">รายการ</th>
-                    <th className="py-4 px-6">หมวดหมู่</th>
-                    <th className="py-4 px-6">ผู้รับเงิน (Payee)</th>
-                    <th className="py-4 px-6">กองทุน</th>
-                    <th className="py-4 px-6">เลขที่ใบเสร็จ</th>
-                    <th className="py-4 px-6 text-center">หลักฐาน</th>
-                    <th className="py-4 px-6 text-right">จำนวนเงิน</th>
-                    <th className="py-4 px-6 text-center">สถานะ</th>
-                    <th className="py-4 px-6 text-center">ใบสำคัญจ่าย</th>
+                    <th className="py-3 px-5 font-medium">วันที่</th>
+                    <th className="py-3 px-5 font-medium">รายการ</th>
+                    <th className="py-3 px-5 font-medium">หมวดหมู่</th>
+                    <th className="py-3 px-5 text-right font-medium">
+                      จำนวนเงิน
+                    </th>
+                    <th className="py-3 px-5 font-medium">สถานะ</th>
+                    <th className="py-3 px-5 text-right font-medium">
+                      <span className="sr-only">เอกสาร</span>
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E9D9BF]/40">
+                <tbody className="divide-y divide-[#EDE8E3]">
                   {filteredExpenses.map(e => {
                     const cat = getCategoryIcon(e.category);
                     const CatIcon = cat.icon;
@@ -307,93 +296,73 @@ export default function Expenses() {
                         onClick={() =>
                           setLocation(`/transactions/expense-${e.id}`)
                         }
-                        className="hover:bg-[#FFF4DF]/30 cursor-pointer transition-colors"
+                        className="cursor-pointer transition-colors hover:bg-[#FAF8F5]"
                       >
-                        <td className="py-4 px-6 whitespace-nowrap text-[#70452E]/80">
-                          {new Date(e.date).toLocaleDateString("th-TH", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
+                        <td className="whitespace-nowrap py-3.5 px-5 text-[#57504A]">
+                          {formatThaiDate(e.date)}
                         </td>
-                        <td className="py-4 px-6 font-medium text-foreground max-w-xs truncate">
-                          {e.description}
+                        <td className="max-w-sm py-3.5 px-5">
+                          <p className="truncate font-medium">
+                            {e.description}
+                          </p>
+                          <p className="truncate text-xs text-[#736A63]">
+                            {e.payee} · {fundName(e.fundId)}
+                            {e.receiptRef !== "-" && (
+                              <span className="font-mono">
+                                {" "}
+                                · {e.receiptRef}
+                              </span>
+                            )}
+                          </p>
                         </td>
-                        <td className="py-4 px-6 whitespace-nowrap">
+                        <td className="whitespace-nowrap py-3.5 px-5">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cat.color}`}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cat.color}`}
                           >
-                            <CatIcon className="w-3.5 h-3.5" />
+                            <CatIcon className="size-3.5" />
                             {expenseCategoryLabel(e.category)}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-[#70452E]/80 whitespace-nowrap">
-                          {e.payee}
-                        </td>
-                        <td className="py-4 px-6 text-xs text-[#70452E]/80 whitespace-nowrap">
-                          {fundName(e.fundId)}
-                        </td>
-                        <td className="py-4 px-6 text-xs text-[#70452E]/60 font-mono whitespace-nowrap">
-                          {e.receiptRef}
-                        </td>
-                        <td
-                          className="py-4 px-6 text-center whitespace-nowrap"
-                          onClick={ev => ev.stopPropagation()}
-                        >
-                          {e.receiptUrl ? (
-                            <button
-                              onClick={() =>
-                                setPreviewReceipt({
-                                  url: e.receiptUrl!,
-                                  ref: e.receiptRef || `EXP-${e.id}`,
-                                  title: e.description,
-                                })
-                              }
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-medium transition-colors"
-                              title="คลิกเพื่อดูรูปสลิป/ใบเสร็จ"
-                            >
-                              <Paperclip className="w-3.5 h-3.5" />
-                              <span>ดูสลิป</span>
-                            </button>
-                          ) : (
-                            <span className="text-stone-300 text-xs">-</span>
-                          )}
-                        </td>
-                        <td className="py-4 px-6 text-right whitespace-nowrap font-medium">
+                        <td className="whitespace-nowrap py-3.5 px-5 text-right">
                           <MoneyDisplay
                             amount={e.amount}
                             type="expense"
                             size="sm"
                           />
                         </td>
-                        <td className="py-4 px-6 text-center whitespace-nowrap">
+                        <td className="whitespace-nowrap py-3.5 px-5">
                           <StatusBadge status={e.status} />
                         </td>
                         <td
-                          className="py-4 px-6 text-center whitespace-nowrap"
+                          className="whitespace-nowrap py-2 px-5 text-right"
                           onClick={ev => ev.stopPropagation()}
                         >
-                          <button
-                            onClick={() =>
-                              setSelectedVoucher({
-                                id: e.id,
-                                date: e.date,
-                                amount: e.amount,
-                                category: e.category,
-                                categoryLabel: expenseCategoryLabel(e.category),
-                                titleOrDescription: e.description,
-                                payeeOrDonor: e.payee,
-                                fundName: fundName(e.fundId),
-                                receiptRef: e.receiptRef,
-                                receiptUrl: e.receiptUrl,
-                              })
-                            }
-                            className="min-h-11 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-[#FFF4DF] hover:border-primary text-[#70452E] border border-stone-200 text-xs font-semibold transition-all shadow-2xs"
-                            title="พิมพ์ใบสำคัญจ่าย"
-                          >
-                            <Printer className="w-3.5 h-3.5 text-primary" />
-                            <span>พิมพ์ใบสำคัญ</span>
-                          </button>
+                          <div className="inline-flex gap-1">
+                            {e.receiptUrl && (
+                              <button
+                                onClick={() =>
+                                  setPreviewReceipt({
+                                    url: e.receiptUrl!,
+                                    ref: e.receiptRef || `EXP-${e.id}`,
+                                    title: e.description,
+                                  })
+                                }
+                                className="inline-flex size-10 items-center justify-center rounded-lg text-[#2F7A45] hover:bg-[#E4F3E7]"
+                                title="ดูสลิป/ใบเสร็จ"
+                                aria-label={`ดูสลิปของ ${e.description}`}
+                              >
+                                <Paperclip className="size-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedVoucher(toVoucher(e))}
+                              className="inline-flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+                              title="พิมพ์ใบสำคัญจ่าย"
+                              aria-label={`พิมพ์ใบสำคัญจ่ายของ ${e.description}`}
+                            >
+                              <Printer className="size-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -403,7 +372,7 @@ export default function Expenses() {
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-[#E9D9BF]/40">
+            <div className="md:hidden divide-y divide-[#E4DED7]/40">
               {filteredExpenses.map(e => {
                 const cat = getCategoryIcon(e.category);
                 const CatIcon = cat.icon;
@@ -411,7 +380,7 @@ export default function Expenses() {
                   <div
                     key={e.id}
                     onClick={() => setLocation(`/transactions/expense-${e.id}`)}
-                    className="p-4 space-y-2.5 active:bg-[#FFF4DF]/40"
+                    className="p-4 space-y-2.5 active:bg-[#F4F1ED]/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
@@ -422,14 +391,14 @@ export default function Expenses() {
                             <CatIcon className="w-3 h-3" />
                             {expenseCategoryLabel(e.category)}
                           </span>
-                          <span className="text-xs text-[#70452E]/60 font-mono">
+                          <span className="text-xs text-[#736A63] font-mono">
                             {e.receiptRef}
                           </span>
                         </div>
                         <p className="font-medium text-foreground text-sm truncate">
                           {e.description}
                         </p>
-                        <p className="text-xs text-[#70452E]/70">
+                        <p className="text-xs text-[#736A63]">
                           {e.payee} •{" "}
                           {new Date(e.date).toLocaleDateString("th-TH")}
                         </p>
@@ -448,7 +417,7 @@ export default function Expenses() {
 
                     {/* Mobile Action Bar */}
                     <div
-                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#E9D9BF]/30"
+                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#E4DED7]/30"
                       onClick={ev => ev.stopPropagation()}
                     >
                       {e.receiptUrl && (
@@ -467,21 +436,8 @@ export default function Expenses() {
                         </button>
                       )}
                       <button
-                        onClick={() =>
-                          setSelectedVoucher({
-                            id: e.id,
-                            date: e.date,
-                            amount: e.amount,
-                            category: e.category,
-                            categoryLabel: expenseCategoryLabel(e.category),
-                            titleOrDescription: e.description,
-                            payeeOrDonor: e.payee,
-                            fundName: fundName(e.fundId),
-                            receiptRef: e.receiptRef,
-                            receiptUrl: e.receiptUrl,
-                          })
-                        }
-                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#70452E] border border-stone-200 text-xs font-medium"
+                        onClick={() => setSelectedVoucher(toVoucher(e))}
+                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#57504A] border border-stone-200 text-xs font-medium"
                       >
                         <Printer className="w-3 h-3 text-primary" />
                         <span>พิมพ์ใบสำคัญ</span>
@@ -512,5 +468,28 @@ export default function Expenses() {
         />
       </div>
     </AppLayout>
+  );
+}
+
+function MetricCard({
+  label,
+  icon: Icon,
+  note,
+  children,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  note: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E4DED7] bg-white p-5">
+      <div className="mb-2 flex items-center justify-between text-[#736A63]">
+        <span className="text-sm font-medium">{label}</span>
+        <Icon className="size-4" />
+      </div>
+      {children}
+      <p className="mt-1 text-xs text-[#736A63]">{note}</p>
+    </div>
   );
 }

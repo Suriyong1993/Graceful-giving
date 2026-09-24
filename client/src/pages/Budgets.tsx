@@ -19,7 +19,7 @@ import {
 } from "@/components/finance/budget";
 import { trpc } from "@/lib/trpc";
 import { formatBaht } from "@/lib/format";
-import { BarChart3, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   confirmDiscardChanges,
@@ -98,7 +98,7 @@ export default function Budgets() {
         <button
           type="button"
           onClick={() => (showCreate ? closeCreateForm() : setShowCreate(true))}
-          className="min-h-11 inline-flex items-center gap-2 rounded-2xl bg-[#E99A4A] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#D88939]"
+          className="min-h-11 inline-flex items-center gap-2 rounded-xl bg-[#B9530F] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#A34A0C]"
         >
           <Plus className="h-4 w-4" />
           ตั้งงบประมาณ
@@ -106,63 +106,51 @@ export default function Budgets() {
       }
     >
       <div className="space-y-6">
-        <section className="rounded-3xl border border-[#E9D9BF] bg-[#FFF4DF] p-6 shadow-sm md:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-white p-3 text-[#E99A4A]">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-[#38251B]">
-                  แผนงบประมาณปี {thaiYear(year)}
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#70452E]/80">
-                  ยอดใช้จริงคำนวณจากรายจ่ายที่บันทึกไว้ (ไม่รวมรายการที่ยกเลิก)
-                  ตามช่วงเวลา หมวด และกองทุนของแต่ละแผน
-                </p>
-              </div>
-            </div>
-            <div
-              className="flex items-center gap-1 rounded-2xl border border-[#E9D9BF] bg-white p-1"
-              role="group"
-              aria-label="เลือกปีงบประมาณ"
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="flex items-center gap-1 rounded-xl border border-[#E4DED7] bg-white p-1"
+            role="group"
+            aria-label="เลือกปีงบประมาณ"
+          >
+            <button
+              type="button"
+              onClick={() => setYear(y => y - 1)}
+              className="flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+              aria-label="ปีก่อนหน้า"
             >
-              <button
-                type="button"
-                onClick={() => setYear(y => y - 1)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-[#70452E] hover:bg-[#FFF4DF]"
-                aria-label="ปีก่อนหน้า"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="min-w-20 text-center text-sm font-bold tabular-nums text-[#38251B]">
-                พ.ศ. {thaiYear(year)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setYear(y => y + 1)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-[#70452E] hover:bg-[#FFF4DF]"
-                aria-label="ปีถัดไป"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+              <ChevronLeft className="size-5" />
+            </button>
+            <span className="min-w-24 text-center text-sm font-semibold tabular-nums text-[#1F1A17]">
+              ปี พ.ศ. {thaiYear(year)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setYear(y => y + 1)}
+              className="flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+              aria-label="ปีถัดไป"
+            >
+              <ChevronRight className="size-5" />
+            </button>
           </div>
-        </section>
+          <p className="max-w-xl text-sm text-[#736A63]">
+            ยอดใช้จริงรวมจากรายจ่ายที่บันทึกไว้ (ไม่รวมรายการที่ยกเลิก)
+            ตามช่วงเวลา หมวด และกองทุนของแต่ละแผน
+          </p>
+        </div>
 
         {showCreate && (
           <form
             onSubmit={submit}
-            className="rounded-3xl border border-[#E9D9BF] bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm"
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-bold text-[#38251B]">
+              <h2 className="font-bold text-[#1F1A17]">
                 ตั้งงบประมาณสำหรับปี {thaiYear(year)}
               </h2>
               <button
                 type="button"
                 onClick={closeCreateForm}
-                className="flex h-11 w-11 items-center justify-center text-[#927D6D]"
+                className="flex h-11 w-11 items-center justify-center text-[#736A63]"
                 aria-label="ปิดแบบฟอร์ม"
               >
                 <X className="h-5 w-5" />
@@ -171,7 +159,7 @@ export default function Budgets() {
             <BudgetFormFields values={form} onChange={setForm} funds={funds} />
             <button
               disabled={createPlan.isPending}
-              className="mt-5 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="mt-5 min-h-11 rounded-xl bg-[#2F7A45] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
             >
               {createPlan.isPending ? "กำลังบันทึก…" : "บันทึกงบประมาณ"}
             </button>
@@ -199,12 +187,12 @@ export default function Budgets() {
               <SummaryCard
                 label="อยู่ในงบ"
                 value={counts.ok}
-                className="text-[#1C592B]"
+                className="text-[#1F5C33]"
               />
               <SummaryCard
                 label="ใกล้เต็มงบ"
                 value={counts.warn}
-                className="text-[#9A5A12]"
+                className="text-[#A34A0C]"
               />
               <SummaryCard
                 label="เกินงบ"
@@ -219,32 +207,32 @@ export default function Budgets() {
                   key={plan.id}
                   type="button"
                   onClick={() => setLocation(`/budgets/${plan.id}`)}
-                  className="rounded-2xl border border-[#E9D9BF] bg-white p-5 text-left shadow-sm hover:bg-[#FFF9EE]"
+                  className="rounded-2xl border border-[#E4DED7] bg-white p-5 text-left shadow-sm hover:bg-[#FAF8F5]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="font-bold text-[#38251B]">
+                      <h2 className="font-bold text-[#1F1A17]">
                         {budgetCategoryLabel(plan.category)}
                       </h2>
-                      <p className="mt-0.5 text-xs text-[#927D6D]">
+                      <p className="mt-0.5 text-xs text-[#736A63]">
                         {budgetPeriodLabel(plan.year, plan.month)}
                         {fundName(plan.fundId)
                           ? ` · ${fundName(plan.fundId)}`
                           : ""}
                       </p>
                     </div>
-                    <span className="shrink-0 text-right text-xs text-[#927D6D]">
+                    <span className="shrink-0 text-right text-xs text-[#736A63]">
                       {plan.remainingAmount < 0 ? "เกินงบ" : "คงเหลือ"}
                       <span
-                        className={`block text-sm font-bold tabular-nums ${plan.remainingAmount < 0 ? "text-[#C7382D]" : "text-[#38251B]"}`}
+                        className={`block text-sm font-bold tabular-nums ${plan.remainingAmount < 0 ? "text-[#C7382D]" : "text-[#1F1A17]"}`}
                       >
                         {formatBaht(Math.abs(plan.remainingAmount), 0)}
                       </span>
                     </span>
                   </div>
-                  <p className="mt-3 text-sm tabular-nums text-[#70452E]">
+                  <p className="mt-3 text-sm tabular-nums text-[#57504A]">
                     {formatBaht(plan.actualAmount, 0)}{" "}
-                    <span className="text-[#927D6D]">
+                    <span className="text-[#736A63]">
                       จาก {formatBaht(plan.plannedAmount, 0)}
                     </span>
                   </p>
@@ -273,10 +261,10 @@ function SummaryCard({
   className: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold text-[#927D6D]">{label}</p>
+    <div className="rounded-2xl border border-[#E4DED7] bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold text-[#736A63]">{label}</p>
       <p
-        className={`mt-1 text-xl font-extrabold tabular-nums md:text-2xl ${className}`}
+        className={`mt-1 text-xl font-bold tabular-nums md:text-2xl ${className}`}
       >
         {value} <span className="text-sm font-semibold">แผน</span>
       </p>

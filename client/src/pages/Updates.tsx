@@ -20,7 +20,7 @@ export default function Updates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fbf7ee] p-6 text-center text-sm text-[#786455]">
+      <div className="min-h-screen bg-[#FAF8F5] p-6 text-center text-sm text-[#736A63]">
         กำลังตรวจสอบบัญชีผู้ใช้...
       </div>
     );
@@ -28,28 +28,28 @@ export default function Updates() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#fbf7ee] px-5 py-8">
+      <div className="min-h-screen bg-[#FAF8F5] px-5 py-8">
         <div className="mx-auto max-w-lg">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#8d5e30] hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#A34A0C] hover:underline"
           >
             <ArrowLeft className="size-4" />
             กลับหน้าหลัก
           </Link>
-          <div className="mt-16 rounded-[28px] border border-[#eadfce] bg-white p-8 text-center shadow-[0_12px_30px_rgba(94,70,42,0.07)]">
-            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#f8eddb] text-[#bd7b42]">
+          <div className="mt-16 rounded-2xl border border-[#E4DED7] bg-white p-8 text-center shadow-[0_12px_30px_rgba(94,70,42,0.07)]">
+            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#F4F1ED] text-[#A34A0C]">
               <Bell className="size-8" />
             </div>
-            <h1 className="mt-5 font-display text-2xl font-bold text-[#4c392e]">
+            <h1 className="mt-5 font-display text-2xl font-bold text-[#3F3833]">
               ติดตามข่าวสารคริสตจักร
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#6a5649]">
+            <p className="mt-2 text-sm leading-6 text-[#57504A]">
               เข้าสู่ระบบเพื่อดูประกาศ กิจกรรม และข้อมูลอัปเดตสำหรับสมาชิก
             </p>
             <button
               onClick={startLogin}
-              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#bd7b42] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#a86a34] active:scale-95 transition"
+              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#A34A0C] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#B9530F] active:scale-95 transition"
             >
               <UsersRound className="size-4" />
               เข้าสู่ระบบ
@@ -61,13 +61,13 @@ export default function Updates() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fbf7ee] pb-16 text-[#3a2d26]">
+    <div className="min-h-screen bg-[#FAF8F5] pb-16 text-[#2C2622]">
       <div className="mx-auto max-w-[var(--content-max)] px-5 py-6 sm:px-8 lg:py-10">
         <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#8d5e30] hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#A34A0C] hover:underline"
             >
               <ArrowLeft className="size-4" />
               กลับหน้าหลัก
@@ -77,28 +77,28 @@ export default function Updates() {
                 <Megaphone className="size-6" />
               </div>
               <div>
-                <h1 className="font-display text-3xl font-bold tracking-tight text-[#4b382e]">
+                <h1 className="font-display text-3xl font-bold tracking-tight text-[#3F3833]">
                   ข่าวสาร & กิจกรรม
                 </h1>
-                <p className="mt-1 text-sm text-[#6a5649]">
+                <p className="mt-1 text-sm text-[#57504A]">
                   ติดตามสิ่งที่เกิดขึ้นในคริสตจักรบ้านแห่งพระคุณ
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#eee4d7] bg-white/75 px-3.5 py-2 text-xs text-[#5a463a]">
-            <Sparkles className="size-4 text-[#bd7b42]" />
+          <div className="flex items-center gap-2 rounded-full border border-[#EDE8E3] bg-white/75 px-3.5 py-2 text-xs text-[#57504A]">
+            <Sparkles className="size-4 text-[#A34A0C]" />
             <span>อัปเดตเพื่อการมีส่วนร่วมในชุมชน</span>
           </div>
         </header>
 
-        <div className="mt-8 flex gap-2 rounded-2xl bg-[#f3eadf] p-1.5 sm:w-fit">
+        <div className="mt-8 flex gap-2 rounded-2xl bg-[#EDE8E3] p-1.5 sm:w-fit">
           <button
             onClick={() => setActiveTab("feed")}
             className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
               activeTab === "feed"
-                ? "bg-white text-[#8d5e30] shadow-sm"
-                : "text-[#786455] hover:text-[#4c392e]"
+                ? "bg-white text-[#A34A0C] shadow-sm"
+                : "text-[#736A63] hover:text-[#3F3833]"
             }`}
           >
             สำหรับสมาชิก
@@ -108,8 +108,8 @@ export default function Updates() {
               onClick={() => setActiveTab("manage")}
               className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
                 activeTab === "manage"
-                  ? "bg-white text-[#8d5e30] shadow-sm"
-                  : "text-[#786455] hover:text-[#4c392e]"
+                  ? "bg-white text-[#A34A0C] shadow-sm"
+                  : "text-[#736A63] hover:text-[#3F3833]"
               }`}
             >
               <Settings2 className="mr-1.5 inline size-4" />
