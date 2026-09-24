@@ -33,6 +33,7 @@ import { isSuperAdmin, getChurchRoleInfo, CHURCH_ROLES } from "@shared/roles";
 import { NativeSelect } from "@/components/ui/native-select";
 import { roleHolderLabel } from "@/lib/roleHolders";
 import type { ChurchRole } from "@shared/roles";
+import { LoadingSkeleton } from "@/components/common/CommonUI";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -623,10 +624,11 @@ export default function Settings() {
               </div>
 
               {usersQuery.isLoading ? (
-                <div className="py-12 flex flex-col items-center justify-center text-sm text-[#736A63] gap-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#B9530F]" />
-                  <span>กำลังโหลดรายชื่อผู้ใช้งาน...</span>
-                </div>
+                <LoadingSkeleton
+                  count={4}
+                  height="h-16"
+                  label="กำลังโหลดรายชื่อผู้ใช้งาน"
+                />
               ) : !usersQuery.data || usersQuery.data.length === 0 ? (
                 <div className="py-8 text-center text-sm text-[#736A63] bg-[#FAF8F5] rounded-2xl border border-[#E4DED7]/60">
                   ยังไม่พบข้อมูลผู้ใช้งานในระบบ
@@ -978,10 +980,11 @@ export default function Settings() {
             </div>
 
             {auditQuery.isLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center text-sm text-[#736A63] gap-3">
-                <Loader2 className="w-6 h-6 animate-spin text-[#B9530F]" />
-                <span>กำลังโหลด Audit Log...</span>
-              </div>
+              <LoadingSkeleton
+                count={5}
+                height="h-16"
+                label="กำลังโหลด Audit Log"
+              />
             ) : (
               (() => {
                 const logs = (auditQuery.data || []).filter(log => {

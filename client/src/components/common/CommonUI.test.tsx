@@ -20,6 +20,13 @@ describe("CommonUI Components", () => {
       const items = container.querySelectorAll(".animate-pulse");
       expect(items.length).toBe(5);
     });
+
+    it("announces the loading state to screen readers", () => {
+      render(<LoadingSkeleton label="กำลังโหลดรายการสลิป" />);
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "กำลังโหลดรายการสลิป"
+      );
+    });
   });
 
   describe("EmptyState", () => {
