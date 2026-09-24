@@ -13,6 +13,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+env
 
 # IDE and editor files
 .vscode/
@@ -68,9 +69,8 @@ jspm_packages/
 
 # Microbundle cache
 .rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
+.rts2_cache_cjs
+.rts2_cache_umd
 
 # Optional REPL history
 .node_repl_history
