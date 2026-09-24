@@ -737,7 +737,8 @@ export const appRouter = router({
           amount: z.number().positive(),
           purpose: z.string().trim().min(5).max(280),
           details: z.string().trim().max(1000).optional(),
-          fundId: z.number().int().positive().optional(),
+          /** Required: a request is paid from this fund when disbursed. */
+          fundId: z.number().int().positive(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -788,6 +789,8 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number().int().positive(),
+          /** Only for older requests that name no fund. */
+          fundId: z.number().int().positive().optional(),
           category: expenseCategory.optional(),
           payee: z.string().trim().max(120).optional(),
           receiptRef: z.string().trim().max(120).optional(),
@@ -798,6 +801,7 @@ export const appRouter = router({
           disburseWithdrawal({
             id: input.id,
             disbursedBy: ctx.user.id,
+            fundId: input.fundId,
             category: input.category,
             payee: input.payee ?? null,
             receiptRef: input.receiptRef ?? null,
