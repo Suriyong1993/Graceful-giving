@@ -30,6 +30,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { FEATURES } from "@/lib/features";
 
 export const navItems = [
   { label: "หน้าหลัก", path: "/", icon: Home },
@@ -63,11 +64,15 @@ export const navItems = [
     path: "/funds",
     icon: Landmark,
   },
-  {
-    label: "งบประมาณ",
-    path: "/budgets",
-    icon: PieChart,
-  },
+  ...(FEATURES.budgets
+    ? [
+        {
+          label: "งบประมาณ",
+          path: "/budgets",
+          icon: PieChart,
+        },
+      ]
+    : []),
   {
     label: "พันธกิจ",
     path: "/ministries",
