@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import { X, ExternalLink, Download, FileText } from "lucide-react";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 
 interface ReceiptPreviewModalProps {
   isOpen: boolean;
@@ -12,13 +13,14 @@ interface ReceiptPreviewModalProps {
 export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   isOpen,
   onClose,
-  receiptUrl,
+  receiptUrl: receiptValue,
   title,
   refCode,
 }) => {
-  if (!isOpen || !receiptUrl) return null;
+  const { url: receiptUrl } = useReceiptUrl(isOpen ? receiptValue : null);
+  if (!isOpen || !receiptValue) return null;
 
-  const isPdf = receiptUrl.toLowerCase().includes(".pdf");
+  const isPdf = receiptValue.toLowerCase().includes(".pdf");
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
@@ -37,7 +39,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={receiptUrl}
+              href={receiptUrl ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E7DCC8] text-[#51443A] hover:bg-[#FFF8EA] text-xs font-medium transition-colors"
@@ -66,7 +68,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 ไฟล์เอกสาร PDF เก็บไว้ใน Supabase Storage อย่างปลอดภัย
               </p>
               <a
-                href={receiptUrl}
+                href={receiptUrl ?? undefined}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C94F16] hover:bg-[#9F3B0F] text-white text-xs font-bold shadow-xs transition-colors"
@@ -75,7 +77,7 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 <span>เปิดและดาวน์โหลด PDF</span>
               </a>
             </div>
-          ) : (
+          ) : receiptUrl ? (
             <div className="max-w-full max-h-[70vh] flex items-center justify-center overflow-hidden rounded-xl border border-stone-200 bg-white p-2">
               <img
                 src={receiptUrl}
@@ -83,6 +85,8 @@ export const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 className="max-h-[65vh] w-auto object-contain rounded-lg shadow-xs"
               />
             </div>
+          ) : (
+            <p className="text-xs text-stone-500">กำลังโหลดรูปภาพ…</p>
           )}
         </div>
       </div>

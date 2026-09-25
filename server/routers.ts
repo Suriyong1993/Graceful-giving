@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { storagePut } from "./storage";
+import { storagePutReceipt, getReceiptSignedUrl } from "./storage";
 import {
   approveWithdrawal,
   createBudgetPlan,
@@ -673,7 +673,9 @@ export const appRouter = router({
           expenseDate: z.coerce.date().optional(),
           payee: z.string().trim().max(120).optional(),
           receiptRef: z.string().trim().max(120).optional(),
-          receiptUrl: z.string().url().optional(),
+          // A private-storage key (from uploadReceipt) or a legacy public URL,
+          // not always a well-formed URL, so this is not validated with .url().
+          receiptUrl: z.string().trim().min(1).max(500).optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -717,13 +719,22 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const ext = input.fileName.split(".").pop() ?? "bin";
-        const key = `expenses/receipt.${ext}`;
-        const { url } = await storagePut(
-          key,
+        const relKey = `expenses/receipt.${ext}`;
+        const { key } = await storagePutReceipt(
+          relKey,
           input.base64Data,
           input.contentType
         );
-        return { url };
+        const previewUrl = await getReceiptSignedUrl(key);
+        return { key, previewUrl };
+      }),
+    getReceiptSignedUrl: financeProcedure
+      .input(z.object({ key: z.string().min(1) }))
+      .query(async ({ input }) => {
+        // Rows created before the switch to private storage still hold a
+        // full public URL rather than a bare storage key; pass it through.
+        if (/^https?:\/\//i.test(input.key)) return { url: input.key };
+        return { url: await getReceiptSignedUrl(input.key) };
       }),
     update: financeProcedure
       .input(
@@ -737,7 +748,7 @@ export const appRouter = router({
           expenseDate: z.coerce.date().optional(),
           payee: z.string().trim().max(120).nullable().optional(),
           receiptRef: z.string().trim().max(120).nullable().optional(),
-          receiptUrl: z.string().url().nullable().optional(),
+          receiptUrl: z.string().trim().min(1).max(500).nullable().optional(),
           status: expenseStatus.optional(),
         })
       )

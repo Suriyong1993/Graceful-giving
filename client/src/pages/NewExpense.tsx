@@ -44,6 +44,10 @@ export default function NewExpense() {
   const [receiptFile, setReceiptFile] = useState<string | null>(null);
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const [receiptContentType, setReceiptContentType] = useState<string>("");
+  // Storage key to persist on the expense record (not a directly-usable URL —
+  // receipts live in private storage now, resolved via a signed URL on read).
+  const [receiptKey, setReceiptKey] = useState<string | null>(null);
+  // Freshly-signed URL returned at upload time, for the "open file" link below.
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,7 +80,8 @@ export default function NewExpense() {
 
   const uploadReceiptMutation = trpc.expenses.uploadReceipt.useMutation({
     onSuccess: data => {
-      setReceiptUrl(data.url);
+      setReceiptKey(data.key);
+      setReceiptUrl(data.previewUrl);
       setIsUploading(false);
       toast.success("อัปโหลดใบเสร็จเรียบร้อยแล้ว ✓");
     },
@@ -144,7 +149,7 @@ export default function NewExpense() {
       fundId: fundId ?? undefined,
       payee: payee.trim() || undefined,
       receiptRef: receiptRef.trim() || undefined,
-      receiptUrl: receiptUrl ?? undefined,
+      receiptUrl: receiptKey ?? undefined,
       expenseDate: new Date(expenseDate),
     });
   };
@@ -239,7 +244,10 @@ export default function NewExpense() {
 
             {/* Amount Input */}
             <div className="space-y-2">
-              <label htmlFor="expense-amount" className="text-sm font-semibold text-[#171311]">
+              <label
+                htmlFor="expense-amount"
+                className="text-sm font-semibold text-[#171311]"
+              >
                 จำนวนเงิน (บาท) <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -255,10 +263,15 @@ export default function NewExpense() {
                   value={amount}
                   inputMode="decimal"
                   aria-invalid={Boolean(errors.amount)}
-                  aria-describedby={errors.amount ? "expense-amount-error" : "expense-amount-hint"}
+                  aria-describedby={
+                    errors.amount
+                      ? "expense-amount-error"
+                      : "expense-amount-hint"
+                  }
                   onChange={e => {
                     setAmount(e.target.value);
-                    if (errors.amount) setErrors(current => ({ ...current, amount: undefined }));
+                    if (errors.amount)
+                      setErrors(current => ({ ...current, amount: undefined }));
                   }}
                   className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:border-[#C94F16] focus:outline-none bg-[#FAF8F5]/30 text-3xl font-bold text-[#171311] placeholder:text-[#807266] ${errors.amount ? "border-[#C8372D]" : "border-[#E7DCC8]"}`}
                 />
@@ -267,7 +280,11 @@ export default function NewExpense() {
                 ระบุจำนวนเงินบาทได้ไม่เกิน 2 ตำแหน่งทศนิยม
               </p>
               {errors.amount && (
-                <p id="expense-amount-error" className="text-sm text-[#C8372D]" role="alert">
+                <p
+                  id="expense-amount-error"
+                  className="text-sm text-[#C8372D]"
+                  role="alert"
+                >
                   {errors.amount}
                 </p>
               )}
@@ -343,7 +360,10 @@ export default function NewExpense() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2 sm:col-span-2">
-                <label htmlFor="expense-description" className="text-sm font-semibold text-[#171311]">
+                <label
+                  htmlFor="expense-description"
+                  className="text-sm font-semibold text-[#171311]"
+                >
                   ชื่อรายการ / คำอธิบายรายจ่าย{" "}
                   <span className="text-red-500">*</span>
                 </label>
@@ -355,15 +375,25 @@ export default function NewExpense() {
                   placeholder="เช่น ค่าไฟฟ้าประจำเดือน, อุปกรณ์รวีวารศึกษา..."
                   value={description}
                   aria-invalid={Boolean(errors.description)}
-                  aria-describedby={errors.description ? "expense-description-error" : undefined}
+                  aria-describedby={
+                    errors.description ? "expense-description-error" : undefined
+                  }
                   onChange={e => {
                     setDescription(e.target.value);
-                    if (errors.description) setErrors(current => ({ ...current, description: undefined }));
+                    if (errors.description)
+                      setErrors(current => ({
+                        ...current,
+                        description: undefined,
+                      }));
                   }}
                   className={`w-full px-4 py-3 rounded-2xl border focus:border-[#C94F16] focus:outline-none bg-[#FAF8F5]/20 text-sm font-medium text-[#171311] ${errors.description ? "border-[#C8372D]" : "border-[#E7DCC8]"}`}
                 />
                 {errors.description && (
-                  <p id="expense-description-error" className="text-sm text-[#C8372D]" role="alert">
+                  <p
+                    id="expense-description-error"
+                    className="text-sm text-[#C8372D]"
+                    role="alert"
+                  >
                     {errors.description}
                   </p>
                 )}
@@ -383,7 +413,10 @@ export default function NewExpense() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="expense-fund" className="text-sm font-semibold text-[#171311]">
+                <label
+                  htmlFor="expense-fund"
+                  className="text-sm font-semibold text-[#171311]"
+                >
                   ตัดจ่ายจากกองทุน <span className="text-red-500">*</span>
                 </label>
                 <NativeSelect
@@ -391,11 +424,14 @@ export default function NewExpense() {
                   ref={fundRef}
                   required
                   invalid={Boolean(errors.fundId)}
-                  aria-describedby={errors.fundId ? "expense-fund-error" : undefined}
+                  aria-describedby={
+                    errors.fundId ? "expense-fund-error" : undefined
+                  }
                   value={fundId ?? ""}
                   onChange={e => {
                     setFundId(Number(e.target.value));
-                    if (errors.fundId) setErrors(current => ({ ...current, fundId: undefined }));
+                    if (errors.fundId)
+                      setErrors(current => ({ ...current, fundId: undefined }));
                   }}
                   className="bg-[#FAF8F5]/20 font-medium"
                 >
@@ -409,7 +445,11 @@ export default function NewExpense() {
                   ))}
                 </NativeSelect>
                 {errors.fundId && (
-                  <p id="expense-fund-error" className="text-sm text-[#C8372D]" role="alert">
+                  <p
+                    id="expense-fund-error"
+                    className="text-sm text-[#C8372D]"
+                    role="alert"
+                  >
                     {errors.fundId}
                   </p>
                 )}
@@ -504,6 +544,7 @@ export default function NewExpense() {
                     type="button"
                     onClick={() => {
                       setReceiptFile(null);
+                      setReceiptKey(null);
                       setReceiptUrl(null);
                       setReceiptFileName("");
                     }}

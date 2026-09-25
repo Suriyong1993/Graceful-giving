@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useUnsavedChanges";
 import { VoucherModal } from "@/components/finance/VoucherModal";
 import { ReceiptPreviewModal } from "@/components/finance/ReceiptPreviewModal";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import {
   expenseCategoryLabel,
   offeringCategoryLabel,
@@ -182,6 +183,9 @@ export default function TransactionDetail() {
   ]);
 
   const loading = offeringQuery.isLoading || expenseQuery.isLoading;
+  const { url: receiptThumbUrl } = useReceiptUrl(
+    transaction?.receiptUrl ?? null
+  );
   useEffect(() => {
     if (transaction) {
       const amount = String(transaction.amount);
@@ -419,10 +423,10 @@ export default function TransactionDetail() {
                       คลิกเพื่อเปิดดูไฟล์
                     </p>
                   </div>
-                ) : (
+                ) : receiptThumbUrl ? (
                   <>
                     <img
-                      src={transaction.receiptUrl}
+                      src={receiptThumbUrl}
                       alt="Receipt thumbnail"
                       className="w-full h-full object-cover"
                     />
@@ -430,6 +434,8 @@ export default function TransactionDetail() {
                       คลิกเพื่อขยาย
                     </div>
                   </>
+                ) : (
+                  <span className="text-xs text-stone-400">กำลังโหลด…</span>
                 )}
               </div>
             </div>
