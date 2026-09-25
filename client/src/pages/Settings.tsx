@@ -31,6 +31,8 @@ import { LogOut } from "lucide-react";
 import { EXPENSE_CATEGORIES, OFFERING_CATEGORIES } from "@shared/categories";
 import { isSuperAdmin, getChurchRoleInfo, CHURCH_ROLES } from "@shared/roles";
 import { NativeSelect } from "@/components/ui/native-select";
+import { roleHolderLabel } from "@/lib/roleHolders";
+import type { ChurchRole } from "@shared/roles";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -118,6 +120,7 @@ export default function Settings() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [privacyContactEmail, setPrivacyContactEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [pastorName, setPastorName] = useState("");
   const [assistantPastorName, setAssistantPastorName] = useState("");
@@ -132,6 +135,7 @@ export default function Settings() {
     address: "",
     phone: "",
     email: "",
+    privacyContactEmail: "",
     pastorName: "",
     treasurerName: "",
     motto: "",
@@ -143,6 +147,7 @@ export default function Settings() {
       address: churchProfile?.address || "",
       phone: churchProfile?.phone || "",
       email: churchProfile?.email || "",
+      privacyContactEmail: churchProfile?.privacyContactEmail || "",
       pastorName: churchProfile?.pastorName || "",
       treasurerName: churchProfile?.treasurerName || "",
       motto: churchProfile?.motto || "",
@@ -151,6 +156,7 @@ export default function Settings() {
     setAddress(loaded.address);
     setPhone(loaded.phone);
     setEmail(loaded.email);
+    setPrivacyContactEmail(loaded.privacyContactEmail);
     setWebsite(churchProfile?.website || "");
     setPastorName(loaded.pastorName);
     setAssistantPastorName(churchProfile?.assistantPastorName || "");
@@ -167,6 +173,7 @@ export default function Settings() {
     address !== baseline.address ||
     phone !== baseline.phone ||
     email !== baseline.email ||
+    privacyContactEmail !== baseline.privacyContactEmail ||
     pastorName !== baseline.pastorName ||
     treasurerName !== baseline.treasurerName ||
     motto !== baseline.motto;
@@ -199,6 +206,7 @@ export default function Settings() {
       address,
       phone,
       email,
+      privacyContactEmail,
       website,
       pastorName,
       assistantPastorName,
@@ -211,11 +219,18 @@ export default function Settings() {
     });
   };
 
-  const churchRoles = [
+  const roleHoldersQuery = trpc.church.listRoleHolders.useQuery(undefined, {
+    retry: false,
+  });
+  const churchRoles: {
+    role: ChurchRole;
+    title: string;
+    desc: string;
+    duties: string[];
+  }[] = [
     {
       role: "SUPER_ADMIN",
       title: "ผู้ดูแลระบบสูงสุด",
-      appointee: "พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร",
       desc: "ดูแลระบบและโครงสร้างทั้งหมด จัดการผู้ใช้งานและสิทธิ์ ตั้งค่าคริสตจักร และตรวจสอบ Audit Log (สิทธิ์สูงสุดของระบบ)",
       duties: [
         "ดูแลระบบและโครงสร้างทั้งหมด",
@@ -228,7 +243,6 @@ export default function Settings() {
     {
       role: "TREASURER",
       title: "เหรัญญิกคริสตจักร",
-      appointee: "สุดารัตน์ จิณเซ่ง, อาจารย์ทัศนา ดวงจิตร",
       desc: "บันทึกรายรับ-รายจ่าย ตรวจสอบเงินถวายและบัญชี จัดการเบิกจ่าย ติดตามงบประมาณ ออกใบเสร็จ และจัดทำรายงานการเงิน",
       duties: [
         "บันทึกรายรับและรายจ่าย",
@@ -243,7 +257,6 @@ export default function Settings() {
     {
       role: "PASTOR",
       title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ",
-      appointee: "ศบ.อาจารย์สรรเสริญ ดวงจิตร",
       desc: "กำกับทิศทางและงานของคริสตจักร พิจารณาและอนุมัติโครงการ ตรวจสอบภาพรวมการเงิน และดูแลด้านอภิบาลสมาชิก",
       duties: [
         "กำกับทิศทางและงานของคริสตจักร",
@@ -257,7 +270,6 @@ export default function Settings() {
     {
       role: "DEACON",
       title: "มัคนายก / คณะกรรมการ",
-      appointee: "อาจารย์ทัศนา ดวงจิตร",
       desc: "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ ตรวจรับงานและติดตามโครงการ เสนอคำของบประมาณและรายการเบิกจ่าย",
       duties: [
         "ดูแลและติดตามงานตามฝ่ายที่รับผิดชอบ",
@@ -271,7 +283,6 @@ export default function Settings() {
     {
       role: "MEMBER",
       title: "สมาชิกคริสตจักร",
-      appointee: "สมาชิกคริสตจักรทั่วไป",
       desc: "ดูข่าวสาร ประกาศ ตารางกิจกรรม ตารางรับใช้ และดูประวัติการถวายส่วนบุคคลอย่างปลอดภัย",
       duties: [
         "ดูข่าวสารและประกาศ",
@@ -449,6 +460,30 @@ export default function Settings() {
                     onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#E7DCC8] text-sm text-[#171311]"
                   />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label
+                    htmlFor="privacy-contact-email"
+                    className="font-semibold text-[#38251B]"
+                  >
+                    อีเมลติดต่อด้านข้อมูลส่วนบุคคล
+                  </label>
+                  <input
+                    id="privacy-contact-email"
+                    type="email"
+                    value={privacyContactEmail}
+                    onChange={e => setPrivacyContactEmail(e.target.value)}
+                    aria-describedby="privacy-contact-email-help"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#E9D9BF] text-sm text-[#38251B]"
+                  />
+                  <p
+                    id="privacy-contact-email-help"
+                    className="text-[#70452E]"
+                  >
+                    แสดงในหน้านโยบายความเป็นส่วนตัว ซึ่งทุกคนเปิดได้โดยไม่ต้องเข้าสู่ระบบ
+                    ถ้าเว้นว่าง ระบบใช้อีเมลทางการแทน
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -735,7 +770,7 @@ export default function Settings() {
               <div>
                 <h3 className="text-lg font-bold text-[#171311] flex items-center gap-2">
                   <Shield className="w-5 h-5 text-emerald-600" />
-                  โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
+                  บทบาทและผู้รับผิดชอบ
                 </h3>
                 <p className="text-xs text-[#807266] mt-1">
                   กำหนดบทบาท หน้าที่ความรับผิดชอบ
@@ -761,7 +796,7 @@ export default function Settings() {
                       <div className="text-xs font-semibold px-3 py-1 rounded-full border bg-white text-[#171311] border-[#E7DCC8] self-start sm:self-auto">
                         ผู้รับผิดชอบ:{" "}
                         <span className="text-[#C94F16] font-bold">
-                          {r.appointee}
+                          {roleHolderLabel(r.role, roleHoldersQuery)}
                         </span>
                       </div>
                     </div>
