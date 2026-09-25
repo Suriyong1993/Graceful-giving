@@ -114,14 +114,14 @@ export default function Offerings() {
         <div className="flex items-center gap-2">
           <button
             onClick={exportCSV}
-            className="px-3.5 py-2 rounded-2xl bg-white border border-[#E4DED7] text-[#57504A] hover:bg-[#F4F1ED]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
+            className="px-3.5 py-2 rounded-2xl bg-white border border-[#DCE3E6] text-[#42515A] hover:bg-[#EEF1F3]/70 text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>ส่งออก CSV</span>
           </button>
           <button
             onClick={() => setLocation("/offerings/new")}
-            className="px-4 py-2 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-xs font-bold button-elevation transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-[#225B66] hover:bg-[#174852] text-white text-xs font-bold button-elevation transition-all flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>บันทึกถวายใหม่</span>
@@ -130,21 +130,21 @@ export default function Offerings() {
       }
     >
       {/* 1. Header Banner with 3D Offering Box Illustration */}
-      <div className="bg-gradient-to-r from-[#FFFFFF] via-[#FAF8F5] to-[#F4F1ED] rounded-2xl p-5 sm:p-7 border border-[#E4DED7] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
+      <div className="bg-gradient-to-r from-[#FFFFFF] via-[#FAF8F5] to-[#EEF1F3] rounded-2xl p-5 sm:p-7 border border-[#DCE3E6] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="space-y-2 text-center sm:text-left">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#E4DED7] text-xs font-bold text-[#57504A]">
-            <Sparkles className="w-3.5 h-3.5 text-[#B9530F]" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#DCE3E6] text-xs font-bold text-[#42515A]">
+            <Sparkles className="w-3.5 h-3.5 text-[#225B66]" />
             <span>ยอดถวายรวมเดือนนี้</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-[#1F5C33]">
             <MoneyDisplay amount={totalAmount} type="income" size="xl" />
           </h2>
-          <p className="text-xs text-[#736A63]">
+          <p className="text-xs text-[#6A7880]">
             "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" — 2 โครินธ์ 9:7
           </p>
         </div>
 
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-white p-1.5 border border-[#E4DED7] shadow-xs shrink-0">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-white p-1.5 border border-[#DCE3E6] shadow-xs shrink-0">
           <Illustration
             src="/illustrations/offering_box.jpg"
             alt="กล่องถวาย"
@@ -156,7 +156,7 @@ export default function Offerings() {
       </div>
 
       {/* 2. Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 md:p-5 border border-[#E4DED7] card-elevation-sm">
+      <div className="bg-white rounded-2xl p-4 md:p-5 border border-[#DCE3E6] card-elevation-sm">
         <FilterBar
           searchPlaceholder="ค้นหาประเภทถวายหรือกองทุน..."
           searchValue={searchTerm}
@@ -207,7 +207,7 @@ export default function Offerings() {
           onAction={() => setLocation("/offerings/new")}
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E4DED7] card-elevation-sm divide-y divide-[#EDE8E3]/60 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#DCE3E6] card-elevation-sm divide-y divide-[#EDE8E3]/60 overflow-hidden">
           {filtered.map(o => (
             <div
               key={o.id}
@@ -219,10 +219,10 @@ export default function Offerings() {
                   <HandCoins className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-[#1F1A17] truncate">
+                  <h3 className="text-sm font-bold text-[#172128] truncate">
                     {o.title}
                   </h3>
-                  <p className="text-[11px] text-[#736A63] pt-0.5">
+                  <p className="text-[11px] text-[#6A7880] pt-0.5">
                     {formatThaiDateTime(o.date)} · {o.method} · {o.fund}
                   </p>
                 </div>
@@ -253,10 +253,10 @@ export default function Offerings() {
                       notes: o.notes || undefined,
                     });
                   }}
-                  className="size-11 shrink-0 inline-flex items-center justify-center rounded-xl bg-stone-100 hover:bg-[#F4F1ED] hover:border-[#B9530F] text-[#57504A] border border-stone-200 transition-colors shadow-2xs"
+                  className="size-11 shrink-0 inline-flex items-center justify-center rounded-xl bg-stone-100 hover:bg-[#EEF1F3] hover:border-[#225B66] text-[#42515A] border border-stone-200 transition-colors shadow-2xs"
                   title="พิมพ์ใบเสร็จเงินถวาย"
                 >
-                  <Printer className="w-4 h-4 text-[#B9530F]" />
+                  <Printer className="w-4 h-4 text-[#225B66]" />
                 </button>
               </div>
             </div>

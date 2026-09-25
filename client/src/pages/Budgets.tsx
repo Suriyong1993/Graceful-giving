@@ -98,7 +98,7 @@ export default function Budgets() {
         <button
           type="button"
           onClick={() => (showCreate ? closeCreateForm() : setShowCreate(true))}
-          className="min-h-11 inline-flex items-center gap-2 rounded-xl bg-[#B9530F] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#A34A0C]"
+          className="min-h-11 inline-flex items-center gap-2 rounded-xl bg-[#225B66] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#174852]"
         >
           <Plus className="h-4 w-4" />
           ตั้งงบประมาณ
@@ -108,31 +108,31 @@ export default function Budgets() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div
-            className="flex items-center gap-1 rounded-xl border border-[#E4DED7] bg-white p-1"
+            className="flex items-center gap-1 rounded-xl border border-[#DCE3E6] bg-white p-1"
             role="group"
             aria-label="เลือกปีงบประมาณ"
           >
             <button
               type="button"
               onClick={() => setYear(y => y - 1)}
-              className="flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+              className="flex size-10 items-center justify-center rounded-lg text-[#42515A] hover:bg-[#EEF1F3]"
               aria-label="ปีก่อนหน้า"
             >
               <ChevronLeft className="size-5" />
             </button>
-            <span className="min-w-24 text-center text-sm font-semibold tabular-nums text-[#1F1A17]">
+            <span className="min-w-24 text-center text-sm font-semibold tabular-nums text-[#172128]">
               ปี พ.ศ. {thaiYear(year)}
             </span>
             <button
               type="button"
               onClick={() => setYear(y => y + 1)}
-              className="flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+              className="flex size-10 items-center justify-center rounded-lg text-[#42515A] hover:bg-[#EEF1F3]"
               aria-label="ปีถัดไป"
             >
               <ChevronRight className="size-5" />
             </button>
           </div>
-          <p className="max-w-xl text-sm text-[#736A63]">
+          <p className="max-w-xl text-sm text-[#6A7880]">
             ยอดใช้จริงรวมจากรายจ่ายที่บันทึกไว้ (ไม่รวมรายการที่ยกเลิก)
             ตามช่วงเวลา หมวด และกองทุนของแต่ละแผน
           </p>
@@ -141,16 +141,16 @@ export default function Budgets() {
         {showCreate && (
           <form
             onSubmit={submit}
-            className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-[#DCE3E6] bg-white p-6 shadow-sm"
           >
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-bold text-[#1F1A17]">
+              <h2 className="font-bold text-[#172128]">
                 ตั้งงบประมาณสำหรับปี {thaiYear(year)}
               </h2>
               <button
                 type="button"
                 onClick={closeCreateForm}
-                className="flex h-11 w-11 items-center justify-center text-[#736A63]"
+                className="flex h-11 w-11 items-center justify-center text-[#6A7880]"
                 aria-label="ปิดแบบฟอร์ม"
               >
                 <X className="h-5 w-5" />
@@ -192,7 +192,7 @@ export default function Budgets() {
               <SummaryCard
                 label="ใกล้เต็มงบ"
                 value={counts.warn}
-                className="text-[#A34A0C]"
+                className="text-[#174852]"
               />
               <SummaryCard
                 label="เกินงบ"
@@ -207,32 +207,32 @@ export default function Budgets() {
                   key={plan.id}
                   type="button"
                   onClick={() => setLocation(`/budgets/${plan.id}`)}
-                  className="rounded-2xl border border-[#E4DED7] bg-white p-5 text-left shadow-sm hover:bg-[#FAF8F5]"
+                  className="rounded-2xl border border-[#DCE3E6] bg-white p-5 text-left shadow-sm hover:bg-[#FAF8F5]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="font-bold text-[#1F1A17]">
+                      <h2 className="font-bold text-[#172128]">
                         {budgetCategoryLabel(plan.category)}
                       </h2>
-                      <p className="mt-0.5 text-xs text-[#736A63]">
+                      <p className="mt-0.5 text-xs text-[#6A7880]">
                         {budgetPeriodLabel(plan.year, plan.month)}
                         {fundName(plan.fundId)
                           ? ` · ${fundName(plan.fundId)}`
                           : ""}
                       </p>
                     </div>
-                    <span className="shrink-0 text-right text-xs text-[#736A63]">
+                    <span className="shrink-0 text-right text-xs text-[#6A7880]">
                       {plan.remainingAmount < 0 ? "เกินงบ" : "คงเหลือ"}
                       <span
-                        className={`block text-sm font-bold tabular-nums ${plan.remainingAmount < 0 ? "text-[#C7382D]" : "text-[#1F1A17]"}`}
+                        className={`block text-sm font-bold tabular-nums ${plan.remainingAmount < 0 ? "text-[#C7382D]" : "text-[#172128]"}`}
                       >
                         {formatBaht(Math.abs(plan.remainingAmount), 0)}
                       </span>
                     </span>
                   </div>
-                  <p className="mt-3 text-sm tabular-nums text-[#57504A]">
+                  <p className="mt-3 text-sm tabular-nums text-[#42515A]">
                     {formatBaht(plan.actualAmount, 0)}{" "}
-                    <span className="text-[#736A63]">
+                    <span className="text-[#6A7880]">
                       จาก {formatBaht(plan.plannedAmount, 0)}
                     </span>
                   </p>
@@ -261,8 +261,8 @@ function SummaryCard({
   className: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E4DED7] bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold text-[#736A63]">{label}</p>
+    <div className="rounded-2xl border border-[#DCE3E6] bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold text-[#6A7880]">{label}</p>
       <p
         className={`mt-1 text-xl font-bold tabular-nums md:text-2xl ${className}`}
       >

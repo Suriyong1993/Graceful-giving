@@ -69,7 +69,7 @@ export function ManusDialog({
               {title}
             </DialogTitle>
           ) : null}
-          <DialogDescription className="text-sm text-[#736A63] leading-5 tracking-[-0.154px]">
+          <DialogDescription className="text-sm text-[#6A7880] leading-5 tracking-[-0.154px]">
             Please login with Manus to continue
           </DialogDescription>
         </div>
