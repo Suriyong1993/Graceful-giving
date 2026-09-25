@@ -20,11 +20,18 @@ describe("CommonUI Components", () => {
       const items = container.querySelectorAll(".animate-pulse");
       expect(items.length).toBe(5);
     });
+
+    it("announces the loading state to screen readers", () => {
+      render(<LoadingSkeleton label="กำลังโหลดรายการสลิป" />);
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "กำลังโหลดรายการสลิป"
+      );
+    });
   });
 
   describe("EmptyState", () => {
-    it("renders title, description and illustration", () => {
-      render(
+    it("renders title and description without a decorative image", () => {
+      const { container } = render(
         <EmptyState
           title="ไม่พบข้อมูล"
           description="ยังไม่มีรายการถวายในระบบขณะนี้"
@@ -35,9 +42,7 @@ describe("CommonUI Components", () => {
       expect(
         screen.getByText("ยังไม่มีรายการถวายในระบบขณะนี้")
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole("img", { name: "กล่องถวาย" })
-      ).toBeInTheDocument();
+      expect(container.querySelector("img")).toBeNull();
     });
 
     it("renders action button and triggers callback on click", () => {

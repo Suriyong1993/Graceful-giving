@@ -11,6 +11,9 @@ const INTEGRITY_INDEX_NAMES = [
   "offerings_ref_active_uniq",
   "line_slips_ref_uniq",
   "line_slips_event_uniq",
+  "line_slips_offering_uniq",
+  "offering_envelopes_linked_offering_uniq",
+  "expenses_withdrawal_uniq",
 ];
 
 function statementFor(indexName: string): string {
@@ -60,11 +63,15 @@ describe("runSchemaInit failure reporting", () => {
     await runSchemaInit(client);
 
     const errors = errorSpy.mock.calls.map(c => String(c[0]));
-    expect(errors.some(m => m.includes("offerings_ref_active_uniq"))).toBe(true);
+    expect(errors.some(m => m.includes("offerings_ref_active_uniq"))).toBe(
+      true
+    );
     expect(errors.some(m => m.includes("WAS NOT CREATED"))).toBe(true);
 
     const warnings = warnSpy.mock.calls.map(c => String(c[1] ?? c[0]));
-    expect(warnings.some(m => m.includes("offerings_ref_active_uniq"))).toBe(false);
+    expect(warnings.some(m => m.includes("offerings_ref_active_uniq"))).toBe(
+      false
+    );
   });
 
   it("names the rows that block the index", async () => {
@@ -84,7 +91,10 @@ describe("runSchemaInit failure reporting", () => {
       await runSchemaInit(clientFailing(name));
 
       const errors = errorSpy.mock.calls.map(c => String(c[0]));
-      expect(errors.some(m => m.includes(name)), name).toBe(true);
+      expect(
+        errors.some(m => m.includes(name)),
+        name
+      ).toBe(true);
     }
   });
 
@@ -109,7 +119,10 @@ describe("runSchemaInit failure reporting", () => {
   it("survives a diagnostic query that also fails", async () => {
     const client = {
       unsafe: vi.fn(async (stmt: string) => {
-        if (/CREATE/i.test(stmt) && stmt.includes("offerings_ref_active_uniq")) {
+        if (
+          /CREATE/i.test(stmt) &&
+          stmt.includes("offerings_ref_active_uniq")
+        ) {
           throw new Error("could not create unique index");
         }
         if (/GROUP BY/i.test(stmt)) throw new Error("permission denied");

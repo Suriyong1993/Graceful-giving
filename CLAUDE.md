@@ -66,6 +66,16 @@ Donor names on offerings are only ever returned when `canViewDonorNames(ctx.user
 
 There are two authorization concepts on `User` (`drizzle/schema.ts`): the coarse `role` (`user`/`admin`, used for admin-only content management like `updates.*`) and the finer-grained `churchRole` (`SUPER_ADMIN`/`PASTOR`/`TREASURER`/`MEMBER`, used for financial permissions). Both are checked independently in the permission helpers — read both when adding a new gated procedure.
 
+### Money rules
+
+One offering row stands for one amount of money received, whatever channel recorded it. A LINE slip creates its offering when approved (`approveLineSlip`). A counting round creates offerings only for cash and cheques: a transfer envelope must point at the offering that already records the transfer (`offering_envelopes.linkedOfferingId`), and `postCountingSession` refuses a round with an unlinked transfer. Unique partial indexes on `line_slips.approvedOfferingId` and `offering_envelopes.linkedOfferingId` back this in the database, next to the existing `offerings_ref_active_uniq`.
+
+Paying a withdrawal request is one transaction in `disburseWithdrawal`: approved → disbursed (compare-and-set), one expense with `withdrawalId` (unique index `expenses_withdrawal_uniq`), the fund balance lowered once, and the audit log. That expense cannot be voided or re-amounted.
+
+Approving a withdrawal request (`approveWithdrawal`): the requester can neither approve nor reject their own request, and an amount above `church_profiles.approvalThreshold` needs a second, different approver before it can be paid. The first approval fixes `requiredApprovals`; a null threshold means one approver is enough.
+
+`db.ts` throws `FinanceRuleError` (code `BAD_REQUEST` or `CONFLICT`) when a request breaks one of these rules; wrap the call in `withFinanceRules` in `routers.ts` so the client gets that tRPC code. `server/finance.invariants.test.ts` checks the rules against a real database; run it with `DATABASE_URL` set before changing any path that writes offerings, expenses or fund balances.
+
 ### Data layer
 
 `server/db.ts` holds all Drizzle queries as plain exported async functions (no repository classes/ORM abstraction beyond Drizzle itself). `getDb()` lazily creates a single `drizzle(...)` instance and caches it in module scope; it returns `null` (never throws) when no connection string is set, so callers must handle the `null`/empty case. `DEFAULT_CHURCH_ID` resolves to `process.env.CHURCH_ID || "demo-church"` — the schema supports multi-church (`churchId` column on most tables) but the app runs single-tenant, and every query defaults to this constant. Treat the env var as test-only (see Environment above).

@@ -3,11 +3,16 @@
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+/** Legacy public bucket — kept only so receipts uploaded before the switch
+ * to private storage still resolve. Do not upload new receipts here. */
 const SUPABASE_STORAGE_BUCKET =
   process.env.SUPABASE_STORAGE_BUCKET ?? "receipts";
 /** Private bucket for LINE slip images — financial data, never public */
-const SUPABASE_SLIP_BUCKET =
-  process.env.SUPABASE_SLIP_BUCKET ?? "slips";
+const SUPABASE_SLIP_BUCKET = process.env.SUPABASE_SLIP_BUCKET ?? "slips";
+/** Private bucket for receipt images/PDFs — financial data, never public.
+ * Must be created as a private bucket in Supabase before this is used. */
+const SUPABASE_RECEIPT_BUCKET =
+  process.env.SUPABASE_RECEIPT_BUCKET ?? "receipts-private";
 
 function getSupabaseConfig() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -15,7 +20,10 @@ function getSupabaseConfig() {
       "Storage config missing: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
     );
   }
-  return { url: SUPABASE_URL.replace(/\/+$/, ""), key: SUPABASE_SERVICE_ROLE_KEY };
+  return {
+    url: SUPABASE_URL.replace(/\/+$/, ""),
+    key: SUPABASE_SERVICE_ROLE_KEY,
+  };
 }
 
 function appendHashSuffix(relKey: string): string {
@@ -183,8 +191,75 @@ export async function getSlipSignedUrl(slipImageKey: string): Promise<string> {
 
   if (!resp.ok) {
     const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(`Supabase slip signed URL failed (${resp.status}): ${msg}`);
+  }
+
+  const result = (await resp.json()) as { signedURL?: string };
+  const signedPath = result.signedURL?.startsWith("/storage/v1")
+    ? result.signedURL
+    : `/storage/v1${result.signedURL ?? ""}`;
+  return `${url}${signedPath}`;
+}
+
+/**
+ * Upload a receipt image/PDF to the PRIVATE Supabase Storage bucket.
+ * Never generates or returns a public URL — use getReceiptSignedUrl() to display.
+ *
+ * @returns { key } — the storage key to persist on the expense/offering record
+ */
+export async function storagePutReceipt(
+  relKey: string,
+  data: Buffer | Uint8Array | string,
+  contentType = "application/octet-stream"
+): Promise<{ key: string }> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = appendHashSuffix(relKey.replace(/^\/+/, ""));
+  const body: Buffer | Uint8Array =
+    typeof data === "string" ? Buffer.from(data, "base64") : data;
+
+  const uploadUrl = `${url}/storage/v1/object/${SUPABASE_RECEIPT_BUCKET}/${key}`;
+  const resp = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": contentType,
+      "x-upsert": "true",
+    },
+    body: body as BodyInit,
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
     throw new Error(
-      `Supabase slip signed URL failed (${resp.status}): ${msg}`
+      `Supabase receipt storage upload failed (${resp.status}): ${msg}`
+    );
+  }
+
+  return { key };
+}
+
+/**
+ * Generate a signed URL for a receipt in the PRIVATE bucket.
+ * Valid for 1 hour. Regenerate on each view request.
+ */
+export async function getReceiptSignedUrl(receiptKey: string): Promise<string> {
+  const { url, key: apiKey } = getSupabaseConfig();
+  const key = receiptKey.replace(/^\/+/, "");
+
+  const signUrl = `${url}/storage/v1/object/sign/${SUPABASE_RECEIPT_BUCKET}/${key}`;
+  const resp = await fetch(signUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
+
+  if (!resp.ok) {
+    const msg = await resp.text().catch(() => resp.statusText);
+    throw new Error(
+      `Supabase receipt signed URL failed (${resp.status}): ${msg}`
     );
   }
 

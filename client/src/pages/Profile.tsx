@@ -42,12 +42,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import type { ChurchRole } from "@shared/roles";
+import { roleHolderLabel } from "@/lib/roleHolders";
 
-// ── Official Church Governance Structure Model ────────────────────────────────
+// ── Church roles and responsibilities. Holder names come from the users table.
 interface ChurchOfficialRoster {
-  role: string;
+  role: ChurchRole;
   title: string;
-  appointee: string;
   badgeStyle: { bg: string; text: string; border: string; icon: string };
   summary: string;
   responsibilities: string[];
@@ -57,7 +58,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "SUPER_ADMIN",
     title: "ผู้ดูแลระบบสูงสุด (SUPER_ADMIN)",
-    appointee: "พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร",
     badgeStyle: {
       bg: "bg-amber-100",
       text: "text-amber-900",
@@ -77,7 +77,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "TREASURER",
     title: "เหรัญญิกคริสตจักร (TREASURER)",
-    appointee: "สุดารัตน์ จิณเซ่ง, อาจารย์ทัศนา ดวงจิตร",
     badgeStyle: {
       bg: "bg-emerald-100",
       text: "text-emerald-900",
@@ -99,7 +98,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "PASTOR",
     title: "ศิษยาภิบาล / ผู้นำฝ่ายวิญญาณ (PASTOR)",
-    appointee: "ศบ.อาจารย์สรรเสริญ ดวงจิตร",
     badgeStyle: {
       bg: "bg-blue-100",
       text: "text-blue-900",
@@ -120,7 +118,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "DEACON",
     title: "มัคนายก / คณะกรรมการ (DEACON)",
-    appointee: "อาจารย์ทัศนา ดวงจิตร",
     badgeStyle: {
       bg: "bg-purple-100",
       text: "text-purple-900",
@@ -141,7 +138,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "COUNTER",
     title: "กรรมการนับเงิน / ทีมนับเงินถวาย (COUNTER)",
-    appointee: "สุดารัตน์ จิณเซ่ง (และผู้ได้รับมอบหมายประจำสัปดาห์)",
     badgeStyle: {
       bg: "bg-orange-100",
       text: "text-orange-900",
@@ -161,7 +157,6 @@ const OFFICIAL_CHURCH_ROSTER: ChurchOfficialRoster[] = [
   {
     role: "MEMBER",
     title: "สมาชิกคริสตจักร (MEMBER)",
-    appointee: "สมาชิกคริสตจักรทั่วไป",
     badgeStyle: {
       bg: "bg-stone-100",
       text: "text-stone-800",
@@ -203,6 +198,9 @@ export default function Profile() {
   );
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, {
     staleTime: 30_000,
+  });
+  const roleHoldersQuery = trpc.church.listRoleHolders.useQuery(undefined, {
+    retry: false,
   });
   const churchProfileQuery = trpc.church.getProfile.useQuery(undefined, {
     staleTime: 60_000,
@@ -438,14 +436,13 @@ export default function Profile() {
           <div className="border-b border-[#E7DCC8]/60 pb-3 sm:pb-4">
             <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-[#FFF8EA] text-[#51443A] border border-[#E7DCC8] mb-2">
               <Award className="w-3.5 h-3.5 text-[#C94F16]" />
-              มติคริสตจักรอย่างเป็นทางการ
+              บทบาทในระบบ
             </span>
             <h3 className="text-lg sm:text-xl font-bold text-[#171311]">
-              โครงสร้างสิทธิ์การใช้งานและผู้รับผิดชอบอย่างเป็นทางการ
+              บทบาทและผู้รับผิดชอบ
             </h3>
             <p className="text-xs sm:text-sm text-[#807266] mt-1">
-              กำหนดบทบาท หน้าที่ความรับผิดชอบ
-              และรายนามผู้ได้รับมอบหมายตามมติคริสตจักร
+              รายชื่อผู้รับผิดชอบมาจากบทบาทที่ผู้ดูแลระบบกำหนดในหน้าตั้งค่า
             </p>
           </div>
 
@@ -470,7 +467,7 @@ export default function Profile() {
                       ผู้รับผิดชอบ:
                     </span>
                     <p className="text-sm font-bold text-[#171311]">
-                      {roster.appointee}
+                      {roleHolderLabel(roster.role, roleHoldersQuery)}
                     </p>
                   </div>
 
@@ -673,7 +670,7 @@ export default function Profile() {
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                   className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl border border-[#E7DCC8] text-xs sm:text-sm font-semibold text-[#171311] focus:border-[#C94F16] focus:outline-none focus:ring-2 focus:ring-[#C94F16]/20 transition-all"
-                  placeholder="เช่น พณ.ท่านสุริยงค์ บาลเพ็ชร"
+                  placeholder="ชื่อและนามสกุล"
                 />
               </div>
 
@@ -761,9 +758,8 @@ export default function Profile() {
                 </span>
                 <p className="leading-relaxed">
                   บทบาทและสิทธิ์การใช้งานของท่าน ({userRoleInfo.label})
-                  ถูกกำหนดโดยมติคริสตจักรและผู้ดูแลระบบสูงสุด
-                  หากต้องการเปลี่ยนแปลงสิทธิ์ กรุณาติดต่อ
-                  พณ.ท่านหม่อมหลวงราชวงศ์สุริยงค์ บาลเพ็ชร
+                  ถูกกำหนดโดยผู้ดูแลระบบสูงสุด หากต้องการเปลี่ยนแปลงสิทธิ์
+                  กรุณาติดต่อ {roleHolderLabel("SUPER_ADMIN", roleHoldersQuery)}
                 </p>
               </div>
 

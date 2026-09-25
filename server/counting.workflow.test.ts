@@ -70,6 +70,8 @@ const serviceDate = new Date("2026-09-20T01:00:00.000Z");
 
 let fundId = 0;
 let sessionId = 0;
+/** The transfer the ledger already holds before the round counts it. */
+let transferOfferingId = 0;
 
 async function fundBalance(): Promise<number> {
   const db = await getDb();
@@ -133,6 +135,19 @@ describeDb("counting workflow against a real database", () => {
   });
 
   it("records envelopes, including one paid by transfer", async () => {
+    // The 3,000 transfer reached the ledger during the week (normally from
+    // an approved LINE slip), so the round links to it instead of adding it.
+    const transfer = await asTreasurer().offerings.create({
+      amount: 3000,
+      category: "mission",
+      fundId,
+      method: "transfer",
+      donorName: "พี่สมชาย",
+      reference: `WF-TRANSFER-${Date.now()}`,
+      receiptDate: new Date("2026-09-18T03:00:00.000Z"),
+    });
+    transferOfferingId = transfer.id;
+
     const caller = asCounter();
     await caller.counting.addEnvelope({
       sessionId,
@@ -159,6 +174,7 @@ describeDb("counting workflow against a real database", () => {
       method: "transfer",
       isAnonymous: false,
       donorName: "พี่สมชาย",
+      linkedOfferingId: transferOfferingId,
     });
 
     const detail = await caller.counting.get({ id: sessionId });
@@ -166,8 +182,9 @@ describeDb("counting workflow against a real database", () => {
     expect(detail.reconciliation.envelopeCashTotal).toBe(20000);
     expect(detail.reconciliation.envelopeTransferTotal).toBe(3000);
     expect(detail.reconciliation.offeringTotal).toBe(23000);
-    // Nothing reaches the ledger until the session is posted.
-    expect(await fundBalance()).toBe(0);
+    // The round adds nothing to the ledger until it is posted. The fund
+    // holds only the transfer recorded during the week.
+    expect(await fundBalance()).toBe(3000);
   });
 
   it("counts the cash and matches the envelopes", async () => {
@@ -300,10 +317,12 @@ describeDb("counting workflow against a real database", () => {
     await caller.counting.verify({ id: sessionId });
 
     const result = await caller.counting.post({ id: sessionId });
-    expect(result.offeringCount).toBe(3);
+    // Two cash envelopes become offerings; the transfer already was one.
+    expect(result.offeringCount).toBe(2);
+    expect(result.linkedTransferCount).toBe(1);
     expect(result.deductionCount).toBe(1);
 
-    // 23,000 in offerings less the 2,000 deduction taken from the bag.
+    // 3,000 transfer + 20,000 cash less the 2,000 deduction from the bag.
     expect(await fundBalance()).toBe(21000);
 
     const detail = await caller.counting.get({ id: sessionId });
@@ -314,7 +333,7 @@ describeDb("counting workflow against a real database", () => {
     const posted = await db!.execute(
       sql`SELECT count(*)::int AS n FROM offerings WHERE "sessionId" = ${sessionId}`
     );
-    expect((posted as unknown as Array<{ n: number }>)[0].n).toBe(3);
+    expect((posted as unknown as Array<{ n: number }>)[0].n).toBe(2);
   });
 
   it("never posts the same session twice", async () => {

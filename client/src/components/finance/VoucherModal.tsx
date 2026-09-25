@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { bahtText } from "@/lib/bahtText";
 import { Printer, X, Building2, CheckCircle2 } from "lucide-react";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 
 export interface VoucherData {
   id: number | string;
@@ -37,6 +38,9 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
     retry: false,
   });
   const church = churchQuery.data;
+  const { url: receiptUrl } = useReceiptUrl(
+    isOpen ? (data?.receiptUrl ?? null) : null
+  );
 
   if (!isOpen || !data) return null;
 
@@ -236,7 +240,7 @@ export const VoucherModal: React.FC<VoucherModalProps> = ({
                   </span>
                 </div>
                 <a
-                  href={data.receiptUrl}
+                  href={receiptUrl ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold underline hover:text-emerald-900"

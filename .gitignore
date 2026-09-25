@@ -13,6 +13,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+# a bare `env` file, as used by some local setups
+env
 
 # IDE and editor files
 .vscode/

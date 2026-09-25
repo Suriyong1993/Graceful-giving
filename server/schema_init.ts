@@ -66,6 +66,8 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "church_profiles" ADD COLUMN IF NOT EXISTS "privacyContactEmail" varchar(320);`,
+  `ALTER TABLE "church_profiles" ADD COLUMN IF NOT EXISTS "approvalThreshold" numeric(15, 2);`,
 
   `CREATE TABLE IF NOT EXISTS "finance_accounts" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -141,6 +143,7 @@ export const TABLE_STATEMENTS: string[] = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
   `ALTER TABLE "expenses" ADD COLUMN IF NOT EXISTS "receiptUrl" text;`,
+  `ALTER TABLE "expenses" ADD COLUMN IF NOT EXISTS "withdrawalId" integer;`,
 
   `CREATE TABLE IF NOT EXISTS "offerings" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -179,6 +182,11 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedBy" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "requiredApprovals" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "secondApprovedBy" integer;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "secondApprovalDate" timestamp;`,
+  `ALTER TABLE "withdrawal_requests" ADD COLUMN IF NOT EXISTS "disbursedAt" timestamp;`,
 
   `CREATE TABLE IF NOT EXISTS "members" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -297,6 +305,17 @@ export const TABLE_STATEMENTS: string[] = [
     "createdAt" timestamp DEFAULT now() NOT NULL,
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
+  `ALTER TABLE "offering_envelopes" ADD COLUMN IF NOT EXISTS "linkedOfferingId" integer;`,
+  // A linked offering cannot be deleted out from under its envelope, and only
+  // a transfer envelope may carry a link.
+  `DO $$ BEGIN
+    ALTER TABLE "offering_envelopes" ADD CONSTRAINT "offering_envelopes_linked_offering_fk"
+      FOREIGN KEY ("linkedOfferingId") REFERENCES "offerings"("id") ON DELETE RESTRICT;
+  EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+  `DO $$ BEGIN
+    ALTER TABLE "offering_envelopes" ADD CONSTRAINT "offering_envelopes_link_is_transfer"
+      CHECK ("linkedOfferingId" IS NULL OR "method" = 'transfer');
+  EXCEPTION WHEN duplicate_object THEN null; END $$;`,
 
   `CREATE TABLE IF NOT EXISTS "session_deductions" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -406,6 +425,12 @@ export const INDEX_STATEMENTS: string[] = [
   `CREATE INDEX IF NOT EXISTS "line_slips_status_idx" ON "line_slips" ("churchId", "status", "createdAt");`,
   /** Financial integrity backstop: prevent duplicate active offerings with the same bank reference */
   `CREATE UNIQUE INDEX IF NOT EXISTS "offerings_ref_active_uniq" ON "offerings" ("churchId", "reference") WHERE "reference" IS NOT NULL AND "status" = 'active';`,
+  /** One offering records one amount of money: at most one slip creates it */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "line_slips_offering_uniq" ON "line_slips" ("approvedOfferingId") WHERE "approvedOfferingId" IS NOT NULL;`,
+  /** ...and at most one counted envelope refers back to it */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "offering_envelopes_linked_offering_uniq" ON "offering_envelopes" ("linkedOfferingId") WHERE "linkedOfferingId" IS NOT NULL;`,
+  /** One withdrawal request is paid by at most one expense */
+  `CREATE UNIQUE INDEX IF NOT EXISTS "expenses_withdrawal_uniq" ON "expenses" ("withdrawalId") WHERE "withdrawalId" IS NOT NULL;`,
 ];
 
 /**
@@ -432,6 +457,27 @@ const INTEGRITY_INDEXES: Record<
         AND "status" NOT IN ('rejected', 'duplicate', 'failed')
       GROUP BY 1, 2 HAVING count(*) > 1 ORDER BY copies DESC;`,
   },
+  line_slips_offering_uniq: {
+    guards: "two LINE slips must not create or claim one offering",
+    findBlockingRows: `SELECT "approvedOfferingId", count(*) AS copies
+      FROM "line_slips"
+      WHERE "approvedOfferingId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  offering_envelopes_linked_offering_uniq: {
+    guards: "one offering must not back two counted envelopes",
+    findBlockingRows: `SELECT "linkedOfferingId", count(*) AS copies
+      FROM "offering_envelopes"
+      WHERE "linkedOfferingId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
+  expenses_withdrawal_uniq: {
+    guards: "one withdrawal request must not be paid by two expenses",
+    findBlockingRows: `SELECT "withdrawalId", count(*) AS copies
+      FROM "expenses"
+      WHERE "withdrawalId" IS NOT NULL
+      GROUP BY 1 HAVING count(*) > 1 ORDER BY copies DESC;`,
+  },
   line_slips_event_uniq: {
     guards: "one LINE event must not create two slips",
     findBlockingRows: `SELECT "churchId", "lineEventId", count(*) AS copies
@@ -441,7 +487,11 @@ const INTEGRITY_INDEXES: Record<
 };
 
 function indexNameOf(stmt: string): string | null {
-  return stmt.match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i)?.[1] ?? null;
+  return (
+    stmt.match(
+      /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i
+    )?.[1] ?? null
+  );
 }
 
 export async function runSchemaInit(client: any) {
@@ -496,4 +546,3 @@ export async function runSchemaInit(client: any) {
     }
   }
 }
-
