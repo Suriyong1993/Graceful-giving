@@ -16,6 +16,13 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
+// Legal pages are read before signing in, so they are public and self-contained.
+const Terms = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Terms }))
+);
+const Privacy = lazy(() =>
+  import("./pages/Legal").then(m => ({ default: m.Privacy }))
+);
 const ChurchSetup = lazy(() => import("./pages/ChurchSetup"));
 const Transactions = lazy(() => import("./pages/Transactions"));
 const TransactionDetail = lazy(() => import("./pages/TransactionDetail"));
@@ -47,6 +54,8 @@ const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
 const PUBLIC_PATHS = [
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
 ];
@@ -80,6 +89,8 @@ const SETUP_EXEMPT_PATHS = [
   "/setup",
   "/login",
   "/register",
+  "/terms",
+  "/privacy",
   "/404",
   // Dev-only UI gallery; the route itself is also unmounted in prod (see Router).
   ...(import.meta.env.DEV ? ["/ui-showcase"] : []),
@@ -198,6 +209,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/setup" component={ChurchSetup} />
 
       {/* Transactions & Ledgers */}
