@@ -2200,7 +2200,10 @@ async function lockLinkableOffering(
     );
   }
   const [other] = await tx
-    .select({ id: offeringEnvelopes.id, sessionId: offeringEnvelopes.sessionId })
+    .select({
+      id: offeringEnvelopes.id,
+      sessionId: offeringEnvelopes.sessionId,
+    })
     .from(offeringEnvelopes)
     .where(eq(offeringEnvelopes.linkedOfferingId, offeringId))
     .limit(1);

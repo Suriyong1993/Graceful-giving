@@ -1355,19 +1355,19 @@ export const appRouter = router({
         assertCountEditable(session.status);
         const id = await withFinanceRules(() =>
           addOfferingEnvelope({
-          sessionId: input.sessionId,
-          envelopeNo: input.envelopeNo ?? null,
-          memberId: input.memberId ?? null,
-          donorName: input.isAnonymous ? null : (input.donorName ?? null),
-          isAnonymous: input.isAnonymous,
-          category: input.category,
-          fundId: input.fundId,
-          method: input.method,
-          amount: input.amount.toFixed(2),
-          reference: input.reference ?? null,
-          linkedOfferingId: input.linkedOfferingId ?? null,
-          notes: input.notes ?? null,
-          recordedBy: ctx.user.id,
+            sessionId: input.sessionId,
+            envelopeNo: input.envelopeNo ?? null,
+            memberId: input.memberId ?? null,
+            donorName: input.isAnonymous ? null : (input.donorName ?? null),
+            isAnonymous: input.isAnonymous,
+            category: input.category,
+            fundId: input.fundId,
+            method: input.method,
+            amount: input.amount.toFixed(2),
+            reference: input.reference ?? null,
+            linkedOfferingId: input.linkedOfferingId ?? null,
+            notes: input.notes ?? null,
+            recordedBy: ctx.user.id,
           })
         );
         return { id };

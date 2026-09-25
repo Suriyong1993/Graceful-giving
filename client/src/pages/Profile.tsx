@@ -670,7 +670,7 @@ export default function Profile() {
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                   className="w-full px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl border border-[#E7DCC8] text-xs sm:text-sm font-semibold text-[#171311] focus:border-[#C94F16] focus:outline-none focus:ring-2 focus:ring-[#C94F16]/20 transition-all"
-                  placeholder="เช่น พณ.ท่านสุริยงค์ บาลเพ็ชร"
+                  placeholder="ชื่อและนามสกุล"
                 />
               </div>
 
@@ -759,8 +759,7 @@ export default function Profile() {
                 <p className="leading-relaxed">
                   บทบาทและสิทธิ์การใช้งานของท่าน ({userRoleInfo.label})
                   ถูกกำหนดโดยผู้ดูแลระบบสูงสุด หากต้องการเปลี่ยนแปลงสิทธิ์
-                  กรุณาติดต่อ{" "}
-                  {roleHolderLabel("SUPER_ADMIN", roleHoldersQuery)}
+                  กรุณาติดต่อ {roleHolderLabel("SUPER_ADMIN", roleHoldersQuery)}
                 </p>
               </div>
 

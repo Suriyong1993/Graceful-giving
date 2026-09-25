@@ -136,7 +136,7 @@ function RouteLoading() {
       <div className="w-full max-w-md space-y-3">
         <div className="h-8 w-40 rounded-xl bg-[#E7DCC8]/60 animate-pulse" />
         <div className="h-24 w-full rounded-2xl bg-[#E7DCC8]/40 animate-pulse" />
-        <p className="text-center text-sm text-[#807266]">กำลังโหลดหน้า…</p>
+        <span className="sr-only">กำลังโหลดหน้า</span>
       </div>
     </div>
   );

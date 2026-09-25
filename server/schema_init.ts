@@ -487,7 +487,11 @@ const INTEGRITY_INDEXES: Record<
 };
 
 function indexNameOf(stmt: string): string | null {
-  return stmt.match(/CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i)?.[1] ?? null;
+  return (
+    stmt.match(
+      /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?"([^"]+)"/i
+    )?.[1] ?? null
+  );
 }
 
 export async function runSchemaInit(client: any) {
@@ -542,4 +546,3 @@ export async function runSchemaInit(client: any) {
     }
   }
 }
-
