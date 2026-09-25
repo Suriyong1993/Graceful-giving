@@ -386,6 +386,19 @@ export const appRouter = router({
     getProfile: protectedProcedure.query(async () => {
       return await getChurchProfile();
     }),
+    /**
+     * The only church fields a signed-out visitor can read: the /privacy page
+     * names the data controller and where to send personal-data requests.
+     * Falls back to the church's official email when no privacy contact is set.
+     */
+    publicContact: publicProcedure.query(async () => {
+      const profile = await getChurchProfile();
+      return {
+        churchName: profile?.name || null,
+        privacyContactEmail:
+          profile?.privacyContactEmail || profile?.email || null,
+      };
+    }),
     updateProfile: churchLeaderProcedure
       .input(
         z.object({
@@ -393,6 +406,12 @@ export const appRouter = router({
           address: z.string().trim().max(1000).optional(),
           phone: z.string().trim().max(20).optional(),
           email: z.string().email().max(320).optional().or(z.literal("")),
+          privacyContactEmail: z
+            .string()
+            .email()
+            .max(320)
+            .optional()
+            .or(z.literal("")),
           website: z.string().url().max(500).optional().or(z.literal("")),
           pastorName: z.string().trim().max(120).optional(),
           assistantPastorName: z.string().trim().max(120).optional(),

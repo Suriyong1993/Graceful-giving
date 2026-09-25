@@ -67,6 +67,10 @@ export const TABLE_STATEMENTS: string[] = [
     "updatedAt" timestamp DEFAULT now() NOT NULL
   );`,
 
+  // Added after the table existed; ADD COLUMN IF NOT EXISTS keeps this
+  // idempotent for databases created before the privacy contact was introduced.
+  `ALTER TABLE "church_profiles" ADD COLUMN IF NOT EXISTS "privacyContactEmail" varchar(320);`,
+
   `CREATE TABLE IF NOT EXISTS "finance_accounts" (
     "id" serial PRIMARY KEY NOT NULL,
     "churchId" varchar(64) NOT NULL,

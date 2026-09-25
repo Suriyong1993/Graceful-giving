@@ -5,6 +5,7 @@ import { startLogin } from "@/const";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Sprout } from "lucide-react";
+import { LegalLinks } from "@/pages/Legal";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -58,6 +59,7 @@ export default function Login() {
               },
             }}
           />
+          <LegalLinks />
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">

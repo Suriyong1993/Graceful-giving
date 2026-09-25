@@ -1,6 +1,7 @@
 import React from "react";
 import { SignUp } from "@clerk/clerk-react";
 import { Sprout } from "lucide-react";
+import { LegalLinks } from "@/pages/Legal";
 
 export default function Register() {
   return (
@@ -44,6 +45,7 @@ export default function Register() {
               },
             }}
           />
+          <LegalLinks />
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">

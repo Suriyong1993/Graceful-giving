@@ -177,6 +177,8 @@ export const churchProfiles = pgTable("church_profiles", {
   address: text("address"),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
+  /** Contact for personal-data requests, shown on the public /privacy page. */
+  privacyContactEmail: varchar("privacyContactEmail", { length: 320 }),
   website: varchar("website", { length: 500 }),
   pastorName: varchar("pastorName", { length: 120 }),
   assistantPastorName: varchar("assistantPastorName", { length: 120 }),

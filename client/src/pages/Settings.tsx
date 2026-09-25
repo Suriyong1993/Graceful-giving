@@ -118,6 +118,7 @@ export default function Settings() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [privacyContactEmail, setPrivacyContactEmail] = useState("");
   const [website, setWebsite] = useState("");
   const [pastorName, setPastorName] = useState("");
   const [assistantPastorName, setAssistantPastorName] = useState("");
@@ -143,6 +144,7 @@ export default function Settings() {
       address: churchProfile?.address || "",
       phone: churchProfile?.phone || "",
       email: churchProfile?.email || "",
+      privacyContactEmail: churchProfile?.privacyContactEmail || "",
       pastorName: churchProfile?.pastorName || "",
       treasurerName: churchProfile?.treasurerName || "",
       motto: churchProfile?.motto || "",
@@ -151,6 +153,7 @@ export default function Settings() {
     setAddress(loaded.address);
     setPhone(loaded.phone);
     setEmail(loaded.email);
+    setPrivacyContactEmail(loaded.privacyContactEmail || "");
     setWebsite(churchProfile?.website || "");
     setPastorName(loaded.pastorName);
     setAssistantPastorName(churchProfile?.assistantPastorName || "");
@@ -199,6 +202,7 @@ export default function Settings() {
       address,
       phone,
       email,
+      privacyContactEmail,
       website,
       pastorName,
       assistantPastorName,
@@ -449,6 +453,23 @@ export default function Settings() {
                     onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-2xl border border-[#DDE5F0] text-sm text-[#0C1B33]"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-[#0C1B33]">
+                    อีเมลรับเรื่องคำขอข้อมูลส่วนบุคคล
+                  </label>
+                  <input
+                    type="email"
+                    value={privacyContactEmail}
+                    onChange={e => setPrivacyContactEmail(e.target.value)}
+                    placeholder="ถ้าเว้นว่าง จะใช้อีเมลทางการแสดงในหน้านโยบายความเป็นส่วนตัว"
+                    className="w-full px-4 py-2.5 rounded-2xl border border-[#DDE5F0] text-sm text-[#0C1B33] placeholder-[#64748B]"
+                  />
+                  <p className="text-xs text-[#64748B]">
+                    ช่องทางที่ผู้เข้ามาอ่านนโยบายความเป็นส่วนตัวจะใช้ติดต่อกลับ
+                    เรื่องข้อมูลส่วนบุคคล
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
