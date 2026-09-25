@@ -38,16 +38,16 @@
 
   /* Custom Grace-giving Brand Colors (Semantic Tokens) */
   --color-brand-bg: var(--background);
-  --color-brand-cream: #eef1f3;
-  --color-brand-sage: #9ac4b2;
-  --color-brand-lightsage: #e4f0ed;
-  --color-brand-peach: #ead5c9;
-  --color-brand-orange: var(--primary);
-  --color-brand-sky: #c9dce4;
-  --color-brand-brown: #42515a;
+  --color-brand-cream: #fff4d6;
+  --color-brand-sage: #e4c98f;
+  --color-brand-lightsage: #fff8ea;
+  --color-brand-peach: #f6c09b;
+  --color-brand-orange: #fc6c26;
+  --color-brand-sky: #d9c7ed;
+  --color-brand-brown: #51443a;
   --color-brand-dark: var(--foreground);
-  --color-brand-muted: #6a7880;
-  --color-brand-border: #dce3e6;
+  --color-brand-muted: #807266;
+  --color-brand-border: #e7dcc8;
 
   /* Legacy aliases maintained for backward safety */
   --color-clay-bg: var(--color-brand-bg);
@@ -77,28 +77,28 @@
   --content-max: 88rem;
 
   /* Warm-grey ramp (neutral surfaces and text) and burnt-orange primary.
-     Text pairs are chosen for at least 4.5:1 on white: #172128 primary text,
-     #42515A secondary, #6A7880 tertiary. #225B66 carries white button text
-     at 4.9:1; #174852 is its hover and the orange used for text. */
-  --primary: #225b66;
+     Text pairs are chosen for at least 4.5:1 on white: #171311 primary text,
+     #51443A secondary, #807266 tertiary. #C94F16 carries white button text
+     at 4.9:1; #9F3B0F is its hover and the orange used for text. */
+  --primary: #c94f16;
   --primary-foreground: #ffffff;
-  --background: #f5f7f8;
-  --foreground: #172128;
-  --card: #ffffff;
-  --card-foreground: #172128;
-  --popover: #ffffff;
-  --popover-foreground: #172128;
-  --secondary: #eef1f3;
-  --secondary-foreground: #42515a;
-  --muted: #eef1f3;
-  --muted-foreground: #6a7880;
-  --accent: #e4f0ed;
-  --accent-foreground: #225b66;
+  --background: #171311;
+  --foreground: #171311;
+  --card: #fff4d6;
+  --card-foreground: #171311;
+  --popover: #fff4d6;
+  --popover-foreground: #171311;
+  --secondary: #fff8ea;
+  --secondary-foreground: #51443a;
+  --muted: #fff8ea;
+  --muted-foreground: #807266;
+  --accent: #fff4d6;
+  --accent-foreground: #9f3b0f;
   --destructive: #c8372d;
   --destructive-foreground: #ffffff;
-  --border: #dce3e6;
-  --input: #dce3e6;
-  --ring: #225b66;
+  --border: #e7dcc8;
+  --input: #e7dcc8;
+  --ring: #c94f16;
   --radius: 0.75rem;
 }
 

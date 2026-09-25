@@ -53,7 +53,7 @@ export function DeductionsTab({
 
   return (
     <section className="space-y-4">
-      <p className="rounded-2xl border border-[#DCE3E6] bg-background p-4 text-sm text-[#42515A]">
+      <p className="rounded-2xl border border-[#E7DCC8] bg-background p-4 text-sm text-[#51443A]">
         เงินที่เบิกจากถุงถวายก่อนนำฝาก ยอดถวายจะไม่หายจากระบบ — ระบบตรวจว่า
         นับเงินสดได้ − หักเบิก = ยอดนำฝาก
       </p>
@@ -91,13 +91,13 @@ export function DeductionsTab({
               }
             );
           }}
-          className="rounded-2xl border border-[#DCE3E6] bg-white p-5 shadow-sm md:p-6"
+          className="rounded-2xl border border-[#E7DCC8] bg-white p-5 shadow-sm md:p-6"
         >
           <h2 className="mb-4 font-bold text-foreground">
             บันทึกรายการหักเบิก
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-semibold text-[#42515A]">
+            <label className="text-sm font-semibold text-[#51443A]">
               รายการที่เบิก *
               <input
                 required
@@ -105,10 +105,10 @@ export function DeductionsTab({
                 value={dPurpose}
                 onChange={e => setDPurpose(e.target.value)}
                 placeholder="เช่น ค่าน้ำดื่มวันอาทิตย์"
-                className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 text-sm font-normal text-foreground"
+                className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 text-sm font-normal text-foreground"
               />
             </label>
-            <label className="text-sm font-semibold text-[#42515A]">
+            <label className="text-sm font-semibold text-[#51443A]">
               เบิกให้ใคร *
               <input
                 required
@@ -116,10 +116,10 @@ export function DeductionsTab({
                 value={dPaidTo}
                 onChange={e => setDPaidTo(e.target.value)}
                 placeholder="ชื่อผู้รับเงิน"
-                className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 text-sm font-normal text-foreground"
+                className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 text-sm font-normal text-foreground"
               />
             </label>
-            <label className="text-sm font-semibold text-[#42515A]">
+            <label className="text-sm font-semibold text-[#51443A]">
               จำนวนเงิน *
               <input
                 type="number"
@@ -128,10 +128,10 @@ export function DeductionsTab({
                 step="0.25"
                 value={dAmount}
                 onChange={e => setDAmount(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 text-base font-bold tabular-nums text-[#C8372D]"
+                className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 text-base font-bold tabular-nums text-[#C8372D]"
               />
             </label>
-            <label className="text-sm font-semibold text-[#42515A]">
+            <label className="text-sm font-semibold text-[#51443A]">
               หมวดหมู่รายจ่าย
               <NativeSelect
                 value={dCategory}
@@ -145,7 +145,7 @@ export function DeductionsTab({
                 ))}
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#42515A]">
+            <label className="text-sm font-semibold text-[#51443A]">
               ตัดจากกองทุน *
               <NativeSelect
                 required
@@ -163,7 +163,7 @@ export function DeductionsTab({
                 ))}
               </NativeSelect>
             </label>
-            <label className="text-sm font-semibold text-[#42515A] md:col-span-2">
+            <label className="text-sm font-semibold text-[#51443A] md:col-span-2">
               เหตุผล *
               <textarea
                 required
@@ -172,7 +172,7 @@ export function DeductionsTab({
                 value={dReason}
                 onChange={e => setDReason(e.target.value)}
                 placeholder="อธิบายเหตุผลที่ต้องเบิกจากถุงถวายทันที"
-                className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 text-sm font-normal text-foreground"
+                className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 text-sm font-normal text-foreground"
               />
             </label>
           </div>
@@ -186,8 +186,8 @@ export function DeductionsTab({
         </form>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-[#DCE3E6] bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#DCE3E6] p-4">
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCC8] bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-[#E7DCC8] p-4">
           <h2 className="font-bold text-foreground">
             รายการหักเบิก ({deductions.length})
           </h2>
@@ -196,7 +196,7 @@ export function DeductionsTab({
           </span>
         </div>
         {deductions.length === 0 ? (
-          <p className="p-8 text-center text-sm text-[#42515A]">
+          <p className="p-8 text-center text-sm text-[#51443A]">
             ไม่มีการหักเบิกในรอบนี้ เงินถวายทั้งหมดจะถูกนำฝาก
           </p>
         ) : (
@@ -208,10 +208,10 @@ export function DeductionsTab({
                     <p className="font-bold text-foreground">
                       {deduction.purpose}
                     </p>
-                    <p className="text-sm text-[#42515A]">
+                    <p className="text-sm text-[#51443A]">
                       เบิกให้ {deduction.paidTo}
                     </p>
-                    <p className="mt-1 text-sm text-[#42515A]">
+                    <p className="mt-1 text-sm text-[#51443A]">
                       {deduction.reason}
                     </p>
                   </div>

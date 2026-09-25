@@ -20,7 +20,7 @@ export default function Updates() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] p-6 text-center text-sm text-[#6A7880]">
+      <div className="min-h-screen bg-[#FAF8F5] p-6 text-center text-sm text-[#807266]">
         กำลังตรวจสอบบัญชีผู้ใช้...
       </div>
     );
@@ -32,24 +32,24 @@ export default function Updates() {
         <div className="mx-auto max-w-lg">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-[#174852] hover:underline"
+            className="inline-flex items-center gap-2 text-sm font-bold text-[#9F3B0F] hover:underline"
           >
             <ArrowLeft className="size-4" />
             กลับหน้าหลัก
           </Link>
-          <div className="mt-16 rounded-2xl border border-[#DCE3E6] bg-white p-8 text-center shadow-[0_12px_30px_rgba(94,70,42,0.07)]">
-            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#EEF1F3] text-[#174852]">
+          <div className="mt-16 rounded-2xl border border-[#E7DCC8] bg-white p-8 text-center shadow-[0_12px_30px_rgba(94,70,42,0.07)]">
+            <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#FFF8EA] text-[#9F3B0F]">
               <Bell className="size-8" />
             </div>
             <h1 className="mt-5 font-display text-2xl font-bold text-[#3F3833]">
               ติดตามข่าวสารคริสตจักร
             </h1>
-            <p className="mt-2 text-sm leading-6 text-[#42515A]">
+            <p className="mt-2 text-sm leading-6 text-[#51443A]">
               เข้าสู่ระบบเพื่อดูประกาศ กิจกรรม และข้อมูลอัปเดตสำหรับสมาชิก
             </p>
             <button
               onClick={startLogin}
-              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#174852] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#225B66] active:scale-95 transition"
+              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#9F3B0F] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#C94F16] active:scale-95 transition"
             >
               <UsersRound className="size-4" />
               เข้าสู่ระบบ
@@ -67,7 +67,7 @@ export default function Updates() {
           <div>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#174852] hover:underline"
+              className="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-[#9F3B0F] hover:underline"
             >
               <ArrowLeft className="size-4" />
               กลับหน้าหลัก
@@ -80,14 +80,14 @@ export default function Updates() {
                 <h1 className="font-display text-3xl font-bold tracking-tight text-[#3F3833]">
                   ข่าวสาร & กิจกรรม
                 </h1>
-                <p className="mt-1 text-sm text-[#42515A]">
+                <p className="mt-1 text-sm text-[#51443A]">
                   ติดตามสิ่งที่เกิดขึ้นในคริสตจักรบ้านแห่งพระคุณ
                 </p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-[#EDE8E3] bg-white/75 px-3.5 py-2 text-xs text-[#42515A]">
-            <Sparkles className="size-4 text-[#174852]" />
+          <div className="flex items-center gap-2 rounded-full border border-[#EDE8E3] bg-white/75 px-3.5 py-2 text-xs text-[#51443A]">
+            <Sparkles className="size-4 text-[#9F3B0F]" />
             <span>อัปเดตเพื่อการมีส่วนร่วมในชุมชน</span>
           </div>
         </header>
@@ -97,8 +97,8 @@ export default function Updates() {
             onClick={() => setActiveTab("feed")}
             className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
               activeTab === "feed"
-                ? "bg-white text-[#174852] shadow-sm"
-                : "text-[#6A7880] hover:text-[#3F3833]"
+                ? "bg-white text-[#9F3B0F] shadow-sm"
+                : "text-[#807266] hover:text-[#3F3833]"
             }`}
           >
             สำหรับสมาชิก
@@ -108,8 +108,8 @@ export default function Updates() {
               onClick={() => setActiveTab("manage")}
               className={`min-h-11 rounded-xl px-5 py-2 text-sm font-bold transition-all ${
                 activeTab === "manage"
-                  ? "bg-white text-[#174852] shadow-sm"
-                  : "text-[#6A7880] hover:text-[#3F3833]"
+                  ? "bg-white text-[#9F3B0F] shadow-sm"
+                  : "text-[#807266] hover:text-[#3F3833]"
               }`}
             >
               <Settings2 className="mr-1.5 inline size-4" />

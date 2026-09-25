@@ -12,16 +12,16 @@ export function BudgetSection({
   return (
     <section
       aria-label="แผนการใช้จ่ายงบประมาณ"
-      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#DCE3E6] shadow-xs space-y-4 w-full"
+      className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E7DCC8] shadow-xs space-y-4 w-full"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-lg sm:text-xl font-bold text-[#172128]">
+        <h2 className="text-lg sm:text-xl font-bold text-[#171311]">
           แผนการใช้จ่าย
         </h2>
         {canOpenReports && (
           <button
             onClick={onOpenReports}
-            className="min-h-11 -mr-2 px-2 text-sm sm:text-base font-bold text-[#174852] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#225B66]"
+            className="min-h-11 -mr-2 px-2 text-sm sm:text-base font-bold text-[#9F3B0F] hover:underline flex items-center gap-1 focus-visible:ring-2 focus-visible:ring-[#C94F16]"
           >
             <span>ดูรายงาน</span>
             <ChevronRight className="w-5 h-5" />

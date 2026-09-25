@@ -23,14 +23,14 @@ export const LoadingSkeleton: React.FC<{
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full ${height} rounded-2xl bg-[#EEF1F3]/60 animate-pulse border border-[#DCE3E6]/50 p-4 flex items-center gap-4`}
+          className={`w-full ${height} rounded-2xl bg-[#FFF8EA]/60 animate-pulse border border-[#E7DCC8]/50 p-4 flex items-center gap-4`}
         >
-          <div className="w-14 h-14 rounded-2xl bg-[#DCE3E6]/40 shrink-0" />
+          <div className="w-14 h-14 rounded-2xl bg-[#E7DCC8]/40 shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="w-1/3 h-4 rounded-md bg-[#DCE3E6]/40" />
-            <div className="w-1/2 h-3 rounded-md bg-[#DCE3E6]/30" />
+            <div className="w-1/3 h-4 rounded-md bg-[#E7DCC8]/40" />
+            <div className="w-1/2 h-3 rounded-md bg-[#E7DCC8]/30" />
           </div>
-          <div className="w-20 h-6 rounded-md bg-[#DCE3E6]/40" />
+          <div className="w-20 h-6 rounded-md bg-[#E7DCC8]/40" />
         </div>
       ))}
     </div>
@@ -58,9 +58,9 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-2xl bg-white border border-[#DCE3E6] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-white border border-[#E7DCC8] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="size-20 rounded-2xl overflow-hidden bg-[#EEF1F3] shrink-0">
+      <div className="size-20 rounded-2xl overflow-hidden bg-[#FFF8EA] shrink-0">
         <Illustration
           src={illustrationSrc}
           alt={illustrationAlt}
@@ -70,13 +70,13 @@ export const EmptyState: React.FC<{
         />
       </div>
       <div className="space-y-1 max-w-sm">
-        <h3 className="text-base font-semibold text-[#172128]">{title}</h3>
-        <p className="text-sm text-[#6A7880] leading-relaxed">{description}</p>
+        <h3 className="text-base font-semibold text-[#171311]">{title}</h3>
+        <p className="text-sm text-[#807266] leading-relaxed">{description}</p>
       </div>
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#225B66] hover:bg-[#174852] text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#225B66]"
+          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#C94F16] hover:bg-[#9F3B0F] text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#C94F16]"
         >
           {actionText}
         </button>
@@ -105,7 +105,7 @@ export const ErrorState: React.FC<{
     </div>
     <div className="space-y-1 max-w-sm">
       <h3 className="text-base font-bold text-[#7C2A1E]">{title}</h3>
-      <p className="text-sm text-[#42515A] leading-relaxed">{description}</p>
+      <p className="text-sm text-[#51443A] leading-relaxed">{description}</p>
     </div>
     {onRetry && (
       <button
@@ -180,7 +180,7 @@ export const StatusBadge: React.FC<{
         };
       case "needs_review":
         return {
-          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
+          bg: "bg-[#FEF5EC] text-[#9F3B0F] border-[#F9D2AE]",
           defaultLabel: "ต้องตรวจสอบ",
         };
       case "unknown":
@@ -195,7 +195,7 @@ export const StatusBadge: React.FC<{
         };
       case "counting":
         return {
-          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
+          bg: "bg-[#FEF5EC] text-[#9F3B0F] border-[#F9D2AE]",
           defaultLabel: "กำลังนับ",
         };
       case "counted":
@@ -221,7 +221,7 @@ export const StatusBadge: React.FC<{
       case "pending":
       default:
         return {
-          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
+          bg: "bg-[#FEF5EC] text-[#9F3B0F] border-[#F9D2AE]",
           defaultLabel: "รอดำเนินการ",
         };
     }
@@ -256,7 +256,7 @@ export const MoneyDisplay: React.FC<{
   const getColor = () => {
     if (type === "income") return "text-[#1F5C33]";
     if (type === "expense") return "text-[#c7382d]";
-    return "text-[#172128]";
+    return "text-[#171311]";
   };
 
   // Each size carries its own weight. The base class used to set font-bold
@@ -306,14 +306,14 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#DCE3E6] card-elevation-sm ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E7DCC8] card-elevation-sm ${className}`}
     >
       <div className="min-w-0">
-        <h1 className="text-xl md:text-2xl font-bold text-[#42515A] tracking-tight break-words">
+        <h1 className="text-xl md:text-2xl font-bold text-[#51443A] tracking-tight break-words">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-xs text-[#6A7880] mt-1 leading-relaxed">
+          <p className="text-xs text-[#807266] mt-1 leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -349,8 +349,8 @@ export const Chip: React.FC<
     aria-pressed={active}
     className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl border px-3.5 py-2 text-[13px] transition-colors ${
       active
-        ? "border-[#F9D2AE] bg-[#E7F0EE] font-semibold text-[#174852]"
-        : "border-[#DCE3E6] bg-white font-medium text-[#42515A] hover:bg-[#EEF1F3]"
+        ? "border-[#F9D2AE] bg-[#FFF4D6] font-semibold text-[#9F3B0F]"
+        : "border-[#E7DCC8] bg-white font-medium text-[#51443A] hover:bg-[#FFF8EA]"
     } ${className}`}
     {...props}
   >
@@ -385,7 +385,7 @@ export const FilterBar: React.FC<{
       {/* Search Input */}
       <div className="relative w-full">
         <Search
-          className="pointer-events-none w-4 h-4 text-[#6A7880] absolute left-3.5 top-1/2 -translate-y-1/2"
+          className="pointer-events-none w-4 h-4 text-[#807266] absolute left-3.5 top-1/2 -translate-y-1/2"
           aria-hidden="true"
         />
         <input
@@ -394,7 +394,7 @@ export const FilterBar: React.FC<{
           value={searchValue}
           onChange={e => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-[#DCE3E6] text-base md:text-sm text-[#172128] placeholder-[#6A7880] focus:border-[#225B66] focus-visible:ring-2 focus-visible:ring-[#225B66]/30"
+          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-[#E7DCC8] text-base md:text-sm text-[#171311] placeholder-[#807266] focus:border-[#C94F16] focus-visible:ring-2 focus-visible:ring-[#C94F16]/30"
         />
       </div>
 
@@ -452,8 +452,8 @@ export const BackLink: React.FC<{
     onClick={onClick}
     className={`min-h-11 inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
       variant === "pill"
-        ? "rounded-xl border border-[#DCE3E6] bg-white px-3.5 py-2 text-[#3F3833] hover:bg-[#EEF1F3]"
-        : "text-[#42515A] hover:text-[#172128]"
+        ? "rounded-xl border border-[#E7DCC8] bg-white px-3.5 py-2 text-[#3F3833] hover:bg-[#FFF8EA]"
+        : "text-[#51443A] hover:text-[#171311]"
     } ${className}`}
   >
     <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -486,12 +486,12 @@ export const ConfirmDialog: React.FC<{
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-[#FFFFFF] border-[#DCE3E6] rounded-2xl p-6 text-[#172128]">
+      <DialogContent className="max-w-sm bg-[#FFFFFF] border-[#E7DCC8] rounded-2xl p-6 text-[#171311]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-[#42515A]">
+          <DialogTitle className="text-lg font-bold text-[#51443A]">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-[#42515A] leading-relaxed">
+          <DialogDescription className="text-sm text-[#51443A] leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -500,7 +500,7 @@ export const ConfirmDialog: React.FC<{
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
-            className="flex-1 py-2.5 rounded-xl bg-[#EEF1F3] text-[#42515A] font-bold text-xs border border-[#DCE3E6]"
+            className="flex-1 py-2.5 rounded-xl bg-[#FFF8EA] text-[#51443A] font-bold text-xs border border-[#E7DCC8]"
           >
             {cancelText}
           </button>
@@ -511,7 +511,7 @@ export const ConfirmDialog: React.FC<{
             className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs button-elevation transition-all ${
               variant === "danger"
                 ? "bg-[#C8372D] hover:bg-[#B3322A]"
-                : "bg-[#225B66] hover:bg-[#174852]"
+                : "bg-[#C94F16] hover:bg-[#9F3B0F]"
             }`}
           >
             {isLoading ? "กำลังดำเนินการ..." : confirmText}
