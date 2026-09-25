@@ -38,16 +38,16 @@
 
   /* Custom Grace-giving Brand Colors (Semantic Tokens) */
   --color-brand-bg: var(--background);
-  --color-brand-cream: #f4f1ed;
-  --color-brand-sage: #9bcba5;
-  --color-brand-lightsage: #e4f3e7;
-  --color-brand-peach: #f4c4be;
+  --color-brand-cream: #eef2f8;
+  --color-brand-sage: #34d399;
+  --color-brand-lightsage: #e6f6ee;
+  --color-brand-peach: #fda4af;
   --color-brand-orange: var(--primary);
-  --color-brand-sky: #a9d4ed;
-  --color-brand-brown: #57504a;
+  --color-brand-sky: #38bdf8;
+  --color-brand-brown: #1e4470;
   --color-brand-dark: var(--foreground);
-  --color-brand-muted: #736a63;
-  --color-brand-border: #e4ded7;
+  --color-brand-muted: #64748b;
+  --color-brand-border: #dce4f0;
 
   /* Legacy aliases maintained for backward safety */
   --color-clay-bg: var(--color-brand-bg);
@@ -76,30 +76,32 @@
      them, which is unreadable. The sidebar sits outside this width. */
   --content-max: 88rem;
 
-  /* Warm-grey ramp (neutral surfaces and text) and burnt-orange primary.
-     Text pairs are chosen for at least 4.5:1 on white: #1F1A17 primary text,
-     #57504A secondary, #736A63 tertiary. #B9530F carries white button text
-     at 4.9:1; #A34A0C is its hover and the orange used for text. */
-  --primary: #b9530f;
+  /* Design system: "Navy x Amber" — deep navy carries structure and primary
+     actions, amber highlights momentum and status, cool neutrals keep the dense
+     financial tables readable. Text pairs are chosen for at least 4.5:1 on
+     white: #0C1B33 ink, #475569 secondary, #64748B tertiary. #12325C carries
+     white button text at 12.6:1; #D97706 amber is used for accents and fills
+     with navy text (#0C1B33 on #D97706 = 4.7:1), never white text. */
+  --primary: #12325c;
   --primary-foreground: #ffffff;
-  --background: #faf8f5;
-  --foreground: #1f1a17;
+  --background: #f6f8fc;
+  --foreground: #0c1b33;
   --card: #ffffff;
-  --card-foreground: #1f1a17;
+  --card-foreground: #0c1b33;
   --popover: #ffffff;
-  --popover-foreground: #1f1a17;
-  --secondary: #f4f1ed;
-  --secondary-foreground: #57504a;
-  --muted: #f4f1ed;
-  --muted-foreground: #736a63;
-  --accent: #e4f3e7;
-  --accent-foreground: #1f5c33;
-  --destructive: #c8372d;
+  --popover-foreground: #0c1b33;
+  --secondary: #eef2f8;
+  --secondary-foreground: #1e4470;
+  --muted: #eef2f8;
+  --muted-foreground: #64748b;
+  --accent: #fef3c7;
+  --accent-foreground: #78350f;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e4ded7;
-  --input: #e4ded7;
-  --ring: #b9530f;
-  --radius: 1rem;
+  --border: #dce4f0;
+  --input: #dce4f0;
+  --ring: #d97706;
+  --radius: 0.875rem;
 }
 
 * {
@@ -123,7 +125,7 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(185, 83, 15, 0.35);
+  outline: 3px solid rgba(217, 119, 6, 0.45);
   outline-offset: 2px;
 }
 
@@ -138,30 +140,54 @@ select:focus-visible {
   }
 }
 
-/* Professional Financial Card & Elevation Shadows */
+/* Professional Financial Card & Elevation Shadows — cool navy-tinted so the
+   white cards read as layered paper on #F6F8FC rather than warm cream. */
 .card-elevation-sm,
 .clay-card-shadow {
   box-shadow:
-    0 1px 3px 0 rgba(31, 26, 23, 0.06),
-    0 1px 2px -1px rgba(31, 26, 23, 0.06);
+    0 1px 2px 0 rgba(12, 27, 51, 0.05),
+    0 1px 3px -1px rgba(12, 27, 51, 0.06);
 }
 
 .button-elevation,
 .clay-button-shadow {
-  box-shadow: 0 2px 6px -1px rgba(185, 83, 15, 0.2);
+  box-shadow:
+    0 1px 2px 0 rgba(12, 27, 51, 0.16),
+    0 4px 12px -2px rgba(12, 27, 51, 0.18);
+}
+
+/* Amber glow — used on the offering FAB and other momentum accents. */
+.amber-glow {
+  box-shadow:
+    0 4px 14px -2px rgba(217, 119, 6, 0.45),
+    0 2px 4px -2px rgba(217, 119, 6, 0.3);
 }
 
 .inset-bevel-subtle,
 .clay-inset-bevel {
-  box-shadow: 0 1px 2px 0 rgba(31, 26, 23, 0.04);
+  box-shadow: 0 1px 2px 0 rgba(12, 27, 51, 0.05);
 }
 
 /* Clear, balanced elevation for the primary financial focal point */
 .card-elevation-focus,
 .clay-balance-glow {
   box-shadow:
-    0 4px 16px -2px rgba(31, 26, 23, 0.08),
-    0 2px 6px -2px rgba(31, 26, 23, 0.04);
+    0 12px 28px -12px rgba(12, 27, 51, 0.22),
+    0 2px 6px -2px rgba(12, 27, 51, 0.06);
+}
+
+/* Brand surfaces used by the app shell (sidebar, bottom nav, auth pages). */
+.brand-navy-gradient {
+  background-image: linear-gradient(
+    170deg,
+    #0c1b33 0%,
+    #12325c 52%,
+    #1e4470 100%
+  );
+}
+
+.brand-amber-gradient {
+  background-image: linear-gradient(140deg, #f59e0b 0%, #d97706 100%);
 }
 
 /* Staggered entrance for above-the-fold Home sections (hero, balance,
@@ -191,7 +217,7 @@ select:focus-visible {
 
 @layer base {
   * {
-    border-color: #e4ded7;
+    border-color: #dce4f0;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -225,11 +251,11 @@ select:focus-visible {
   background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cfc7bf;
+  background: #c3cede;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a89e96;
+  background: #a3b1c7;
 }
 
 /* ============================================

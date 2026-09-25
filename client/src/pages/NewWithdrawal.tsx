@@ -103,9 +103,9 @@ export default function NewWithdrawal() {
         <BackLink label={`กลับ${returnLabel}`} onClick={goBack} />
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white border border-[#E4DED7] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
+          <div className="bg-white border border-[#DDE5F0] rounded-2xl p-6 md:p-8 shadow-sm space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#1F1A17]">
+              <label className="text-sm font-semibold text-[#0C1B33]">
                 วัตถุประสงค์การเบิก <span className="text-red-500">*</span>
               </label>
               <input
@@ -114,17 +114,17 @@ export default function NewWithdrawal() {
                 value={purpose}
                 onChange={e => setPurpose(e.target.value)}
                 placeholder="เช่น ค่าจัดค่ายอนุชน, ค่าซ่อมแซมห้องน้ำ"
-                className="w-full px-4 py-3 rounded-2xl border border-[#E4DED7] focus:border-[#B9530F] focus:outline-none bg-[#FAF8F5]/20 text-sm font-medium text-[#1F1A17]"
+                className="w-full px-4 py-3 rounded-2xl border border-[#DDE5F0] focus:border-[#12325C] focus:outline-none bg-[#F6F8FC]/20 text-sm font-medium text-[#0C1B33]"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-[#1F1A17]">
+                <label className="text-sm font-semibold text-[#0C1B33]">
                   จำนวนเงิน (บาท) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#736A63]">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-[#64748B]">
                     ฿
                   </span>
                   <input
@@ -133,13 +133,13 @@ export default function NewWithdrawal() {
                     placeholder="0.00"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-[#E4DED7] focus:border-[#B9530F] focus:outline-none bg-[#FAF8F5]/20 text-lg font-bold text-[#1F1A17]"
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-[#DDE5F0] focus:border-[#12325C] focus:outline-none bg-[#F6F8FC]/20 text-lg font-bold text-[#0C1B33]"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-[#1F1A17]">
+                <label className="text-sm font-semibold text-[#0C1B33]">
                   ความเร่งด่วน
                 </label>
                 <NativeSelect
@@ -147,7 +147,7 @@ export default function NewWithdrawal() {
                   onChange={e =>
                     setUrgency(e.target.value as "normal" | "urgent")
                   }
-                  className="bg-[#FAF8F5]/20 font-medium"
+                  className="bg-[#F6F8FC]/20 font-medium"
                 >
                   <option value="normal">ปกติ (ตามรอบ)</option>
                   <option value="urgent">เร่งด่วน</option>
@@ -156,14 +156,14 @@ export default function NewWithdrawal() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#1F1A17]">
+              <label className="text-sm font-semibold text-[#0C1B33]">
                 เบิกจากกองทุน <span className="text-red-500">*</span>
               </label>
               <NativeSelect
                 required
                 value={fundId ?? ""}
                 onChange={e => setFundId(Number(e.target.value))}
-                className="bg-[#FAF8F5]/20 font-medium"
+                className="bg-[#F6F8FC]/20 font-medium"
               >
                 <option value="" disabled>
                   — เลือกกองทุน —
@@ -175,14 +175,14 @@ export default function NewWithdrawal() {
                 ))}
               </NativeSelect>
               {funds.length === 0 && (
-                <p className="text-sm font-bold text-[#C8372D] mt-2">
+                <p className="text-sm font-bold text-[#B91C1C] mt-2">
                   ยังไม่มีกองทุนในระบบ กรุณาเพิ่มกองทุนก่อนยื่นคำขอเบิกเงิน
                 </p>
               )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#1F1A17]">
+              <label className="text-sm font-semibold text-[#0C1B33]">
                 หมายเหตุเพิ่มเติม
               </label>
               <textarea
@@ -191,7 +191,7 @@ export default function NewWithdrawal() {
                 placeholder="ระบุรายละเอียดเพิ่มเติมสำหรับผู้อนุมัติ..."
                 value={details}
                 onChange={e => setDetails(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-[#E4DED7] focus:border-[#B9530F] focus:outline-none bg-[#FAF8F5]/20 text-sm text-[#1F1A17]"
+                className="w-full px-4 py-3 rounded-2xl border border-[#DDE5F0] focus:border-[#12325C] focus:outline-none bg-[#F6F8FC]/20 text-sm text-[#0C1B33]"
               />
             </div>
           </div>
@@ -200,14 +200,14 @@ export default function NewWithdrawal() {
             <button
               type="button"
               onClick={goBack}
-              className="px-6 py-3 rounded-2xl border border-[#E4DED7] bg-white text-[#57504A] hover:bg-[#F4F1ED]/50 font-medium text-sm transition-colors"
+              className="px-6 py-3 rounded-2xl border border-[#DDE5F0] bg-white text-[#475569] hover:bg-[#EDF1F7]/50 font-medium text-sm transition-colors"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={isSubmitting || funds.length === 0}
-              className="px-8 py-3 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3 rounded-xl bg-[#12325C] hover:bg-[#0F2947] text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
             >
               <Banknote className="w-4 h-4" />
               <span>
@@ -219,15 +219,15 @@ export default function NewWithdrawal() {
 
         {showSuccessModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-[#E4DED7] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-2xl">
-              <div className="w-16 h-16 rounded-full bg-[#E4F3E7] flex items-center justify-center text-[#57504A] mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-[#57504A]" />
+            <div className="bg-white rounded-2xl border border-[#DDE5F0] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 md:p-8 text-center space-y-6 shadow-2xl">
+              <div className="w-16 h-16 rounded-full bg-[#E6F6EE] flex items-center justify-center text-[#475569] mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-[#475569]" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-[#1F1A17]">
+                <h3 className="text-2xl font-bold text-[#0C1B33]">
                   ส่งคำขอเบิกเงินสำเร็จ!
                 </h3>
-                <p className="text-sm text-[#736A63]">
+                <p className="text-sm text-[#64748B]">
                   คำขอของคุณถูกส่งให้ผู้มีสิทธิ์อนุมัติพิจารณาแล้ว
                 </p>
               </div>
@@ -241,7 +241,7 @@ export default function NewWithdrawal() {
                     setDetails("");
                     setUrgency("normal");
                   }}
-                  className="w-full py-3 rounded-2xl bg-[#B9530F] text-white font-medium text-sm hover:bg-[#A34A0C] transition-colors shadow-sm"
+                  className="w-full py-3 rounded-2xl bg-[#12325C] text-white font-medium text-sm hover:bg-[#0F2947] transition-colors shadow-sm"
                 >
                   ส่งคำขออีกรายการ
                 </button>
@@ -250,7 +250,7 @@ export default function NewWithdrawal() {
                     setShowSuccessModal(false);
                     setLocation(returnPath);
                   }}
-                  className="w-full py-2.5 rounded-2xl border border-[#E4DED7] text-[#57504A] font-medium text-sm hover:bg-[#F4F1ED]/50 transition-colors"
+                  className="w-full py-2.5 rounded-2xl border border-[#DDE5F0] text-[#475569] font-medium text-sm hover:bg-[#EDF1F7]/50 transition-colors"
                 >
                   กลับสู่{returnLabel}
                 </button>

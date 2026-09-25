@@ -34,7 +34,7 @@ export default function Notifications() {
           type="button"
           onClick={() => markAllRead.mutate()}
           disabled={markAllRead.isPending || !query.data?.some(n => !n.readAt)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-4 text-sm font-medium text-[#3F3833] hover:bg-[#F4F1ED] disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDE5F0] bg-white px-4 text-sm font-medium text-[#1E4470] hover:bg-[#EDF1F7] disabled:opacity-50"
         >
           <CheckCheck className="size-4" />
           อ่านแล้วทั้งหมด
@@ -68,26 +68,26 @@ export default function Notifications() {
                   if (!item.readAt) markRead.mutate({ id: item.id });
                   if (item.link) setLocation(item.link);
                 }}
-                className={`relative w-full rounded-2xl border bg-white p-4 pl-8 text-left hover:bg-[#FAF8F5] ${item.readAt ? "border-[#E4DED7]" : "border-[#F9D2AE]"}`}
+                className={`relative w-full rounded-2xl border bg-white p-4 pl-8 text-left hover:bg-[#F6F8FC] ${item.readAt ? "border-[#DDE5F0]" : "border-[#FDE68A]"}`}
               >
                 {!item.readAt && (
                   <span
-                    className="absolute left-3.5 top-6 size-2 rounded-full bg-[#B9530F]"
+                    className="absolute left-3.5 top-6 size-2 rounded-full bg-[#12325C]"
                     aria-hidden="true"
                   />
                 )}
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2
-                      className={`text-[15px] text-[#1F1A17] ${item.readAt ? "font-medium" : "font-semibold"}`}
+                      className={`text-[15px] text-[#0C1B33] ${item.readAt ? "font-medium" : "font-semibold"}`}
                     >
                       {item.title}
                     </h2>
-                    <p className="mt-0.5 text-sm text-[#736A63]">
+                    <p className="mt-0.5 text-sm text-[#64748B]">
                       {item.description || ""}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs text-[#736A63]">
+                  <span className="shrink-0 text-xs text-[#64748B]">
                     {formatThaiDate(item.createdAt)}
                     <span className="sr-only">
                       {item.readAt ? " อ่านแล้ว" : " ยังไม่อ่าน"}

@@ -1,6 +1,16 @@
 import {
-  CheckCircle2, CreditCard, FileBarChart, HandCoins, Home as HomeIcon,
-  Landmark, PieChart, Plus, ReceiptText, Settings2, Sprout, UsersRound,
+  CheckCircle2,
+  CreditCard,
+  FileBarChart,
+  HandCoins,
+  Home as HomeIcon,
+  Landmark,
+  PieChart,
+  Plus,
+  ReceiptText,
+  Settings2,
+  Sprout,
+  UsersRound,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -14,42 +24,114 @@ interface HomeSidebarProps {
   onOpenOffering: () => void;
 }
 
-export function HomeSidebar({ activeTab, onTabChange, onOpenOffering }: HomeSidebarProps) {
+export function HomeSidebar({
+  activeTab,
+  onTabChange,
+  onOpenOffering,
+}: HomeSidebarProps) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { data: churchProfile } = trpc.church.getProfile.useQuery(undefined, { retry: false });
+  const { data: churchProfile } = trpc.church.getProfile.useQuery(undefined, {
+    retry: false,
+  });
 
   const sidebarNavItems = [
-    { label: "หน้าหลัก", tab: "home" as HomeTab, icon: HomeIcon, iconColor: "text-[#E99A4A]", isTab: true },
-    { label: "รายการ", tab: "ledger" as HomeTab, icon: ReceiptText, iconColor: "text-[#A8C978]", isTab: true },
-    { label: "ถวายทรัพย์", path: "/offerings", icon: HandCoins, iconColor: "text-[#F7B6A6]", isTab: false },
-    { label: "รายจ่าย", path: "/expenses", icon: CreditCard, iconColor: "text-[#E99A4A]", isTab: false },
-    { label: "กองทุน", path: "/funds", icon: Landmark, iconColor: "text-[#85C1E9]", isTab: false },
-    { label: "งบประมาณ", path: "/budgets", icon: PieChart, iconColor: "text-[#C39BD3]", isTab: false },
-    { label: "พันธกิจ", path: "/ministries", icon: Sprout, iconColor: "text-[#A8C978]", isTab: false },
-    { label: "สมาชิก", path: "/members", icon: UsersRound, iconColor: "text-[#E99A4A]", isTab: false },
-    { label: "รายงาน", tab: "reports" as HomeTab, icon: FileBarChart, iconColor: "text-[#A9D4ED]", isTab: true },
-    { label: "การอนุมัติ", path: "/approvals", icon: CheckCircle2, iconColor: "text-[#A8C978]", isTab: false },
-    { label: "ตั้งค่า", path: "/settings", icon: Settings2, iconColor: "text-[#70452E]", isTab: false },
+    {
+      label: "หน้าหลัก",
+      tab: "home" as HomeTab,
+      icon: HomeIcon,
+      iconColor: "text-[#D97706]",
+      isTab: true,
+    },
+    {
+      label: "รายการ",
+      tab: "ledger" as HomeTab,
+      icon: ReceiptText,
+      iconColor: "text-[#34D399]",
+      isTab: true,
+    },
+    {
+      label: "ถวายทรัพย์",
+      path: "/offerings",
+      icon: HandCoins,
+      iconColor: "text-[#FDA4AF]",
+      isTab: false,
+    },
+    {
+      label: "รายจ่าย",
+      path: "/expenses",
+      icon: CreditCard,
+      iconColor: "text-[#D97706]",
+      isTab: false,
+    },
+    {
+      label: "กองทุน",
+      path: "/funds",
+      icon: Landmark,
+      iconColor: "text-[#38BDF8]",
+      isTab: false,
+    },
+    {
+      label: "งบประมาณ",
+      path: "/budgets",
+      icon: PieChart,
+      iconColor: "text-[#C4B5FD]",
+      isTab: false,
+    },
+    {
+      label: "พันธกิจ",
+      path: "/ministries",
+      icon: Sprout,
+      iconColor: "text-[#34D399]",
+      isTab: false,
+    },
+    {
+      label: "สมาชิก",
+      path: "/members",
+      icon: UsersRound,
+      iconColor: "text-[#D97706]",
+      isTab: false,
+    },
+    {
+      label: "รายงาน",
+      tab: "reports" as HomeTab,
+      icon: FileBarChart,
+      iconColor: "text-[#38BDF8]",
+      isTab: true,
+    },
+    {
+      label: "การอนุมัติ",
+      path: "/approvals",
+      icon: CheckCircle2,
+      iconColor: "text-[#34D399]",
+      isTab: false,
+    },
+    {
+      label: "ตั้งค่า",
+      path: "/settings",
+      icon: Settings2,
+      iconColor: "text-[#1E4470]",
+      isTab: false,
+    },
   ];
 
-
   return (
-    <aside className="hidden lg:flex flex-col w-72 bg-[#FFF4DF]/85 border-r border-[#E9D9BF] p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
+    <aside className="hidden lg:flex flex-col w-72 brand-navy-gradient text-white p-6 sticky top-0 h-screen overflow-y-auto shrink-0 z-30">
       {/* 1. Grace-giving (branding) */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-[#E99A4A]/15 border border-[#E99A4A]/30 flex items-center justify-center relative overflow-hidden shrink-0 shadow-2xs">
-          <Sprout className="w-7 h-7 text-[#70452E]" />
-          <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#A8C978] flex items-center justify-center">
-            <span className="text-[10px] text-white font-bold">✝</span>
-          </div>
+      <div className="flex items-center gap-3 mb-7">
+        <div className="w-12 h-12 rounded-2xl bg-[#F59E0B] flex items-center justify-center relative overflow-hidden shrink-0 shadow-lg">
+          <Sprout className="w-7 h-7 text-[#0C1B33]" />
         </div>
         <div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl font-black text-[#38251B] tracking-tight">Grace</span>
-            <span className="text-xl font-black text-[#E99A4A] tracking-tight">Ledger</span>
+            <span className="text-xl font-bold text-white tracking-tight">
+              Grace
+            </span>
+            <span className="text-xl font-bold text-[#FBBF24] tracking-tight">
+              Ledger
+            </span>
           </div>
-          <p className="text-[11px] text-[#927D6D] font-medium leading-tight">
+          <p className="text-[11px] text-white/60 font-medium leading-tight">
             การเงินเชื่อมใจ เพื่อคริสตจักร
           </p>
         </div>
@@ -58,7 +140,7 @@ export function HomeSidebar({ activeTab, onTabChange, onOpenOffering }: HomeSide
       {/* Quick Offering Action Button on Sidebar */}
       <button
         onClick={onOpenOffering}
-        className="w-full mb-6 py-3 px-4 rounded-2xl bg-[#E99A4A] hover:bg-[#DE8640] text-white font-bold flex items-center justify-center gap-2 clay-button-shadow transition-all"
+        className="w-full mb-7 py-3 px-4 rounded-xl brand-amber-gradient text-[#0C1B33] font-bold flex items-center justify-center gap-2 amber-glow hover:brightness-95 transition-all"
         aria-label="บันทึกการถวายใหม่"
       >
         <Plus className="w-5 h-5 stroke-[2.5]" />
@@ -76,10 +158,10 @@ export function HomeSidebar({ activeTab, onTabChange, onOpenOffering }: HomeSide
               onClick={() =>
                 item.isTab ? onTabChange(item.tab!) : setLocation(item.path!)
               }
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all ${
+              className={`w-full flex min-h-11 items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
                 isActive
-                  ? "bg-[#FFF9EE] text-[#70452E] font-bold border border-[#E9D9BF] shadow-xs"
-                  : "text-[#70452E]/80 hover:bg-[#FFF9EE]/60 hover:text-[#70452E]"
+                  ? "bg-white/10 text-white font-bold border border-white/15 shadow-sm"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
               }`}
             >
               <Icon className={`w-5 h-5 ${item.iconColor}`} />
@@ -90,17 +172,17 @@ export function HomeSidebar({ activeTab, onTabChange, onOpenOffering }: HomeSide
       </nav>
 
       {/* User Profile Card on Sidebar Bottom */}
-      <div className="pt-4 mt-auto border-t border-[#E9D9BF]/80">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#FFF9EE] border border-[#E9D9BF]">
-          <div className="w-10 h-10 rounded-full bg-[#E99A4A]/20 flex items-center justify-center text-[#70452E] font-bold text-sm">
+      <div className="pt-4 mt-auto border-t border-white/10">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+          <div className="w-10 h-10 rounded-full bg-[#F59E0B] flex items-center justify-center text-[#0C1B33] font-bold text-sm">
             {user?.name ? user.name.slice(0, 1) : "ศ"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-[#70452E] truncate">
+            <p className="text-xs font-bold text-white truncate">
               {user?.name || churchProfile?.name || "คริสตจักรพระคุณสมบูรณ์"}
             </p>
-            <p className="text-[11px] text-[#A8C978] font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#A8C978]" />
+            <p className="text-[11px] text-[#34D399] font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
               {user?.churchRole === "SUPER_ADMIN"
                 ? "ผู้ดูแลระบบสูงสุด"
                 : user?.churchRole === "TREASURER"

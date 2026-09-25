@@ -152,7 +152,7 @@ export default function Expenses() {
       case "welfare":
         return { icon: HeartHandshake, color: "bg-rose-100 text-rose-800" };
       default:
-        return { icon: Receipt, color: "bg-stone-100 text-stone-700" };
+        return { icon: Receipt, color: "bg-slate-100 text-slate-700" };
     }
   };
 
@@ -184,14 +184,14 @@ export default function Expenses() {
         <>
           <button
             onClick={exportCSV}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-4 text-sm font-medium text-[#3F3833] hover:bg-[#F4F1ED]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#DDE5F0] bg-white px-4 text-sm font-medium text-[#1E4470] hover:bg-[#EDF1F7]"
           >
             <Download className="size-4" />
             ส่งออก CSV
           </button>
           <button
             onClick={() => setLocation("/expenses/new")}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#B9530F] px-4 text-sm font-semibold text-white hover:bg-[#A34A0C]"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#12325C] px-4 text-sm font-semibold text-white hover:bg-[#0F2947]"
           >
             <Plus className="size-4" />
             บันทึกรายจ่าย
@@ -218,7 +218,7 @@ export default function Expenses() {
                 : "ยังไม่มีข้อมูล"
             }
           >
-            <p className="text-xl font-bold text-[#1F1A17]">
+            <p className="text-xl font-bold text-[#0C1B33]">
               {topCategory?.label ?? "—"}
             </p>
           </MetricCard>
@@ -227,9 +227,9 @@ export default function Expenses() {
             icon={Paperclip}
             note="มีเลขที่ใบเสร็จหรือไฟล์แนบ"
           >
-            <p className="text-xl font-bold tabular-nums text-[#1F1A17]">
+            <p className="text-xl font-bold tabular-nums text-[#0C1B33]">
               {withReceipt} / {expenses.length}{" "}
-              <span className="text-sm font-medium text-[#736A63]">รายการ</span>
+              <span className="text-sm font-medium text-[#64748B]">รายการ</span>
             </p>
           </MetricCard>
         </div>
@@ -268,11 +268,11 @@ export default function Expenses() {
             onAction={() => setLocation("/expenses/new")}
           />
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-[#E4DED7] bg-white">
+          <div className="overflow-hidden rounded-2xl border border-[#DDE5F0] bg-white">
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left text-sm text-[#1F1A17]">
-                <thead className="border-b border-[#E4DED7] bg-[#FAF8F5] text-xs font-medium text-[#736A63]">
+              <table className="w-full text-left text-sm text-[#0C1B33]">
+                <thead className="border-b border-[#DDE5F0] bg-[#F6F8FC] text-xs font-medium text-[#64748B]">
                   <tr>
                     <th className="py-3 px-5 font-medium">วันที่</th>
                     <th className="py-3 px-5 font-medium">รายการ</th>
@@ -286,7 +286,7 @@ export default function Expenses() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#EDE8E3]">
+                <tbody className="divide-y divide-[#DCE4F0]">
                   {filteredExpenses.map(e => {
                     const cat = getCategoryIcon(e.category);
                     const CatIcon = cat.icon;
@@ -296,16 +296,16 @@ export default function Expenses() {
                         onClick={() =>
                           setLocation(`/transactions/expense-${e.id}`)
                         }
-                        className="cursor-pointer transition-colors hover:bg-[#FAF8F5]"
+                        className="cursor-pointer transition-colors hover:bg-[#F6F8FC]"
                       >
-                        <td className="whitespace-nowrap py-3.5 px-5 text-[#57504A]">
+                        <td className="whitespace-nowrap py-3.5 px-5 text-[#475569]">
                           {formatThaiDate(e.date)}
                         </td>
                         <td className="max-w-sm py-3.5 px-5">
                           <p className="truncate font-medium">
                             {e.description}
                           </p>
-                          <p className="truncate text-xs text-[#736A63]">
+                          <p className="truncate text-xs text-[#64748B]">
                             {e.payee} · {fundName(e.fundId)}
                             {e.receiptRef !== "-" && (
                               <span className="font-mono">
@@ -347,7 +347,7 @@ export default function Expenses() {
                                     title: e.description,
                                   })
                                 }
-                                className="inline-flex size-10 items-center justify-center rounded-lg text-[#2F7A45] hover:bg-[#E4F3E7]"
+                                className="inline-flex size-10 items-center justify-center rounded-lg text-[#047857] hover:bg-[#E6F6EE]"
                                 title="ดูสลิป/ใบเสร็จ"
                                 aria-label={`ดูสลิปของ ${e.description}`}
                               >
@@ -356,7 +356,7 @@ export default function Expenses() {
                             )}
                             <button
                               onClick={() => setSelectedVoucher(toVoucher(e))}
-                              className="inline-flex size-10 items-center justify-center rounded-lg text-[#57504A] hover:bg-[#F4F1ED]"
+                              className="inline-flex size-10 items-center justify-center rounded-lg text-[#475569] hover:bg-[#EDF1F7]"
                               title="พิมพ์ใบสำคัญจ่าย"
                               aria-label={`พิมพ์ใบสำคัญจ่ายของ ${e.description}`}
                             >
@@ -372,7 +372,7 @@ export default function Expenses() {
             </div>
 
             {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-[#E4DED7]/40">
+            <div className="md:hidden divide-y divide-[#DDE5F0]/40">
               {filteredExpenses.map(e => {
                 const cat = getCategoryIcon(e.category);
                 const CatIcon = cat.icon;
@@ -380,7 +380,7 @@ export default function Expenses() {
                   <div
                     key={e.id}
                     onClick={() => setLocation(`/transactions/expense-${e.id}`)}
-                    className="p-4 space-y-2.5 active:bg-[#F4F1ED]/40"
+                    className="p-4 space-y-2.5 active:bg-[#EDF1F7]/40"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0 flex-1">
@@ -391,14 +391,14 @@ export default function Expenses() {
                             <CatIcon className="w-3 h-3" />
                             {expenseCategoryLabel(e.category)}
                           </span>
-                          <span className="text-xs text-[#736A63] font-mono">
+                          <span className="text-xs text-[#64748B] font-mono">
                             {e.receiptRef}
                           </span>
                         </div>
                         <p className="font-medium text-foreground text-sm truncate">
                           {e.description}
                         </p>
-                        <p className="text-xs text-[#736A63]">
+                        <p className="text-xs text-[#64748B]">
                           {e.payee} •{" "}
                           {new Date(e.date).toLocaleDateString("th-TH")}
                         </p>
@@ -417,7 +417,7 @@ export default function Expenses() {
 
                     {/* Mobile Action Bar */}
                     <div
-                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#E4DED7]/30"
+                      className="flex items-center justify-end gap-2 pt-1 border-t border-[#DDE5F0]/30"
                       onClick={ev => ev.stopPropagation()}
                     >
                       {e.receiptUrl && (
@@ -437,7 +437,7 @@ export default function Expenses() {
                       )}
                       <button
                         onClick={() => setSelectedVoucher(toVoucher(e))}
-                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 text-[#57504A] border border-stone-200 text-xs font-medium"
+                        className="min-h-11 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-[#475569] border border-slate-200 text-xs font-medium"
                       >
                         <Printer className="w-3 h-3 text-primary" />
                         <span>พิมพ์ใบสำคัญ</span>
@@ -483,13 +483,13 @@ function MetricCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E4DED7] bg-white p-5">
-      <div className="mb-2 flex items-center justify-between text-[#736A63]">
+    <div className="rounded-2xl border border-[#DDE5F0] bg-white p-5">
+      <div className="mb-2 flex items-center justify-between text-[#64748B]">
         <span className="text-sm font-medium">{label}</span>
         <Icon className="size-4" />
       </div>
       {children}
-      <p className="mt-1 text-xs text-[#736A63]">{note}</p>
+      <p className="mt-1 text-xs text-[#64748B]">{note}</p>
     </div>
   );
 }

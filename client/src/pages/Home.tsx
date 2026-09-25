@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { BarChart3, CalendarDays, HandCoins, Heart, Landmark, MoreHorizontal, ReceiptText, UsersRound } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  HandCoins,
+  Heart,
+  Landmark,
+  MoreHorizontal,
+  ReceiptText,
+  UsersRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import {
@@ -18,7 +27,12 @@ import { HomeReportsTab } from "./Home/components/HomeReportsTab";
 import { HomeProfileTab } from "./Home/components/HomeProfileTab";
 import { HomeDialogs } from "./Home/components/HomeDialogs";
 import type { TransactionItem, SubmittedOffering } from "./Home/types";
-import { fmtThaiDate, mapPaymentMethod, pctChange, useCountUp } from "./Home/utils";
+import {
+  fmtThaiDate,
+  mapPaymentMethod,
+  pctChange,
+  useCountUp,
+} from "./Home/utils";
 
 type HomeTab = "home" | "ledger" | "reports" | "profile";
 
@@ -50,10 +64,13 @@ export default function Home() {
   const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [newsOpen, setNewsOpen] = useState(false);
   const [offeringSuccess, setOfferingSuccess] = useState(false);
-  const [submittedOffering, setSubmittedOffering] = useState<SubmittedOffering | null>(null);
+  const [submittedOffering, setSubmittedOffering] =
+    useState<SubmittedOffering | null>(null);
 
   // Filter states
-  const [ledgerTab, setLedgerTab] = useState<"all" | "offerings" | "expenses" | "withdrawals">("all");
+  const [ledgerTab, setLedgerTab] = useState<
+    "all" | "offerings" | "expenses" | "withdrawals"
+  >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -84,19 +101,30 @@ export default function Home() {
     urgency: "normal",
     notes: "",
   });
-// tRPC Queries
-  const { data: summaryData, isLoading: summaryLoading, isError: summaryError } =
-    trpc.finance.summary.useQuery(undefined, { retry: false, staleTime: 30_000 });
-  const { data: monthlyStatsData } =
-    trpc.finance.monthlyStats.useQuery(undefined, { retry: false, staleTime: 60_000 });
-  const { data: accountsData } =
-    trpc.finance.accounts.useQuery(undefined, { retry: false, staleTime: 60_000 });
+  // tRPC Queries
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    isError: summaryError,
+  } = trpc.finance.summary.useQuery(undefined, {
+    retry: false,
+    staleTime: 30_000,
+  });
+  const { data: monthlyStatsData } = trpc.finance.monthlyStats.useQuery(
+    undefined,
+    { retry: false, staleTime: 60_000 }
+  );
+  const { data: accountsData } = trpc.finance.accounts.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
   const { data: offeringsData, refetch: refetchOfferings } =
     trpc.offerings.list.useQuery({ limit: 30 }, { retry: false });
   const { data: expensesData, refetch: refetchExpenses } =
     trpc.expenses.list.useQuery({ limit: 30 }, { retry: false });
-  const { data: churchProfile } =
-    trpc.church.getProfile.useQuery(undefined, { retry: false });
+  const { data: churchProfile } = trpc.church.getProfile.useQuery(undefined, {
+    retry: false,
+  });
 
   // Mutations
   const createOfferingMutation = trpc.offerings.create.useMutation({
@@ -157,7 +185,7 @@ export default function Home() {
       toast.error("ยื่นคำขอเบิกเงินไม่สำเร็จ", { description: error.message });
     },
   });
-// Derived values
+  // Derived values
   const totalBalance = summaryData?.totalBalance;
   const monthlyIncome = summaryData?.monthlyIncome;
   const monthlyExpense = summaryData?.monthlyExpense;
@@ -192,7 +220,7 @@ export default function Home() {
           category: o.category,
           subCategory: "อาคารคริสตจักร",
           amount: Number(o.amount),
-          tone: "bg-[#FFEBE5] text-[#E06250]",
+          tone: "bg-[#FEE2E2] text-[#DC2626]",
           icon: Heart,
         });
       });
@@ -208,7 +236,7 @@ export default function Home() {
           category: e.category,
           subCategory: "พันธกิจนมัสการ",
           amount: Number(e.amount),
-          tone: "bg-[#FDF0E2] text-[#B3702A]",
+          tone: "bg-[#FEF3C7] text-[#92400E]",
           icon: Landmark,
         });
       });
@@ -224,7 +252,8 @@ export default function Home() {
       const matchSearch =
         tx.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         tx.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchCat = categoryFilter === "all" || tx.category === categoryFilter;
+      const matchCat =
+        categoryFilter === "all" || tx.category === categoryFilter;
       const matchType =
         ledgerTab === "all" ||
         (ledgerTab === "offerings" && tx.type === "income") ||
@@ -232,7 +261,7 @@ export default function Home() {
       return matchSearch && matchCat && matchType;
     });
   }, [allTransactions, searchTerm, categoryFilter, ledgerTab]);
-const handleExportCSV = () => {
+  const handleExportCSV = () => {
     const headers = [
       "วันที่",
       "ประเภท",
@@ -304,8 +333,8 @@ const handleExportCSV = () => {
     setOfferingOpen(true);
   };
 
-return (
-    <div className="min-h-screen bg-[#FFF9EE] text-[#38251B] flex flex-col font-sans selection:bg-[#F7B6A6]/30 overflow-x-clip">
+  return (
+    <div className="min-h-screen bg-[#F6F8FC] text-[#0C1B33] flex flex-col font-sans selection:bg-[#FDA4AF]/30 overflow-x-clip">
       <div className="flex-1 flex flex-row justify-center w-full max-w-[1440px] mx-auto">
         <HomeSidebar
           activeTab={activeTab}
@@ -376,7 +405,7 @@ return (
         onTabChange={setActiveTab}
         onOpenOffering={openOffering}
       />
-<HomeDialogs
+      <HomeDialogs
         offeringOpen={offeringOpen}
         onOfferingOpenChange={setOfferingOpen}
         offeringStep={offeringStep}

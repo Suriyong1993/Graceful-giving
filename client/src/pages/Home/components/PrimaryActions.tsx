@@ -21,7 +21,7 @@ export function PrimaryActions({
     >
       <button
         onClick={onNewOffering}
-        className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-2xl bg-[#2D6A2E] hover:bg-[#235324] text-white font-bold text-lg sm:text-2xl button-elevation transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#2D6A2E] focus-visible:ring-offset-2 shadow-md"
+        className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-2xl bg-[#047857] hover:bg-[#064E3B] text-white font-bold text-lg sm:text-2xl button-elevation transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#047857] focus-visible:ring-offset-2 shadow-md"
         aria-label="บันทึกการถวาย"
       >
         <HandCoins className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />
@@ -31,7 +31,7 @@ export function PrimaryActions({
       {canRecordExpense && (
         <button
           onClick={onNewExpense}
-          className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-2xl bg-[#B54A1E] hover:bg-[#963C15] text-white font-bold text-lg sm:text-2xl button-elevation transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#B54A1E] focus-visible:ring-offset-2 shadow-md"
+          className="flex items-center justify-center gap-3.5 py-4 sm:py-5 min-h-[68px] sm:min-h-[76px] rounded-2xl sm:rounded-2xl bg-[#9A3412] hover:bg-[#9A3412] text-white font-bold text-lg sm:text-2xl button-elevation transition-transform active:scale-95 focus-visible:ring-2 focus-visible:ring-[#9A3412] focus-visible:ring-offset-2 shadow-md"
           aria-label="บันทึกรายจ่าย"
         >
           <ReceiptText className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5]" />

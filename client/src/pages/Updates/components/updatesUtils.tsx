@@ -100,20 +100,20 @@ export function downloadICS(event: {
 
 export function EmptyPanel({ type }: { type: "news" | "events" }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[#E4DED7] bg-white/65 px-6 py-12 text-center">
-      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#F4F1ED] text-[#B9530F]">
+    <div className="rounded-2xl border border-dashed border-[#DDE5F0] bg-white/65 px-6 py-12 text-center">
+      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#EDF1F7] text-[#12325C]">
         {type === "news" ? (
           <Megaphone className="size-7" strokeWidth={1.5} />
         ) : (
           <CalendarDays className="size-7" strokeWidth={1.5} />
         )}
       </div>
-      <p className="mt-4 text-base font-bold text-[#3F3833]">
+      <p className="mt-4 text-base font-bold text-[#1E4470]">
         {type === "news"
           ? "ยังไม่มีข่าวสารเผยแพร่"
           : "ยังไม่มีกิจกรรมที่กำลังจะมาถึง"}
       </p>
-      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#57504A]">
+      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#475569]">
         {type === "news"
           ? "เมื่อมีประกาศใหม่ สมาชิกจะเห็นได้ที่หน้านี้ทันที"
           : "กิจกรรมของคริสตจักรจะแสดงที่นี่เพื่อให้สมาชิกวางแผนได้ง่ายขึ้น"}
@@ -125,10 +125,10 @@ export function EmptyPanel({ type }: { type: "news" | "events" }) {
 export function StatusPill({ status }: { status: string }) {
   const styles =
     status === "published"
-      ? "bg-[#e6f4e8] text-[#2c7244]"
+      ? "bg-[#ECFDF5] text-[#047857]"
       : status === "cancelled" || status === "archived"
-        ? "bg-[#f9e5e2] text-[#aa4e46]"
-        : "bg-[#FDEBD8] text-[#B9530F]";
+        ? "bg-[#FEE2E2] text-[#991B1B]"
+        : "bg-[#FEF3C7] text-[#12325C]";
   const label =
     status === "published"
       ? "เผยแพร่แล้ว"
@@ -154,7 +154,7 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-xs font-bold text-[#57504A]">
+    <label className="block text-xs font-bold text-[#475569]">
       {label}
       <span className="mt-1.5 block">{children}</span>
     </label>
@@ -175,14 +175,14 @@ export function SubmitButtons({
       <button
         type="button"
         onClick={onCancel}
-        className="min-h-[44px] rounded-xl border border-[#E4DED7] py-3 text-sm font-bold text-[#57504A] hover:bg-[#F4F1ED]"
+        className="min-h-[44px] rounded-xl border border-[#DDE5F0] py-3 text-sm font-bold text-[#475569] hover:bg-[#EDF1F7]"
       >
         ยกเลิก
       </button>
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#A34A0C] py-3 text-sm font-bold text-white hover:bg-[#B9530F] disabled:opacity-60 shadow-sm"
+        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#0F2947] py-3 text-sm font-bold text-white hover:bg-[#12325C] disabled:opacity-60 shadow-sm"
       >
         {pending ? (
           <Clock3 className="size-4 animate-spin" />

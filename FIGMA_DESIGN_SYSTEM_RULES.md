@@ -1,5 +1,12 @@
 # Figma Design System Rules
 
+> **Update 2026-09-25: full "Navy x Amber" redesign.** Everything below describes the
+> pre-redesign look. The shipped palette is now: ink `#0C1B33`, primary `#12325C`,
+> amber accent `#D97706` / `#FBBF24`, page `#F6F8FC`, card `#FFFFFF`, border `#DDE5F0`,
+> secondary text `#475569`, tertiary `#64748B`. See `.claude/design-system.md` §0.
+> The structural findings in this audit still hold (hard-coded hex in pages, the
+> `components/ui/*` library is only exercised by the dev showcase).
+
 Audit date: 2026-09-16. Evidence-based only — every rule cites file paths. Confidence is marked
 where inference was required. This is audit + rule extraction, not a redesign; no code was changed.
 

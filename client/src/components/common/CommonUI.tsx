@@ -1,6 +1,6 @@
 import React from "react";
 import { Illustration } from "@/components/Illustration";
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+// ─── 0. Back Link ────────────────────────────────────────────────────────────
+
+/** Text link back to a parent list. Detail pages use it instead of a second
+ *  page-level header, so the hierarchy stays "list > detail" on every route. */
+export const BackLink: React.FC<{
+  label: string;
+  onClick: () => void;
+  className?: string;
+}> = ({ label, onClick, className = "" }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`inline-flex items-center gap-2 min-h-11 rounded-xl text-sm font-bold text-[#1E4470] hover:text-[#12325C] hover:bg-[#EEF2F8] px-2 -ml-2 transition-colors focus-visible:ring-2 focus-visible:ring-[#D97706] ${className}`}
+  >
+    <ArrowLeft className="size-4" aria-hidden="true" />
+    <span>{label}</span>
+  </button>
+);
 
 // ─── 1. Loading Skeleton ─────────────────────────────────────────────────────
 
@@ -28,14 +47,14 @@ export const LoadingSkeleton: React.FC<{
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full ${height} rounded-[24px] bg-[#FFF4DF]/60 animate-pulse border border-[#E9D9BF]/50 p-4 flex items-center gap-4`}
+          className={`w-full ${height} rounded-2xl bg-[#EEF2F8]/60 animate-pulse border border-[#DDE5F0]/50 p-4 flex items-center gap-4`}
         >
-          <div className="w-14 h-14 rounded-2xl bg-[#E9D9BF]/40 shrink-0" />
+          <div className="w-14 h-14 rounded-2xl bg-[#DDE5F0]/40 shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="w-1/3 h-4 rounded-md bg-[#E9D9BF]/40" />
-            <div className="w-1/2 h-3 rounded-md bg-[#E9D9BF]/30" />
+            <div className="w-1/3 h-4 rounded-md bg-[#DDE5F0]/40" />
+            <div className="w-1/2 h-3 rounded-md bg-[#DDE5F0]/30" />
           </div>
-          <div className="w-20 h-6 rounded-md bg-[#E9D9BF]/40" />
+          <div className="w-20 h-6 rounded-md bg-[#DDE5F0]/40" />
         </div>
       ))}
     </div>
@@ -63,26 +82,26 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-2xl bg-white border border-[#E9D9BF] clay-card-shadow flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-white border border-[#DDE5F0] clay-card-shadow flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="w-24 h-24 rounded-[24px] overflow-hidden bg-[#FFF4DF] p-1 border border-[#E9D9BF] shadow-xs shrink-0">
+      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#EEF2F8] p-1 border border-[#DDE5F0] shadow-xs shrink-0">
         <Illustration
           src={illustrationSrc}
           alt={illustrationAlt}
-          className="w-full h-full object-cover rounded-[20px]"
+          className="w-full h-full object-cover rounded-xl"
           width={96}
           height={96}
         />
       </div>
       <div className="space-y-1 max-w-sm">
-        <h3 className="text-base font-bold text-[#70452E]">{title}</h3>
-        <p className="text-sm text-[#674F42] leading-relaxed">{description}</p>
+        <h3 className="text-base font-bold text-[#1E4470]">{title}</h3>
+        <p className="text-sm text-[#475569] leading-relaxed">{description}</p>
       </div>
       {actionText && onAction && (
         <button
           type="button"
           onClick={onAction}
-          className="mt-2 px-5 py-2.5 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+          className="mt-2 px-5 py-2.5 rounded-full bg-[#12325C] hover:bg-[#0F2947] text-white text-xs font-bold clay-button-shadow transition-all focus-visible:ring-2 focus-visible:ring-[#D97706]"
         >
           {actionText}
         </button>
@@ -103,21 +122,21 @@ export const ErrorState: React.FC<{
   className = "",
 }) => (
   <div
-    className={`py-12 px-6 rounded-[28px] bg-[#FFF8F6] border border-[#F7D5CD] flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+    className={`py-12 px-6 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     role="alert"
   >
-    <div className="w-14 h-14 rounded-full bg-[#FFEBE5] text-[#D45945] flex items-center justify-center text-2xl font-bold">
+    <div className="w-14 h-14 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center text-2xl font-bold">
       !
     </div>
     <div className="space-y-1 max-w-sm">
-      <h3 className="text-base font-bold text-[#7C2A1E]">{title}</h3>
-      <p className="text-sm text-[#674F42] leading-relaxed">{description}</p>
+      <h3 className="text-base font-bold text-[#7F1D1D]">{title}</h3>
+      <p className="text-sm text-[#475569] leading-relaxed">{description}</p>
     </div>
     {onRetry && (
       <button
         type="button"
         onClick={onRetry}
-        className="min-h-11 rounded-full bg-[#D45945] px-5 py-2.5 text-sm font-bold text-white"
+        className="min-h-11 rounded-full bg-[#DC2626] px-5 py-2.5 text-sm font-bold text-white"
       >
         ลองใหม่
       </button>
@@ -153,49 +172,49 @@ export const StatusBadge: React.FC<{
       case "completed":
       case "active":
         return {
-          bg: "bg-[#EAF5E4] text-[#4F8B33] border-[#D2EAC7]",
+          bg: "bg-[#E6F6EE] text-[#047857] border-[#B9E6D0]",
           defaultLabel: "อนุมัติแล้ว",
         };
       case "rejected":
       case "inactive":
         return {
-          bg: "bg-[#FFEBE5] text-[#D45945] border-[#F7D5CD]",
+          bg: "bg-[#FEE2E2] text-[#DC2626] border-[#FECACA]",
           defaultLabel: "ปฏิเสธ / ยกเลิก",
         };
       case "voided":
         return {
-          bg: "bg-stone-100 text-stone-600 border-stone-200",
+          bg: "bg-slate-100 text-slate-600 border-slate-200",
           defaultLabel: "ยกเลิกรายการ",
         };
       case "counting":
         return {
-          bg: "bg-[#FFF3DF] text-[#C26B1E] border-[#F6E1BF]",
+          bg: "bg-[#FEF3C7] text-[#B45309] border-[#FCD9A0]",
           defaultLabel: "กำลังนับ",
         };
       case "counted":
         return {
-          bg: "bg-[#E7F1FB] text-[#2F6690] border-[#CBE0F2]",
+          bg: "bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]",
           defaultLabel: "รอตรวจสอบ",
         };
       case "verified":
         return {
-          bg: "bg-[#EAF5E4] text-[#4F8B33] border-[#D2EAC7]",
+          bg: "bg-[#E6F6EE] text-[#047857] border-[#B9E6D0]",
           defaultLabel: "ตรวจสอบแล้ว",
         };
       case "posted":
         return {
-          bg: "bg-[#1b5e3a] text-white border-[#1b5e3a]",
+          bg: "bg-[#065F46] text-white border-[#065F46]",
           defaultLabel: "ลงบัญชีแล้ว",
         };
       case "closed":
         return {
-          bg: "bg-stone-200 text-stone-700 border-stone-300",
+          bg: "bg-slate-200 text-slate-700 border-slate-300",
           defaultLabel: "ปิดรอบแล้ว",
         };
       case "pending":
       default:
         return {
-          bg: "bg-[#FFF3DF] text-[#C26B1E] border-[#F6E1BF]",
+          bg: "bg-[#FEF3C7] text-[#B45309] border-[#FCD9A0]",
           defaultLabel: "รอดำเนินการ",
         };
     }
@@ -228,9 +247,9 @@ export const MoneyDisplay: React.FC<{
   const isNegative = type === "expense" || (type === "neutral" && amount < 0);
 
   const getColor = () => {
-    if (type === "income") return "text-[#1b5e3a]";
-    if (type === "expense") return "text-[#c7382d]";
-    return "text-[#38251B]";
+    if (type === "income") return "text-[#065F46]";
+    if (type === "expense") return "text-[#B91C1C]";
+    return "text-[#0C1B33]";
   };
 
   const getSize = () => {
@@ -238,12 +257,12 @@ export const MoneyDisplay: React.FC<{
       case "sm":
         return "text-sm";
       case "lg":
-        return "text-2xl md:text-3xl font-black";
+        return "text-2xl md:text-3xl font-bold";
       case "xl":
-        return "text-3xl sm:text-4xl md:text-5xl font-black";
+        return "text-3xl sm:text-4xl md:text-5xl font-bold";
       case "md":
       default:
-        return "text-lg md:text-xl font-extrabold";
+        return "text-lg md:text-xl font-bold";
     }
   };
 
@@ -272,14 +291,14 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-[28px] p-5 md:p-6 border border-[#E9D9BF] clay-card-shadow ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#DDE5F0] clay-card-shadow ${className}`}
     >
       <div className="min-w-0">
-        <h1 className="text-xl md:text-2xl font-extrabold text-[#70452E] tracking-tight break-words">
+        <h1 className="text-xl md:text-2xl font-bold text-[#1E4470] tracking-tight break-words">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-xs text-[#927D6D] mt-1 leading-relaxed">
+          <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -317,7 +336,7 @@ export const FilterBar: React.FC<{
       {/* Search Input */}
       <div className="relative w-full">
         <Search
-          className="pointer-events-none w-4 h-4 text-[#927D6D] absolute left-3.5 top-1/2 -translate-y-1/2"
+          className="pointer-events-none w-4 h-4 text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2"
           aria-hidden="true"
         />
         <input
@@ -326,7 +345,7 @@ export const FilterBar: React.FC<{
           value={searchValue}
           onChange={e => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#FFFDF8] border border-[#E9D9BF] text-base md:text-sm text-[#38251B] placeholder-[#927D6D] focus:border-[#E99A4A] focus-visible:ring-2 focus-visible:ring-[#E99A4A]/30"
+          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-2xl bg-[#FFFFFF] border border-[#DDE5F0] text-base md:text-sm text-[#0C1B33] placeholder-[#64748B] focus:border-[#D97706] focus-visible:ring-2 focus-visible:ring-[#D97706]/30"
         />
       </div>
 
@@ -353,8 +372,8 @@ export const FilterBar: React.FC<{
                 }
                 className={`min-h-11 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
                   isActive
-                    ? "bg-[#FFF4DF] text-[#70452E] border border-[#E99A4A] shadow-2xs"
-                    : "bg-white text-[#927D6D] border border-[#E9D9BF] hover:bg-[#FFF9EE]"
+                    ? "bg-[#EEF2F8] text-[#1E4470] border border-[#D97706] shadow-2xs"
+                    : "bg-white text-[#64748B] border border-[#DDE5F0] hover:bg-[#F6F8FC]"
                 }`}
               >
                 {f.label}
@@ -397,12 +416,12 @@ export const ConfirmDialog: React.FC<{
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-[#FFFDF8] border-[#E9D9BF] rounded-[30px] p-6 text-[#38251B]">
+      <DialogContent className="max-w-sm bg-[#FFFFFF] border-[#DDE5F0] rounded-3xl p-6 text-[#0C1B33]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-[#70452E]">
+          <DialogTitle className="text-lg font-bold text-[#1E4470]">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-[#674F42] leading-relaxed">
+          <DialogDescription className="text-sm text-[#475569] leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -411,7 +430,7 @@ export const ConfirmDialog: React.FC<{
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
-            className="flex-1 py-2.5 rounded-xl bg-[#FFF4DF] text-[#70452E] font-bold text-xs border border-[#E9D9BF]"
+            className="flex-1 py-2.5 rounded-xl bg-[#EEF2F8] text-[#1E4470] font-bold text-xs border border-[#DDE5F0]"
           >
             {cancelText}
           </button>
@@ -421,8 +440,8 @@ export const ConfirmDialog: React.FC<{
             disabled={isLoading}
             className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs clay-button-shadow transition-all ${
               variant === "danger"
-                ? "bg-[#D45945] hover:bg-[#C24D3A]"
-                : "bg-[#E99A4A] hover:bg-[#DE8640]"
+                ? "bg-[#DC2626] hover:bg-[#C24D3A]"
+                : "bg-[#12325C] hover:bg-[#0F2947]"
             }`}
           >
             {isLoading ? "กำลังดำเนินการ..." : confirmText}

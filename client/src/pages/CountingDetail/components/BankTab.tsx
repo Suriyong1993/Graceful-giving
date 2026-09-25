@@ -58,175 +58,169 @@ export function BankTab(props: BankTabProps) {
     matchPassbook,
   } = props;
   return (
-          <section className="space-y-4">
-            <form
-              onSubmit={event => {
-                event.preventDefault();
-                const value = Number(bAmount);
-                if (!Number.isFinite(value) || value <= 0) {
-                  toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
-                  return;
-                }
-                addBankRecord.mutate(
-                  {
-                    sessionId,
-                    type: bType,
-                    amount: value,
-                    transferredByName: bName.trim() || undefined,
-                    bankRef: bRef.trim() || undefined,
-                  },
-                  {
-                    onSuccess: () => {
-                      setBAmount("");
-                      setBName("");
-                      setBRef("");
-                    },
-                  }
-                );
-              }}
-              className="rounded-3xl border border-[#E9D9BF] bg-white p-5 shadow-sm md:p-6"
+    <section className="space-y-4">
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+          const value = Number(bAmount);
+          if (!Number.isFinite(value) || value <= 0) {
+            toast.error("กรุณาระบุจำนวนเงินที่ถูกต้อง");
+            return;
+          }
+          addBankRecord.mutate(
+            {
+              sessionId,
+              type: bType,
+              amount: value,
+              transferredByName: bName.trim() || undefined,
+              bankRef: bRef.trim() || undefined,
+            },
+            {
+              onSuccess: () => {
+                setBAmount("");
+                setBName("");
+                setBRef("");
+              },
+            }
+          );
+        }}
+        className="rounded-3xl border border-[#DDE5F0] bg-white p-5 shadow-sm md:p-6"
+      >
+        <h2 className="mb-4 font-bold text-[#0C1B33]">บันทึกรายการธนาคาร</h2>
+        <div className="grid gap-4 md:grid-cols-4">
+          <label className="text-sm font-semibold text-[#475569]">
+            ประเภท
+            <select
+              value={bType}
+              onChange={e => setBType(e.target.value as typeof bType)}
+              className="mt-1 w-full rounded-xl border border-[#DDE5F0] p-3 text-sm font-normal text-[#0C1B33]"
             >
-              <h2 className="mb-4 font-bold text-[#38251B]">
-                บันทึกรายการธนาคาร
-              </h2>
-              <div className="grid gap-4 md:grid-cols-4">
-                <label className="text-sm font-semibold text-[#674F42]">
-                  ประเภท
-                  <select
-                    value={bType}
-                    onChange={e => setBType(e.target.value as typeof bType)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                  >
-                    <option value="cash_deposit">นำเงินสดเข้าฝาก</option>
-                    <option value="transfer_in">สมาชิกโอนเข้าบัญชี</option>
-                  </select>
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  จำนวนเงิน *
-                  <input
-                    type="number"
-                    required
-                    min="0.25"
-                    step="0.25"
-                    value={bAmount}
-                    onChange={e => setBAmount(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-base font-bold tabular-nums text-[#38251B]"
-                  />
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  ผู้โอน
-                  <input
-                    value={bName}
-                    onChange={e => setBName(e.target.value)}
-                    placeholder="เว้นว่างได้ถ้าเป็นการนำฝาก"
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 text-sm font-normal text-[#38251B]"
-                  />
-                </label>
-                <label className="text-sm font-semibold text-[#674F42]">
-                  เลขอ้างอิง
-                  <input
-                    value={bRef}
-                    onChange={e => setBRef(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-[#E9D9BF] p-3 font-mono text-sm font-normal text-[#38251B]"
-                  />
-                </label>
-              </div>
-              <button
-                type="submit"
-                disabled={addBankRecord.isPending}
-                className="mt-4 min-h-11 rounded-2xl bg-[#4F8B33] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              <option value="cash_deposit">นำเงินสดเข้าฝาก</option>
+              <option value="transfer_in">สมาชิกโอนเข้าบัญชี</option>
+            </select>
+          </label>
+          <label className="text-sm font-semibold text-[#475569]">
+            จำนวนเงิน *
+            <input
+              type="number"
+              required
+              min="0.25"
+              step="0.25"
+              value={bAmount}
+              onChange={e => setBAmount(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-[#DDE5F0] p-3 text-base font-bold tabular-nums text-[#0C1B33]"
+            />
+          </label>
+          <label className="text-sm font-semibold text-[#475569]">
+            ผู้โอน
+            <input
+              value={bName}
+              onChange={e => setBName(e.target.value)}
+              placeholder="เว้นว่างได้ถ้าเป็นการนำฝาก"
+              className="mt-1 w-full rounded-xl border border-[#DDE5F0] p-3 text-sm font-normal text-[#0C1B33]"
+            />
+          </label>
+          <label className="text-sm font-semibold text-[#475569]">
+            เลขอ้างอิง
+            <input
+              value={bRef}
+              onChange={e => setBRef(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-[#DDE5F0] p-3 font-mono text-sm font-normal text-[#0C1B33]"
+            />
+          </label>
+        </div>
+        <button
+          type="submit"
+          disabled={addBankRecord.isPending}
+          className="mt-4 min-h-11 rounded-2xl bg-[#047857] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+        >
+          {addBankRecord.isPending ? "กำลังบันทึก…" : "เพิ่มรายการ"}
+        </button>
+      </form>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-[#DDE5F0] bg-white p-4">
+          <p className="text-sm text-[#475569]">เงินโอนเข้าบัญชีจริง</p>
+          <MoneyDisplay amount={r.actualTransferIn} type="income" size="lg" />
+          <p className="mt-1 text-sm text-[#475569]">
+            เทียบซองโอน {fmtBaht(r.envelopeTransferTotal)}
+          </p>
+          <div className="mt-1">
+            <Variance amount={r.transferVariance} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-[#DDE5F0] bg-white p-4">
+          <p className="text-sm text-[#475569]">นำเงินสดเข้าฝากจริง</p>
+          <MoneyDisplay amount={r.actualCashDeposit} size="lg" />
+          <p className="mt-1 text-sm text-[#475569]">
+            ต้องนำฝาก {fmtBaht(r.expectedDeposit)}
+          </p>
+          <div className="mt-1">
+            <Variance amount={r.depositVariance} />
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-3xl border border-[#DDE5F0] bg-white shadow-sm">
+        <h2 className="border-b border-[#DDE5F0] p-4 font-bold text-[#0C1B33]">
+          รายการธนาคาร ({detail.bankRecords.length})
+        </h2>
+        {detail.bankRecords.length === 0 ? (
+          <p className="p-8 text-center text-sm text-[#475569]">
+            ยังไม่มีรายการธนาคารในรอบนี้
+          </p>
+        ) : (
+          <ul className="divide-y divide-[#DCE4F0]">
+            {detail.bankRecords.map(record => (
+              <li
+                key={record.id}
+                className="flex items-center justify-between gap-4 p-4"
               >
-                {addBankRecord.isPending ? "กำลังบันทึก…" : "เพิ่มรายการ"}
-              </button>
-            </form>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4">
-                <p className="text-sm text-[#674F42]">เงินโอนเข้าบัญชีจริง</p>
-                <MoneyDisplay
-                  amount={r.actualTransferIn}
-                  type="income"
-                  size="lg"
-                />
-                <p className="mt-1 text-sm text-[#674F42]">
-                  เทียบซองโอน {fmtBaht(r.envelopeTransferTotal)}
-                </p>
-                <div className="mt-1">
-                  <Variance amount={r.transferVariance} />
+                <div className="min-w-0">
+                  <p className="font-bold text-[#0C1B33]">
+                    {record.type === "cash_deposit"
+                      ? "นำเงินสดเข้าฝาก"
+                      : "สมาชิกโอนเข้าบัญชี"}
+                  </p>
+                  <p className="text-sm text-[#475569]">
+                    {record.transferredByName || "ไม่ระบุผู้โอน"}
+                    {record.bankRef ? ` · ${record.bankRef}` : ""}
+                  </p>
+                  <p className="mt-1 text-sm">
+                    {record.passbookMatched ? (
+                      <span className="font-bold text-[#047857]">
+                        กระทบสมุดบัญชีแล้ว
+                      </span>
+                    ) : (
+                      <span className="text-[#B45309]">
+                        ยังไม่กระทบสมุดบัญชี
+                      </span>
+                    )}
+                  </p>
                 </div>
-              </div>
-              <div className="rounded-2xl border border-[#E9D9BF] bg-white p-4">
-                <p className="text-sm text-[#674F42]">นำเงินสดเข้าฝากจริง</p>
-                <MoneyDisplay amount={r.actualCashDeposit} size="lg" />
-                <p className="mt-1 text-sm text-[#674F42]">
-                  ต้องนำฝาก {fmtBaht(r.expectedDeposit)}
-                </p>
-                <div className="mt-1">
-                  <Variance amount={r.depositVariance} />
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-3xl border border-[#E9D9BF] bg-white shadow-sm">
-              <h2 className="border-b border-[#E9D9BF] p-4 font-bold text-[#38251B]">
-                รายการธนาคาร ({detail.bankRecords.length})
-              </h2>
-              {detail.bankRecords.length === 0 ? (
-                <p className="p-8 text-center text-sm text-[#674F42]">
-                  ยังไม่มีรายการธนาคารในรอบนี้
-                </p>
-              ) : (
-                <ul className="divide-y divide-[#F0E6D8]">
-                  {detail.bankRecords.map(record => (
-                    <li
-                      key={record.id}
-                      className="flex items-center justify-between gap-4 p-4"
+                <div className="flex shrink-0 items-center gap-3">
+                  <MoneyDisplay amount={record.amount} />
+                  {!record.passbookMatched && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        matchPassbook.mutate({
+                          id: record.id,
+                          passbookDate: new Date(),
+                        })
+                      }
+                      disabled={matchPassbook.isPending}
+                      className="min-h-11 rounded-xl border border-[#34D399] bg-[#E6F6EE] px-3 py-2 text-xs font-bold text-[#047857] disabled:opacity-50"
                     >
-                      <div className="min-w-0">
-                        <p className="font-bold text-[#38251B]">
-                          {record.type === "cash_deposit"
-                            ? "นำเงินสดเข้าฝาก"
-                            : "สมาชิกโอนเข้าบัญชี"}
-                        </p>
-                        <p className="text-sm text-[#674F42]">
-                          {record.transferredByName || "ไม่ระบุผู้โอน"}
-                          {record.bankRef ? ` · ${record.bankRef}` : ""}
-                        </p>
-                        <p className="mt-1 text-sm">
-                          {record.passbookMatched ? (
-                            <span className="font-bold text-[#4F8B33]">
-                              กระทบสมุดบัญชีแล้ว
-                            </span>
-                          ) : (
-                            <span className="text-[#C26B1E]">
-                              ยังไม่กระทบสมุดบัญชี
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <MoneyDisplay amount={record.amount} />
-                        {!record.passbookMatched && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              matchPassbook.mutate({
-                                id: record.id,
-                                passbookDate: new Date(),
-                              })
-                            }
-                            disabled={matchPassbook.isPending}
-                            className="min-h-11 rounded-xl border border-[#A8C978] bg-[#EAF5E4] px-3 py-2 text-xs font-bold text-[#4F8B33] disabled:opacity-50"
-                          >
-                            กระทบสมุด
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
+                      กระทบสมุด
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

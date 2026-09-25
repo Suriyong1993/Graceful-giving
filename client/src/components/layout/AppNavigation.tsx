@@ -128,7 +128,7 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         {children || (
           <button
             type="button"
-            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#E4DED7] bg-white px-3.5 text-sm font-semibold text-[#1F1A17] hover:bg-[#F4F1ED]"
+            className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl border border-[#DDE5F0] bg-white px-3.5 text-sm font-semibold text-[#0C1B33] hover:bg-[#EDF1F7]"
           >
             <Menu className="size-5" aria-hidden="true" />
             <span>เมนูทั้งหมด</span>
@@ -139,11 +139,11 @@ export function AppMenu({ children }: { children?: ReactNode }) {
         side="left"
         className="w-[calc(100%-2rem)] max-w-sm gap-0 bg-white"
       >
-        <SheetHeader className="border-b border-[#E4DED7] p-5 pr-16">
-          <SheetTitle className="text-lg font-bold text-[#1F1A17]">
+        <SheetHeader className="border-b border-[#DDE5F0] p-5 pr-16">
+          <SheetTitle className="text-lg font-bold text-[#0C1B33]">
             เมนูทั้งหมด
           </SheetTitle>
-          <SheetDescription className="text-sm text-[#736A63] mt-0.5">
+          <SheetDescription className="text-sm text-[#64748B] mt-0.5">
             จัดการการเงินและพันธกิจคริสตจักร
           </SheetDescription>
         </SheetHeader>
@@ -163,12 +163,12 @@ export function AppMenu({ children }: { children?: ReactNode }) {
                   }
                   className={`flex min-h-12 items-center gap-3 rounded-xl px-3.5 text-[15px] ${
                     active
-                      ? "bg-[#FDEBD8] font-semibold text-[#A34A0C]"
-                      : "font-medium text-[#3F3833] hover:bg-[#F4F1ED]"
+                      ? "bg-[#FEF3C7] font-semibold text-[#0F2947]"
+                      : "font-medium text-[#1E4470] hover:bg-[#EDF1F7]"
                   }`}
                 >
                   <Icon
-                    className={`size-5 shrink-0 ${active ? "text-[#B9530F]" : "text-[#736A63]"}`}
+                    className={`size-5 shrink-0 ${active ? "text-[#12325C]" : "text-[#64748B]"}`}
                     aria-hidden="true"
                   />
                   <span>{label}</span>

@@ -73,7 +73,9 @@ export function downloadICS(event: ICSDownloadEvent, onDone: () => void) {
   const start = formatICSDate(event.startsAt);
   const end = event.endsAt
     ? formatICSDate(event.endsAt)
-    : formatICSDate(new Date(new Date(event.startsAt).getTime() + 2 * 60 * 60 * 1000));
+    : formatICSDate(
+        new Date(new Date(event.startsAt).getTime() + 2 * 60 * 60 * 1000)
+      );
 
   const escapeICS = (str: string) =>
     str
@@ -101,7 +103,9 @@ export function downloadICS(event: ICSDownloadEvent, onDone: () => void) {
     "END:VCALENDAR",
   ].filter(Boolean);
 
-  const blob = new Blob([icsLines.join("\\r\\n")], { type: "text/calendar;charset=utf-8" });
+  const blob = new Blob([icsLines.join("\\r\\n")], {
+    type: "text/calendar;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

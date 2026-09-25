@@ -292,7 +292,7 @@ export default function CountingDetail() {
           <button
             type="button"
             onClick={() => setLocation("/counting")}
-            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#E9D9BF] bg-[#FFF4DF] px-3.5 py-2 text-xs font-bold text-[#674F42]"
+            className="min-h-11 inline-flex items-center gap-1.5 rounded-2xl border border-[#DDE5F0] bg-[#EEF2F8] px-3.5 py-2 text-xs font-bold text-[#475569]"
           >
             <ArrowLeft className="h-4 w-4" />
             ทุกรอบ

@@ -22,17 +22,17 @@ export function HomeBottomNav({
   return (
     <nav
       aria-label="เมนูนำทางหลักบนมือถือ"
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFF4DF]/95 backdrop-blur-md border-t border-[#E9D9BF] px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 brand-navy-gradient text-white px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(12,27,51,0.5)]"
     >
       <div className="max-w-md mx-auto flex items-center justify-between relative">
         {/* 1. หน้าแรก */}
         <button
           type="button"
           onClick={() => onTabChange("home")}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-xl transition-all ${
             activeTab === "home"
-              ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
-              : "text-[#927D6D] hover:text-[#70452E]"
+              ? "text-[#FBBF24] font-bold bg-white/10"
+              : "text-white/55 hover:text-white"
           }`}
           aria-label="ไปที่หน้าแรก"
           aria-current={activeTab === "home" ? "page" : undefined}
@@ -45,10 +45,10 @@ export function HomeBottomNav({
         <button
           type="button"
           onClick={() => onTabChange("ledger")}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-xl transition-all ${
             activeTab === "ledger"
-              ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
-              : "text-[#927D6D] hover:text-[#70452E]"
+              ? "text-[#FBBF24] font-bold bg-white/10"
+              : "text-white/55 hover:text-white"
           }`}
           aria-label="ไปที่รายการการเงิน"
           aria-current={activeTab === "ledger" ? "page" : undefined}
@@ -62,12 +62,12 @@ export function HomeBottomNav({
           <button
             type="button"
             onClick={onOpenOffering}
-            className="w-14 h-14 rounded-full bg-[#E99A4A] hover:bg-[#DE8640] text-white flex items-center justify-center clay-button-shadow transition-transform active:scale-95 border-3 border-white focus-visible:ring-2 focus-visible:ring-[#E99A4A]"
+            className="w-14 h-14 rounded-full brand-amber-gradient text-[#0C1B33] flex items-center justify-center amber-glow transition-transform active:scale-95 border-2 border-[#0C1B33]/10 focus-visible:ring-2 focus-visible:ring-[#FBBF24]"
             aria-label="บันทึกการถวายใหม่ (เพิ่มรายการ)"
           >
             <Plus className="w-7 h-7 stroke-[2.8]" />
           </button>
-          <span className="text-[11px] font-extrabold text-[#70452E] mt-0.5">
+          <span className="text-[11px] font-bold text-[#FBBF24] mt-0.5">
             เพิ่ม
           </span>
         </div>
@@ -76,10 +76,10 @@ export function HomeBottomNav({
         <button
           type="button"
           onClick={() => onTabChange("reports")}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-xl transition-all ${
             activeTab === "reports"
-              ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
-              : "text-[#927D6D] hover:text-[#70452E]"
+              ? "text-[#FBBF24] font-bold bg-white/10"
+              : "text-white/55 hover:text-white"
           }`}
           aria-label="ไปที่หน้ารายงาน"
           aria-current={activeTab === "reports" ? "page" : undefined}
@@ -92,10 +92,10 @@ export function HomeBottomNav({
         <button
           type="button"
           onClick={() => onTabChange("profile")}
-          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1 px-2.5 rounded-xl transition-all ${
             activeTab === "profile"
-              ? "bg-[#FBE9CD] text-[#70452E] font-bold shadow-2xs"
-              : "text-[#927D6D] hover:text-[#70452E]"
+              ? "text-[#FBBF24] font-bold bg-white/10"
+              : "text-white/55 hover:text-white"
           }`}
           aria-label="ไปที่หน้าฉัน (โปรไฟล์)"
           aria-current={activeTab === "profile" ? "page" : undefined}
@@ -107,7 +107,7 @@ export function HomeBottomNav({
 
       {/* Script Brand Signature: "All for His Glory ♥" */}
       <div className="pt-1.5 text-center">
-        <p className="font-script text-xs md:text-sm text-[#927D6D]/85 tracking-wide">
+        <p className="font-script text-xs md:text-sm text-white/45 tracking-wide">
           All for His Glory ♥
         </p>
       </div>

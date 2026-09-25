@@ -38,13 +38,11 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    // Verify unexpected error heading
-    expect(
-      screen.getByText("An unexpected error occurred.")
-    ).toBeInTheDocument();
+    // Verify unexpected error heading (UI copy is Thai)
+    expect(screen.getByText("เกิดข้อผิดพลาดที่ไม่คาดคิด")).toBeInTheDocument();
 
     // Verify reload button presence
-    const reloadButton = screen.getByRole("button", { name: /reload page/i });
+    const reloadButton = screen.getByRole("button", { name: /โหลดหน้าใหม่/ });
     expect(reloadButton).toBeInTheDocument();
 
     // Verify error was captured and logged
@@ -66,7 +64,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    const reloadButton = screen.getByRole("button", { name: /reload page/i });
+    const reloadButton = screen.getByRole("button", { name: /โหลดหน้าใหม่/ });
     fireEvent.click(reloadButton);
 
     expect(reloadMock).toHaveBeenCalledTimes(1);
