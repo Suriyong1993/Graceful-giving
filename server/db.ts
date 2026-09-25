@@ -656,7 +656,6 @@ export async function updateOffering(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await assertCountedOfferingKeepsMoney(id, input);
   return db.transaction(async tx => {
     const existing = await tx
       .select({ amount: offerings.amount, fundId: offerings.fundId })
@@ -668,8 +667,12 @@ export async function updateOffering(
           ne(offerings.status, "voided")
         )
       )
+      .for("update")
       .limit(1);
     if (!existing[0]) return null;
+    // Locked above, so a concurrent envelope link (which locks the same row)
+    // waits here; the check below then sees a settled counted/uncounted state.
+    await assertCountedOfferingKeepsMoney(id, input, tx);
     const updatedRows = await tx
       .update(offerings)
       .set(input as any)
@@ -2114,10 +2117,10 @@ export async function setCountingSessionStatus(
  * method are part of a Sunday round. Changing or voiding it here would make
  * the round disagree with the ledger; unlink it in the round first.
  */
-async function assertOfferingNotCounted(offeringId: number) {
-  const db = await getDb();
-  if (!db) return;
-  const linked = await db
+async function assertOfferingNotCounted(offeringId: number, tx?: Tx) {
+  const client = tx ?? (await getDb());
+  if (!client) return;
+  const linked = await client
     .select({ sessionId: offeringEnvelopes.sessionId })
     .from(offeringEnvelopes)
     .where(eq(offeringEnvelopes.linkedOfferingId, offeringId))
@@ -2134,14 +2137,20 @@ async function assertOfferingNotCounted(offeringId: number) {
  * An edit to a counted offering may change its notes, donor or date, but not
  * the money: amount, fund or method. Forms resend the current amount with
  * every save, so compare values instead of checking which fields are present.
+ *
+ * Callers that also mutate the offering must pass the same `tx` they run the
+ * update in, after locking the offering row with `.for("update")` in that
+ * transaction. Without the shared lock, a concurrent request could bind the
+ * offering to a counting envelope between this check and the update.
  */
 async function assertCountedOfferingKeepsMoney(
   offeringId: number,
-  input: Partial<Pick<InsertOffering, "amount" | "fundId" | "method">>
+  input: Partial<Pick<InsertOffering, "amount" | "fundId" | "method">>,
+  tx?: Tx
 ) {
-  const db = await getDb();
-  if (!db) return;
-  const [current] = await db
+  const client = tx ?? (await getDb());
+  if (!client) return;
+  const [current] = await client
     .select({
       amount: offerings.amount,
       fundId: offerings.fundId,
@@ -2156,7 +2165,7 @@ async function assertCountedOfferingKeepsMoney(
       Number(input.amount) !== Number(current.amount)) ||
     (input.fundId !== undefined && input.fundId !== current.fundId) ||
     (input.method !== undefined && input.method !== current.method);
-  if (changesMoney) await assertOfferingNotCounted(offeringId);
+  if (changesMoney) await assertOfferingNotCounted(offeringId, tx);
 }
 
 type Tx = Parameters<
