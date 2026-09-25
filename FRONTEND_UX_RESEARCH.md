@@ -2,7 +2,7 @@
 
 ## Conclusion
 
-The current GRACE frontend already has a credible visual foundation. The largest usability opportunity is not a visual redesign. It is making financial work easier to understand and safer to complete. The first adaptation therefore prioritizes three changes: a clearer dashboard sequence, keyboard-operable financial records, and inline validation for high-risk expense fields.
+The current GRACE frontend already has a credible visual foundation. The largest usability opportunity is not adding more decoration. It is making financial work easier to understand and safer to complete. The visual direction now uses a **dark ink frame, burnt orange accent, and vanilla workspace** inspired by the supplied reference, while the interaction layer prioritizes a clearer dashboard sequence, keyboard-operable financial records, and inline validation for high-risk expense fields.
 
 ## Current flow assessment
 
@@ -37,6 +37,7 @@ A financial table must preserve the relationship between its headers, records, a
 | Expenses | Native detail links, table caption, `scope`, row header, unknown status | Implemented |
 | Expense form | Inline amount/description/fund errors, first-error focus, ARIA state, amount helper text | Implemented |
 | Shared status badge | Explicit active, inactive, draft, submitted, needs-review, unknown labels | Implemented |
+| Global visual language | Dark ink navigation chrome, `#FC6C26` display accent, accessible `#C94F16` action color, `#FFF4D6` vanilla surfaces | Implemented |
 
 ## Recommended next UX tasks
 

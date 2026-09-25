@@ -39,10 +39,10 @@ export function CashCountTab({
 }: CashCountTabProps) {
   return (
     <section className="space-y-4">
-      <div className="overflow-hidden rounded-2xl border border-[#DCE3E6] bg-white shadow-sm">
-        <div className="border-b border-[#DCE3E6] p-4">
+      <div className="overflow-hidden rounded-2xl border border-[#E7DCC8] bg-white shadow-sm">
+        <div className="border-b border-[#E7DCC8] p-4">
           <h2 className="font-bold text-foreground">ใบนับธนบัตรและเหรียญ</h2>
-          <p className="mt-1 text-sm text-[#42515A]">
+          <p className="mt-1 text-sm text-[#51443A]">
             กรอกจำนวนใบหรือเหรียญ ระบบคูณและรวมยอดให้ทันที
           </p>
         </div>
@@ -90,19 +90,19 @@ export function CashCountTab({
                   }}
                   placeholder="0"
                   aria-label={`จำนวน ${denomination.label}`}
-                  className="w-24 rounded-xl border border-[#DCE3E6] p-2.5 text-right text-base font-bold tabular-nums text-foreground disabled:opacity-60"
+                  className="w-24 rounded-xl border border-[#E7DCC8] p-2.5 text-right text-base font-bold tabular-nums text-foreground disabled:opacity-60"
                 />
-                <span className="ml-auto text-right text-sm font-bold tabular-nums text-[#42515A]">
+                <span className="ml-auto text-right text-sm font-bold tabular-nums text-[#51443A]">
                   {fmtBaht(subtotal)}
                 </span>
               </li>
             );
           })}
         </ul>
-        <div className="flex items-center justify-between border-t-2 border-[#DCE3E6] bg-background p-4">
+        <div className="flex items-center justify-between border-t-2 border-[#E7DCC8] bg-background p-4">
           <div>
             <p className="font-bold text-foreground">รวมนับได้</p>
-            <p className="text-sm text-[#42515A]">
+            <p className="text-sm text-[#51443A]">
               เทียบซองเงินสด {fmtBaht(envelopeCashTotal)}
             </p>
           </div>

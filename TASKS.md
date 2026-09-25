@@ -126,6 +126,25 @@ Notes:
 - Global palette was shifted to a quiet ledger palette: ink, slate, teal, and cool neutral surfaces.
 - Browser screenshot review at every route remains NOT VERIFIED in this session.
 
+### TASK-011 — Burnt orange and vanilla visual direction
+Status: COMPLETED
+Type: REFINEMENT
+Objective:
+Align the global frontend tone with the supplied reference: dark chrome, burnt orange accents, and vanilla surfaces.
+Acceptance Criteria:
+- Teal/cool-grey UI accents are replaced by the requested orange/vanilla direction.
+- Navigation chrome uses dark ink with high-contrast active states.
+- Action text remains readable on orange buttons by using a darker accessible action shade where needed.
+- All routes compile and existing behavior remains unchanged.
+Verification:
+- `pnpm check`: PASS
+- `pnpm test`: PASS — 244 passed, 36 skipped
+- `pnpm build`: PASS
+- `git diff --check`: PASS
+Notes:
+- This refinement is local and not deployed yet.
+- Browser screenshot review remains NOT VERIFIED.
+
 ### TASK-005 — Live database and RLS verification
 Status: BLOCKED
 Type: PRODUCTION_READINESS

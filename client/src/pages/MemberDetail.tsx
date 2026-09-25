@@ -120,14 +120,14 @@ export default function MemberDetail() {
         ) : (
           <form
             onSubmit={submit}
-            className="rounded-2xl border border-[#DCE3E6] bg-white p-6 shadow-sm md:p-8"
+            className="rounded-2xl border border-[#E7DCC8] bg-white p-6 shadow-sm md:p-8"
           >
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-[#172128]">
+                <h1 className="text-2xl font-bold text-[#171311]">
                   แก้ไขข้อมูลสมาชิก
                 </h1>
-                <p className="mt-1 text-sm text-[#6A7880]">
+                <p className="mt-1 text-sm text-[#807266]">
                   สถานะปัจจุบัน: {query.data.status}
                 </p>
               </div>
@@ -156,39 +156,39 @@ export default function MemberDetail() {
               </button>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="text-sm font-semibold text-[#42515A]">
+              <label className="text-sm font-semibold text-[#51443A]">
                 ชื่อ-นามสกุล *
                 <input
                   required
                   value={name}
                   onChange={event => setName(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 font-normal text-[#172128]"
+                  className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 font-normal text-[#171311]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#42515A]">
+              <label className="text-sm font-semibold text-[#51443A]">
                 โทรศัพท์
                 <input
                   value={phone}
                   onChange={event => setPhone(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 font-normal text-[#172128]"
+                  className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 font-normal text-[#171311]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#42515A]">
+              <label className="text-sm font-semibold text-[#51443A]">
                 อีเมล
                 <input
                   type="email"
                   value={email}
                   onChange={event => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 font-normal text-[#172128]"
+                  className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 font-normal text-[#171311]"
                 />
               </label>
-              <label className="text-sm font-semibold text-[#42515A] md:col-span-2">
+              <label className="text-sm font-semibold text-[#51443A] md:col-span-2">
                 หมายเหตุ
                 <textarea
                   value={notes}
                   onChange={event => setNotes(event.target.value)}
                   rows={4}
-                  className="mt-1 w-full rounded-xl border border-[#DCE3E6] p-3 font-normal text-[#172128]"
+                  className="mt-1 w-full rounded-xl border border-[#E7DCC8] p-3 font-normal text-[#171311]"
                 />
               </label>
             </div>
