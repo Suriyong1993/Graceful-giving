@@ -1,5 +1,3 @@
-import { Illustration } from "@/components/Illustration";
-
 interface FinancialSummaryRowProps {
   isBalanceLoading: boolean;
   showBalance: boolean;
@@ -35,16 +33,6 @@ export function FinancialSummaryRow({
     >
       {/* Card 1: รายรับ (Income) */}
       <div className="min-w-0 bg-white border border-[#C3E4B8] rounded-2xl p-5 sm:p-6 flex sm:flex-col items-center sm:items-start gap-4 shadow-xs hover:border-[#A3D995] transition-colors">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-[#E4F3E7] p-1 border border-[#C3E4B8]">
-          <Illustration
-            src="/illustrations/income_hand_heart.jpg"
-            alt="รายรับ"
-            className="w-full h-full object-cover rounded-lg"
-            width={96}
-            height={96}
-            aria-hidden="true"
-          />
-        </div>
         <div className="min-w-0 max-w-full flex-1">
           <span className="text-sm sm:text-base font-bold text-[#1F5C33]">
             รายรับเดือนนี้
@@ -71,16 +59,6 @@ export function FinancialSummaryRow({
 
       {/* Card 2: รายจ่าย (Expenses) */}
       <div className="min-w-0 bg-white border border-[#F8C8C5] rounded-2xl p-5 sm:p-6 flex sm:flex-col items-center sm:items-start gap-4 shadow-xs hover:border-[#F2A49F] transition-colors">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-[#FEECEB] p-1 border border-[#F8C8C5]">
-          <Illustration
-            src="/illustrations/expense_hand_coin.jpg"
-            alt="รายจ่าย"
-            className="w-full h-full object-cover rounded-lg"
-            width={96}
-            height={96}
-            aria-hidden="true"
-          />
-        </div>
         <div className="min-w-0 max-w-full flex-1">
           <span className="text-sm sm:text-base font-bold text-[#8A2E14]">
             รายจ่ายเดือนนี้
@@ -109,18 +87,6 @@ export function FinancialSummaryRow({
       <div
         className={`min-w-0 bg-white rounded-2xl p-5 sm:p-6 flex sm:flex-col items-center sm:items-start gap-4 border shadow-xs sm:col-span-2 lg:col-span-1 transition-colors ${isPositiveNet ? "border-[#E7DCC8] hover:border-[#C94F16]" : "border-[#F8C8C5] hover:border-[#F2A49F]"}`}
       >
-        <div
-          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-[#FFF8EA] p-1 border ${isPositiveNet ? "border-[#E7DCC8]" : "border-[#F8C8C5]"}`}
-        >
-          <Illustration
-            src="/illustrations/balance_wallet.jpg"
-            alt="คงเหลือ"
-            className="w-full h-full object-cover rounded-lg"
-            width={96}
-            height={96}
-            aria-hidden="true"
-          />
-        </div>
         <div className="min-w-0 max-w-full flex-1">
           <span className="text-sm sm:text-base font-bold text-[#51443A]">
             คงเหลือสุทธิเดือนนี้

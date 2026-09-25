@@ -1,5 +1,4 @@
 import { ChevronRight } from "lucide-react";
-import { Illustration } from "@/components/Illustration";
 
 interface ChurchNewsCardProps {
   onOpenNews: () => void;
@@ -21,16 +20,6 @@ export function ChurchNewsCard({ onOpenNews }: ChurchNewsCardProps) {
         aria-label="เปิดดูข่าวสารจากคริสตจักร"
       >
         <div className="flex items-center gap-4">
-          <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shrink-0 bg-white p-1.5 border border-[#E7DCC8]">
-            <Illustration
-              src="/illustrations/bible_cross.jpg"
-              alt="พระคัมภีร์และกางเขน"
-              className="w-full h-full object-cover rounded-xl"
-              width={88}
-              height={88}
-              aria-hidden="true"
-            />
-          </div>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#171311]">
               ข่าวสารจากคริสตจักร
