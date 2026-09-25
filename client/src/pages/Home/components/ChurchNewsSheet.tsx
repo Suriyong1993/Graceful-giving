@@ -15,23 +15,23 @@ interface ChurchNewsSheetProps {
 export function ChurchNewsSheet({ open, onOpenChange }: ChurchNewsSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="bg-[#FFFFFF] border-l border-[#E4DED7] w-full sm:max-w-lg p-6 sm:p-8 overflow-y-auto">
+      <SheetContent className="bg-[#FFFFFF] border-l border-[#DCE3E6] w-full sm:max-w-lg p-6 sm:p-8 overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle className="text-xl sm:text-2xl font-bold text-[#57504A] flex items-center gap-3">
+          <SheetTitle className="text-xl sm:text-2xl font-bold text-[#42515A] flex items-center gap-3">
             <BookOpen className="w-6 h-6 text-primary" />
             <span>ข่าวสารและประกาศคริสตจักร</span>
           </SheetTitle>
-          <SheetDescription className="text-sm sm:text-base text-[#736A63] font-medium mt-1">
+          <SheetDescription className="text-sm sm:text-base text-[#6A7880] font-medium mt-1">
             ติดตามกิจกรรม พันธกิจ และคำพยานพระพร
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5">
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#F4F1ED] border-2 border-[#E4DED7] space-y-3 shadow-xs">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#EEF1F3] border-2 border-[#DCE3E6] space-y-3 shadow-xs">
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-primary text-white inline-block">
               ประกาศสำคัญ
             </span>
-            <h4 className="text-lg sm:text-xl font-bold text-[#57504A]">
+            <h4 className="text-lg sm:text-xl font-bold text-[#42515A]">
               ค่ายสามัคคีธรรมประจำปี 2026
             </h4>
             <p className="text-sm sm:text-base text-foreground leading-relaxed font-medium">

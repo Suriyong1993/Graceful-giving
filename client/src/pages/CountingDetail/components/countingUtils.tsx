@@ -17,7 +17,7 @@ export function Variance({ amount }: { amount: number }) {
   const over = amount > 0;
   return (
     <span
-      className={`font-bold tabular-nums ${over ? "text-[#A34A0C]" : "text-[#C8372D]"}`}
+      className={`font-bold tabular-nums ${over ? "text-[#174852]" : "text-[#C8372D]"}`}
     >
       {over ? "เกิน " : "ขาด "}
       {fmtBaht(Math.abs(amount))}

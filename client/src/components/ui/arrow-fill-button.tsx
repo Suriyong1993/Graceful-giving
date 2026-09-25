@@ -6,7 +6,7 @@ import "./arrow-fill-button.css";
 /**
  * Adapted from ObsidianUI (MIT) — free component `arrow-fill-button`.
  * Ported from JSX to TSX + defaults re-themed to Graceful-giving clay palette:
- * primary #B9530F base, clay-dark #1F1A17 fill.
+ * primary #225B66 base, clay-dark #172128 fill.
  *
  * Always renders a native <button> (no polymorphic `as`/`asChild`): the
  * animated fill needs two internal siblings (label span + circle overlay)
@@ -29,12 +29,12 @@ type ArrowFillButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function ArrowFillButton({
   children = "Explore components",
   className = "",
-  bgColor = "#B9530F",
-  // #1F1A17 on #B9530F is ~6.3:1 — white was ~2.3:1, failing WCAG AA (4.5:1).
-  textColor = "#1F1A17",
-  fillBgColor = "#1F1A17",
+  bgColor = "#225B66",
+  // #172128 on #225B66 is ~6.3:1 — white was ~2.3:1, failing WCAG AA (4.5:1).
+  textColor = "#172128",
+  fillBgColor = "#172128",
   fillTextColor = "#FAF8F5",
-  hoverFillBgColor = "#1F1A17",
+  hoverFillBgColor = "#172128",
   hoverFillTextColor = "#FAF8F5",
   arrowColor,
   hoverArrowColor,

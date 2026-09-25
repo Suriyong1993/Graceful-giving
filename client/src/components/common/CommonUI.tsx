@@ -23,14 +23,14 @@ export const LoadingSkeleton: React.FC<{
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
-          className={`w-full ${height} rounded-2xl bg-[#F4F1ED]/60 animate-pulse border border-[#E4DED7]/50 p-4 flex items-center gap-4`}
+          className={`w-full ${height} rounded-2xl bg-[#EEF1F3]/60 animate-pulse border border-[#DCE3E6]/50 p-4 flex items-center gap-4`}
         >
-          <div className="w-14 h-14 rounded-2xl bg-[#E4DED7]/40 shrink-0" />
+          <div className="w-14 h-14 rounded-2xl bg-[#DCE3E6]/40 shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="w-1/3 h-4 rounded-md bg-[#E4DED7]/40" />
-            <div className="w-1/2 h-3 rounded-md bg-[#E4DED7]/30" />
+            <div className="w-1/3 h-4 rounded-md bg-[#DCE3E6]/40" />
+            <div className="w-1/2 h-3 rounded-md bg-[#DCE3E6]/30" />
           </div>
-          <div className="w-20 h-6 rounded-md bg-[#E4DED7]/40" />
+          <div className="w-20 h-6 rounded-md bg-[#DCE3E6]/40" />
         </div>
       ))}
     </div>
@@ -58,9 +58,9 @@ export const EmptyState: React.FC<{
 }) => {
   return (
     <div
-      className={`py-12 px-6 rounded-2xl bg-white border border-[#E4DED7] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
+      className={`py-12 px-6 rounded-2xl bg-white border border-[#DCE3E6] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="size-20 rounded-2xl overflow-hidden bg-[#F4F1ED] shrink-0">
+      <div className="size-20 rounded-2xl overflow-hidden bg-[#EEF1F3] shrink-0">
         <Illustration
           src={illustrationSrc}
           alt={illustrationAlt}
@@ -70,13 +70,13 @@ export const EmptyState: React.FC<{
         />
       </div>
       <div className="space-y-1 max-w-sm">
-        <h3 className="text-base font-semibold text-[#1F1A17]">{title}</h3>
-        <p className="text-sm text-[#736A63] leading-relaxed">{description}</p>
+        <h3 className="text-base font-semibold text-[#172128]">{title}</h3>
+        <p className="text-sm text-[#6A7880] leading-relaxed">{description}</p>
       </div>
       {actionText && onAction && (
         <button
           onClick={onAction}
-          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#B9530F]"
+          className="min-h-11 mt-2 px-5 py-2.5 rounded-xl bg-[#225B66] hover:bg-[#174852] text-white text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#225B66]"
         >
           {actionText}
         </button>
@@ -105,7 +105,7 @@ export const ErrorState: React.FC<{
     </div>
     <div className="space-y-1 max-w-sm">
       <h3 className="text-base font-bold text-[#7C2A1E]">{title}</h3>
-      <p className="text-sm text-[#57504A] leading-relaxed">{description}</p>
+      <p className="text-sm text-[#42515A] leading-relaxed">{description}</p>
     </div>
     {onRetry && (
       <button
@@ -122,6 +122,10 @@ export const ErrorState: React.FC<{
 // ─── 3. Status Badge ─────────────────────────────────────────────────────────
 
 export type StatusType =
+  | "draft"
+  | "submitted"
+  | "needs_review"
+  | "unknown"
   | "pending"
   | "approved"
   | "rejected"
@@ -145,16 +149,44 @@ export const StatusBadge: React.FC<{
     switch (status) {
       case "approved":
       case "completed":
-      case "active":
         return {
           bg: "bg-[#E4F3E7] text-[#2D6622] border-[#C3E4B8]",
           defaultLabel: "อนุมัติแล้ว",
         };
+      case "active":
+        return {
+          bg: "bg-[#E4F3E7] text-[#2D6622] border-[#C3E4B8]",
+          defaultLabel: "ใช้งานอยู่",
+        };
       case "rejected":
-      case "inactive":
         return {
           bg: "bg-[#FEECEB] text-[#B92A20] border-[#F8C8C5]",
           defaultLabel: "ปฏิเสธ / ยกเลิก",
+        };
+      case "inactive":
+        return {
+          bg: "bg-stone-100 text-stone-600 border-stone-200",
+          defaultLabel: "ปิดใช้งาน",
+        };
+      case "draft":
+        return {
+          bg: "bg-stone-100 text-stone-700 border-stone-200",
+          defaultLabel: "ฉบับร่าง",
+        };
+      case "submitted":
+        return {
+          bg: "bg-[#EAF2FB] text-[#1E5282] border-[#C7DCF3]",
+          defaultLabel: "ส่งตรวจสอบแล้ว",
+        };
+      case "needs_review":
+        return {
+          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
+          defaultLabel: "ต้องตรวจสอบ",
+        };
+      case "unknown":
+        return {
+          bg: "bg-stone-100 text-stone-600 border-stone-200",
+          defaultLabel: "ไม่ทราบสถานะ",
         };
       case "voided":
         return {
@@ -163,7 +195,7 @@ export const StatusBadge: React.FC<{
         };
       case "counting":
         return {
-          bg: "bg-[#FEF5EC] text-[#A34A0C] border-[#F9D2AE]",
+          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
           defaultLabel: "กำลังนับ",
         };
       case "counted":
@@ -189,7 +221,7 @@ export const StatusBadge: React.FC<{
       case "pending":
       default:
         return {
-          bg: "bg-[#FEF5EC] text-[#A34A0C] border-[#F9D2AE]",
+          bg: "bg-[#FEF5EC] text-[#174852] border-[#F9D2AE]",
           defaultLabel: "รอดำเนินการ",
         };
     }
@@ -224,7 +256,7 @@ export const MoneyDisplay: React.FC<{
   const getColor = () => {
     if (type === "income") return "text-[#1F5C33]";
     if (type === "expense") return "text-[#c7382d]";
-    return "text-[#1F1A17]";
+    return "text-[#172128]";
   };
 
   // Each size carries its own weight. The base class used to set font-bold
@@ -274,14 +306,14 @@ export const PageHeader: React.FC<{
 }> = ({ title, subtitle, action, className = "" }) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#E4DED7] card-elevation-sm ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 md:p-6 border border-[#DCE3E6] card-elevation-sm ${className}`}
     >
       <div className="min-w-0">
-        <h1 className="text-xl md:text-2xl font-bold text-[#57504A] tracking-tight break-words">
+        <h1 className="text-xl md:text-2xl font-bold text-[#42515A] tracking-tight break-words">
           {title}
         </h1>
         {subtitle && (
-          <p className="text-xs text-[#736A63] mt-1 leading-relaxed">
+          <p className="text-xs text-[#6A7880] mt-1 leading-relaxed">
             {subtitle}
           </p>
         )}
@@ -317,8 +349,8 @@ export const Chip: React.FC<
     aria-pressed={active}
     className={`min-h-11 shrink-0 whitespace-nowrap rounded-xl border px-3.5 py-2 text-[13px] transition-colors ${
       active
-        ? "border-[#F9D2AE] bg-[#FDEBD8] font-semibold text-[#A34A0C]"
-        : "border-[#E4DED7] bg-white font-medium text-[#57504A] hover:bg-[#F4F1ED]"
+        ? "border-[#F9D2AE] bg-[#E7F0EE] font-semibold text-[#174852]"
+        : "border-[#DCE3E6] bg-white font-medium text-[#42515A] hover:bg-[#EEF1F3]"
     } ${className}`}
     {...props}
   >
@@ -353,7 +385,7 @@ export const FilterBar: React.FC<{
       {/* Search Input */}
       <div className="relative w-full">
         <Search
-          className="pointer-events-none w-4 h-4 text-[#736A63] absolute left-3.5 top-1/2 -translate-y-1/2"
+          className="pointer-events-none w-4 h-4 text-[#6A7880] absolute left-3.5 top-1/2 -translate-y-1/2"
           aria-hidden="true"
         />
         <input
@@ -362,7 +394,7 @@ export const FilterBar: React.FC<{
           value={searchValue}
           onChange={e => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-[#E4DED7] text-base md:text-sm text-[#1F1A17] placeholder-[#736A63] focus:border-[#B9530F] focus-visible:ring-2 focus-visible:ring-[#B9530F]/30"
+          className="min-h-11 w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-[#DCE3E6] text-base md:text-sm text-[#172128] placeholder-[#6A7880] focus:border-[#225B66] focus-visible:ring-2 focus-visible:ring-[#225B66]/30"
         />
       </div>
 
@@ -420,8 +452,8 @@ export const BackLink: React.FC<{
     onClick={onClick}
     className={`min-h-11 inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
       variant === "pill"
-        ? "rounded-xl border border-[#E4DED7] bg-white px-3.5 py-2 text-[#3F3833] hover:bg-[#F4F1ED]"
-        : "text-[#57504A] hover:text-[#1F1A17]"
+        ? "rounded-xl border border-[#DCE3E6] bg-white px-3.5 py-2 text-[#3F3833] hover:bg-[#EEF1F3]"
+        : "text-[#42515A] hover:text-[#172128]"
     } ${className}`}
   >
     <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -454,12 +486,12 @@ export const ConfirmDialog: React.FC<{
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-[#FFFFFF] border-[#E4DED7] rounded-2xl p-6 text-[#1F1A17]">
+      <DialogContent className="max-w-sm bg-[#FFFFFF] border-[#DCE3E6] rounded-2xl p-6 text-[#172128]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-[#57504A]">
+          <DialogTitle className="text-lg font-bold text-[#42515A]">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-[#57504A] leading-relaxed">
+          <DialogDescription className="text-sm text-[#42515A] leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -468,7 +500,7 @@ export const ConfirmDialog: React.FC<{
             type="button"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
-            className="flex-1 py-2.5 rounded-xl bg-[#F4F1ED] text-[#57504A] font-bold text-xs border border-[#E4DED7]"
+            className="flex-1 py-2.5 rounded-xl bg-[#EEF1F3] text-[#42515A] font-bold text-xs border border-[#DCE3E6]"
           >
             {cancelText}
           </button>
@@ -479,7 +511,7 @@ export const ConfirmDialog: React.FC<{
             className={`flex-1 py-2.5 rounded-xl text-white font-bold text-xs button-elevation transition-all ${
               variant === "danger"
                 ? "bg-[#C8372D] hover:bg-[#B3322A]"
-                : "bg-[#B9530F] hover:bg-[#A34A0C]"
+                : "bg-[#225B66] hover:bg-[#174852]"
             }`}
           >
             {isLoading ? "กำลังดำเนินการ..." : confirmText}

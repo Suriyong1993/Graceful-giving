@@ -162,30 +162,30 @@ export default function BudgetDetail() {
           />
         ) : (
           <>
-            <section className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm md:p-8">
-              <h1 className="text-2xl font-bold text-[#1F1A17]">
+            <section className="rounded-2xl border border-[#DCE3E6] bg-white p-6 shadow-sm md:p-8">
+              <h1 className="text-2xl font-bold text-[#172128]">
                 {budgetCategoryLabel(query.data.category)}
               </h1>
-              <p className="mt-1 text-sm text-[#736A63]">
+              <p className="mt-1 text-sm text-[#6A7880]">
                 {budgetPeriodLabel(query.data.year, query.data.month)}
                 {" · "}
                 {fundName(query.data.fundId) ?? "ทุกกองทุน"}
               </p>
               <dl className="mt-5 grid grid-cols-3 gap-3">
                 <div>
-                  <dt className="text-xs text-[#736A63]">งบประมาณ</dt>
+                  <dt className="text-xs text-[#6A7880]">งบประมาณ</dt>
                   <dd>
                     <MoneyDisplay amount={query.data.plannedAmount} size="sm" />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-[#736A63]">ใช้จริง</dt>
+                  <dt className="text-xs text-[#6A7880]">ใช้จริง</dt>
                   <dd>
                     <MoneyDisplay amount={query.data.actualAmount} size="sm" />
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-[#736A63]">
+                  <dt className="text-xs text-[#6A7880]">
                     {query.data.remainingAmount < 0 ? "เกินงบ" : "คงเหลือ"}
                   </dt>
                   <dd>
@@ -208,10 +208,10 @@ export default function BudgetDetail() {
 
             <form
               onSubmit={submit}
-              className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm md:p-8"
+              className="rounded-2xl border border-[#DCE3E6] bg-white p-6 shadow-sm md:p-8"
             >
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-bold text-[#1F1A17]">แก้ไขงบประมาณ</h2>
+                <h2 className="font-bold text-[#172128]">แก้ไขงบประมาณ</h2>
                 <button
                   type="button"
                   onClick={confirmDelete}
@@ -236,12 +236,12 @@ export default function BudgetDetail() {
               </button>
             </form>
 
-            <section className="rounded-2xl border border-[#E4DED7] bg-white p-6 shadow-sm md:p-8">
-              <h2 className="font-bold text-[#1F1A17]">
+            <section className="rounded-2xl border border-[#DCE3E6] bg-white p-6 shadow-sm md:p-8">
+              <h2 className="font-bold text-[#172128]">
                 รายจ่ายที่นับในงบนี้ ({query.data.expenseCount} รายการ)
               </h2>
               {query.data.expenses.length === 0 ? (
-                <p className="mt-3 text-sm text-[#736A63]">
+                <p className="mt-3 text-sm text-[#6A7880]">
                   ยังไม่มีรายจ่ายที่ตรงกับช่วงเวลา หมวด และกองทุนของงบนี้
                 </p>
               ) : (
@@ -252,16 +252,16 @@ export default function BudgetDetail() {
                       className="flex items-start justify-between gap-3 py-3"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#1F1A17]">
+                        <p className="truncate text-sm font-semibold text-[#172128]">
                           {expense.description}
                         </p>
-                        <p className="text-xs text-[#736A63]">
+                        <p className="text-xs text-[#6A7880]">
                           {formatThaiDate(expense.expenseDate)} ·{" "}
                           {expenseCategoryLabel(expense.category)}
                           {expense.payee ? ` · ${expense.payee}` : ""}
                         </p>
                       </div>
-                      <span className="shrink-0 text-sm font-bold tabular-nums text-[#1F1A17]">
+                      <span className="shrink-0 text-sm font-bold tabular-nums text-[#172128]">
                         {formatBaht(expense.amount)}
                       </span>
                     </li>
@@ -269,7 +269,7 @@ export default function BudgetDetail() {
                 </ul>
               )}
               {query.data.expenseCount > query.data.expenses.length && (
-                <p className="mt-3 text-xs text-[#736A63]">
+                <p className="mt-3 text-xs text-[#6A7880]">
                   แสดง {query.data.expenses.length} รายการล่าสุด
                 </p>
               )}

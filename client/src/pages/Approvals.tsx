@@ -110,7 +110,7 @@ export default function Approvals() {
       action={
         <button
           onClick={() => setLocation("/withdrawals/new")}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#B9530F] px-4 text-sm font-semibold text-white hover:bg-[#A34A0C]"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#225B66] px-4 text-sm font-semibold text-white hover:bg-[#174852]"
         >
           <Banknote className="size-4" />
           ยื่นคำขอเบิกเงิน
@@ -124,8 +124,8 @@ export default function Approvals() {
             onClick={() => setActiveTab("pending")}
             className={`min-h-11 shrink-0 whitespace-nowrap px-4 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "pending"
-                ? "bg-[#F4F1ED] text-foreground border border-[#E4DED7]"
-                : "text-[#736A63] hover:text-foreground"
+                ? "bg-[#EEF1F3] text-foreground border border-[#DCE3E6]"
+                : "text-[#6A7880] hover:text-foreground"
             }`}
           >
             <Clock className="w-4 h-4 text-primary" />
@@ -138,8 +138,8 @@ export default function Approvals() {
             onClick={() => setActiveTab("approved")}
             className={`min-h-11 shrink-0 whitespace-nowrap px-4 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "approved"
-                ? "bg-[#F4F1ED] text-foreground border border-[#E4DED7]"
-                : "text-[#736A63] hover:text-foreground"
+                ? "bg-[#EEF1F3] text-foreground border border-[#DCE3E6]"
+                : "text-[#6A7880] hover:text-foreground"
             }`}
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -152,8 +152,8 @@ export default function Approvals() {
             onClick={() => setActiveTab("rejected")}
             className={`min-h-11 shrink-0 whitespace-nowrap px-4 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "rejected"
-                ? "bg-[#F4F1ED] text-foreground border border-[#E4DED7]"
-                : "text-[#736A63] hover:text-foreground"
+                ? "bg-[#EEF1F3] text-foreground border border-[#DCE3E6]"
+                : "text-[#6A7880] hover:text-foreground"
             }`}
           >
             <XCircle className="w-4 h-4 text-rose-600" />
@@ -175,14 +175,14 @@ export default function Approvals() {
             {filteredRequests.map(req => (
               <div
                 key={req.id}
-                className="bg-white rounded-2xl border border-[#E4DED7] p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+                className="bg-white rounded-2xl border border-[#DCE3E6] p-6 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-mono text-[#736A63] bg-background px-2.5 py-0.5 rounded-full border border-[#E4DED7]">
+                    <span className="text-xs font-mono text-[#6A7880] bg-background px-2.5 py-0.5 rounded-full border border-[#DCE3E6]">
                       REQ-2026-00{req.id}
                     </span>
-                    <span className="text-xs font-medium text-[#57504A] bg-[#F4F1ED] px-2.5 py-0.5 rounded-full border border-[#E4DED7]/60">
+                    <span className="text-xs font-medium text-[#42515A] bg-[#EEF1F3] px-2.5 py-0.5 rounded-full border border-[#DCE3E6]/60">
                       {req.fund}
                     </span>
                     <StatusBadge
@@ -200,11 +200,11 @@ export default function Approvals() {
                     {req.purpose}
                   </h3>
 
-                  <p className="text-xs text-[#736A63] leading-relaxed">
+                  <p className="text-xs text-[#6A7880] leading-relaxed">
                     {req.details}
                   </p>
 
-                  <div className="flex items-center gap-4 text-xs text-[#736A63] pt-1">
+                  <div className="flex items-center gap-4 text-xs text-[#6A7880] pt-1">
                     <span className="flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-primary" />
                       {req.requester}
@@ -218,9 +218,9 @@ export default function Approvals() {
                 </div>
 
                 {/* Amount & Actions */}
-                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-[#E4DED7]/40 flex-shrink-0">
+                <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-[#DCE3E6]/40 flex-shrink-0">
                   <div className="text-left md:text-right">
-                    <p className="text-xs text-[#736A63]">ยอดขอเบิก</p>
+                    <p className="text-xs text-[#6A7880]">ยอดขอเบิก</p>
                     <MoneyDisplay
                       amount={req.amount}
                       type="expense"
@@ -256,8 +256,8 @@ export default function Approvals() {
         {/* Reject Reason Modal */}
         {showRejectModal && (
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-[#E4DED7] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between border-b border-[#E4DED7] pb-3">
+            <div className="bg-white rounded-2xl border border-[#DCE3E6] max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-[#DCE3E6] pb-3">
                 <h3 className="text-lg font-bold text-foreground">
                   ระบุเหตุผลที่ไม่อนุมัติ
                 </h3>
@@ -265,14 +265,14 @@ export default function Approvals() {
                   onClick={() => setShowRejectModal(false)}
                   type="button"
                   aria-label="ปิด"
-                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#736A63] hover:bg-[#F4F1ED] hover:text-foreground"
+                  className="-mr-2 flex size-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold text-[#6A7880] hover:bg-[#EEF1F3] hover:text-foreground"
                 >
                   ×
                 </button>
               </div>
 
               <div className="space-y-2 text-xs">
-                <p className="text-[#736A63]">
+                <p className="text-[#6A7880]">
                   คำขอนี้จะถูกปฏิเสธ และระบบจะส่งการแจ้งเตือนไปยังผู้ยื่นคำขอ
                 </p>
                 <textarea
@@ -281,14 +281,14 @@ export default function Approvals() {
                   placeholder="เช่น เอกสารใบเสนอราคาไม่ครบถ้วน, เกินงบประมาณที่จัดสรรไว้..."
                   value={rejectReason}
                   onChange={e => setRejectReason(e.target.value)}
-                  className="w-full p-3 rounded-2xl border border-[#E4DED7] text-xs text-foreground focus:outline-none focus:border-rose-400"
+                  className="w-full p-3 rounded-2xl border border-[#DCE3E6] text-xs text-foreground focus:outline-none focus:border-rose-400"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   onClick={() => setShowRejectModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[#E4DED7] text-xs font-medium text-[#57504A]"
+                  className="px-4 py-2 rounded-xl border border-[#DCE3E6] text-xs font-medium text-[#42515A]"
                 >
                   ยกเลิก
                 </button>

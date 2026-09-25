@@ -49,14 +49,14 @@ export function AdminNewsDialog({
         <form onSubmit={onSubmit}>
           <DialogHeader className="text-left">
             <div className="flex items-center gap-3">
-              <span className="grid size-11 place-items-center rounded-2xl bg-[#F4F1ED] text-[#A34A0C]">
+              <span className="grid size-11 place-items-center rounded-2xl bg-[#EEF1F3] text-[#174852]">
                 <Megaphone className="size-5" />
               </span>
               <div>
                 <DialogTitle className="font-display text-xl font-bold text-[#3F3833]">
                   {editingNewsId ? "แก้ไขข่าวสาร" : "สร้างข่าวสารใหม่"}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-[#57504A]">
+                <DialogDescription className="text-xs text-[#42515A]">
                   สมาชิกจะเห็นประกาศนี้เมื่อสถานะเป็นเผยแพร่
                 </DialogDescription>
               </div>
@@ -72,7 +72,7 @@ export function AdminNewsDialog({
                   setNewsForm({ ...newsForm, title: event.target.value })
                 }
                 placeholder="เช่น เชิญร่วมอธิษฐานประจำสัปดาห์"
-                className="w-full rounded-xl border border-[#E4DED7] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#A34A0C] focus:outline-none"
+                className="w-full rounded-xl border border-[#DCE3E6] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#174852] focus:outline-none"
               />
             </Field>
             <Field label="สรุปสั้น ๆ">
@@ -84,7 +84,7 @@ export function AdminNewsDialog({
                   setNewsForm({ ...newsForm, summary: event.target.value })
                 }
                 placeholder="ข้อความที่จะแสดงในการ์ดข่าวสาร"
-                className="w-full rounded-xl border border-[#E4DED7] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#A34A0C] focus:outline-none"
+                className="w-full rounded-xl border border-[#DCE3E6] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#174852] focus:outline-none"
               />
             </Field>
             <Field label="รายละเอียด">
@@ -96,7 +96,7 @@ export function AdminNewsDialog({
                   setNewsForm({ ...newsForm, body: event.target.value })
                 }
                 placeholder="เขียนรายละเอียดข่าวสาร..."
-                className="w-full rounded-xl border border-[#E4DED7] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#A34A0C] focus:outline-none"
+                className="w-full rounded-xl border border-[#DCE3E6] px-3.5 py-2.5 text-sm text-[#3F3833] focus:border-[#174852] focus:outline-none"
               />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -109,7 +109,7 @@ export function AdminNewsDialog({
                       category: event.target.value as typeof newsForm.category,
                     })
                   }
-                  className="border-[#E4DED7] text-[#3F3833]"
+                  className="border-[#DCE3E6] text-[#3F3833]"
                 >
                   <option value="announcement">ประกาศ</option>
                   <option value="ministry">พันธกิจ</option>
@@ -126,7 +126,7 @@ export function AdminNewsDialog({
                       status: event.target.value as typeof newsForm.status,
                     })
                   }
-                  className="border-[#E4DED7] text-[#3F3833]"
+                  className="border-[#DCE3E6] text-[#3F3833]"
                 >
                   <option value="draft">ฉบับร่าง</option>
                   <option value="published">เผยแพร่ทันที</option>

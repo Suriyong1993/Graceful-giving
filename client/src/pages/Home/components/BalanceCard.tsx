@@ -45,12 +45,12 @@ export function BalanceCard({
         {/* Left: Prominent financial figures */}
         <div className="min-w-0 flex-1 space-y-2 sm:space-y-3 z-10">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-[#1F1A17]">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-[#172128]">
               ยอดเงินคงเหลือรวม
             </h2>
             <button
               onClick={() => setShowBalance(!showBalance)}
-              className="size-11 shrink-0 inline-flex items-center justify-center text-[#3F3833] hover:text-[#1F1A17] transition-colors rounded-full focus-visible:ring-2 focus-visible:ring-[#B9530F]"
+              className="size-11 shrink-0 inline-flex items-center justify-center text-[#3F3833] hover:text-[#172128] transition-colors rounded-full focus-visible:ring-2 focus-visible:ring-[#225B66]"
               aria-label={showBalance ? "ซ่อนยอดเงิน" : "แสดงยอดเงิน"}
               aria-pressed={!showBalance}
             >
@@ -69,7 +69,7 @@ export function BalanceCard({
               </span>
             )}
             {isDataUnavailable && (
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F4F1ED] border border-dashed border-[#F9D2AE] text-[#7F3A0D] text-xs sm:text-sm font-bold">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EEF1F3] border border-dashed border-[#F9D2AE] text-[#7F3A0D] text-xs sm:text-sm font-bold">
                 <Info className="w-4 h-4" />
                 {summaryError
                   ? "เชื่อมต่อข้อมูลไม่สำเร็จ"
@@ -116,9 +116,9 @@ export function BalanceCard({
             <div className="pt-3">
               <button
                 onClick={onOpenReports}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#F4F1ED] text-[#1F1A17] text-sm sm:text-base font-bold border border-[#E4DED7] transition-colors focus-visible:ring-2 focus-visible:ring-[#B9530F] shadow-2xs hover:border-[#B9530F]"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#EEF1F3] text-[#172128] text-sm sm:text-base font-bold border border-[#DCE3E6] transition-colors focus-visible:ring-2 focus-visible:ring-[#225B66] shadow-2xs hover:border-[#225B66]"
               >
-                <BarChart3 className="w-4 h-4 text-[#B9530F]" />
+                <BarChart3 className="w-4 h-4 text-[#225B66]" />
                 <span>ดูรายละเอียด</span>
                 <ChevronRight className="w-4 h-4 text-[#3F3833]" />
               </button>
@@ -128,7 +128,7 @@ export function BalanceCard({
 
         {/* Right: Balance illustration tucked cleanly in corner */}
         <div className="hidden sm:block shrink-0 z-10">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden border border-[#E4DED7] bg-[#FAF8F5] p-1.5 shadow-2xs">
+          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden border border-[#DCE3E6] bg-[#FAF8F5] p-1.5 shadow-2xs">
             <Illustration
               src="/illustrations/balance_wallet.jpg"
               alt="กระเป๋าสตางค์ยอดคงเหลือ"

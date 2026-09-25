@@ -178,7 +178,7 @@ export default function Home() {
           category: e.category,
           subCategory: "พันธกิจนมัสการ",
           amount: Number(e.amount),
-          tone: "bg-[#F4F1ED] text-[#B9530F]",
+          tone: "bg-[#EEF1F3] text-[#225B66]",
           icon: Landmark,
         });
       });
@@ -199,24 +199,24 @@ export default function Home() {
           <div
             role="region"
             aria-label="รายการที่ต้องดำเนินการ"
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-[#F9D2AE] text-[#57504A] shadow-2xs"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-[#F9D2AE] text-[#42515A] shadow-2xs"
           >
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#F4F1ED] border border-[#F9D2AE] flex items-center justify-center text-[#B9530F] shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#EEF1F3] border border-[#F9D2AE] flex items-center justify-center text-[#225B66] shrink-0">
                 <Inbox className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-sm sm:text-base text-[#1F1A17]">
+                <h3 className="font-bold text-sm sm:text-base text-[#172128]">
                   มีสลิปถวายรอตรวจสอบ {pendingSlipCount} รายการ
                 </h3>
-                <p className="text-xs text-[#57504A] truncate">
+                <p className="text-xs text-[#42515A] truncate">
                   สลิปจาก LINE Official Account รอดำเนินการตรวจสอบและบันทึกบัญชี
                 </p>
               </div>
             </div>
             <button
               onClick={() => setLocation("/giving/inbox")}
-              className="min-h-11 px-4 py-2 rounded-xl bg-[#B9530F] hover:bg-[#A34A0C] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#B9530F]"
+              className="min-h-11 px-4 py-2 rounded-xl bg-[#225B66] hover:bg-[#174852] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-[#225B66]"
             >
               <span>ตรวจสอบสลิป</span>
               <ArrowRight className="w-4 h-4" />
@@ -224,67 +224,73 @@ export default function Home() {
           </div>
         )}
 
-        {/* 2. Balance Card */}
-        <BalanceCard
-          showBalance={showBalance}
-          setShowBalance={setShowBalance}
-          isPositiveBalance={isPositiveBalance}
-          isBalanceLoading={isBalanceLoading}
-          isDataUnavailable={isDataUnavailable}
-          summaryError={summaryError}
-          hasSummaryData={!!summaryData}
-          animatedBalance={animatedBalance}
-          canOpenReports={canOpenReports}
-          onOpenReports={() => setLocation("/reports")}
-          fmtBaht={fmtBaht}
-        />
+        <section aria-labelledby="dashboard-overview" className="space-y-4 sm:space-y-5">
+          <h2 id="dashboard-overview" className="text-sm font-bold uppercase tracking-wide text-[#6A7880]">
+            ดูภาพรวม
+          </h2>
+          <BalanceCard
+            showBalance={showBalance}
+            setShowBalance={setShowBalance}
+            isPositiveBalance={isPositiveBalance}
+            isBalanceLoading={isBalanceLoading}
+            isDataUnavailable={isDataUnavailable}
+            summaryError={summaryError}
+            hasSummaryData={!!summaryData}
+            animatedBalance={animatedBalance}
+            canOpenReports={canOpenReports}
+            onOpenReports={() => setLocation("/reports")}
+            fmtBaht={fmtBaht}
+          />
+          <FinancialSummaryRow
+            isBalanceLoading={isBalanceLoading}
+            showBalance={showBalance}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
+            netMonthly={netMonthly}
+            incomeTrend={incomeTrend}
+            expenseTrend={expenseTrend}
+            isPositiveNet={isPositiveNet}
+            fmtShortBaht={fmtShortBaht}
+            trendArrow={trendArrow}
+            trendValue={trendValue}
+          />
+        </section>
 
-        {/* 3. Financial Summary Cards */}
-        <FinancialSummaryRow
-          isBalanceLoading={isBalanceLoading}
-          showBalance={showBalance}
-          monthlyIncome={monthlyIncome}
-          monthlyExpense={monthlyExpense}
-          netMonthly={netMonthly}
-          incomeTrend={incomeTrend}
-          expenseTrend={expenseTrend}
-          isPositiveNet={isPositiveNet}
-          fmtShortBaht={fmtShortBaht}
-          trendArrow={trendArrow}
-          trendValue={trendValue}
-        />
+        <section aria-labelledby="dashboard-actions" className="space-y-4 sm:space-y-5">
+          <h2 id="dashboard-actions" className="text-sm font-bold uppercase tracking-wide text-[#6A7880]">
+            ทำรายการ
+          </h2>
+          <PrimaryActions
+            canRecordExpense={canRecordExpense}
+            onNewOffering={() => setLocation("/offerings/new")}
+            onNewExpense={() => setLocation("/expenses/new")}
+          />
+          <SecondaryMenu
+            canOpenReports={canOpenReports}
+            canOpenMembers={canOpenMembers}
+            secondaryTileColsClass={secondaryTileColsClass}
+            onOpenReports={() => setLocation("/reports")}
+            onOpenMembers={() => setLocation("/members")}
+            onOpenNews={() => setNewsOpen(true)}
+            onOpenWithdrawals={() => setLocation("/withdrawals/new")}
+          />
+        </section>
 
-        {/* 4a. Primary Actions */}
-        <PrimaryActions
-          canRecordExpense={canRecordExpense}
-          onNewOffering={() => setLocation("/offerings/new")}
-          onNewExpense={() => setLocation("/expenses/new")}
-        />
-
-        {/* 4b. Secondary Menu */}
-        <SecondaryMenu
-          canOpenReports={canOpenReports}
-          canOpenMembers={canOpenMembers}
-          secondaryTileColsClass={secondaryTileColsClass}
-          onOpenReports={() => setLocation("/reports")}
-          onOpenMembers={() => setLocation("/members")}
-          onOpenNews={() => setNewsOpen(true)}
-          onOpenWithdrawals={() => setLocation("/withdrawals/new")}
-        />
-
-        {/* 5. Budget Section */}
-        <BudgetSection
-          canOpenReports={canOpenReports}
-          onOpenReports={() => setLocation("/reports")}
-        />
-
-        {/* 6. Recent Transactions Section */}
-        <RecentTransactions
-          allTransactions={allTransactions}
-          onViewAll={() => setLocation("/transactions")}
-          fmtBaht={fmtBaht}
-          fmtThaiDate={fmtThaiDate}
-        />
+        <section aria-labelledby="dashboard-tracking" className="space-y-4 sm:space-y-5">
+          <h2 id="dashboard-tracking" className="text-sm font-bold uppercase tracking-wide text-[#6A7880]">
+            ติดตาม
+          </h2>
+          <BudgetSection
+            canOpenReports={canOpenReports}
+            onOpenReports={() => setLocation("/reports")}
+          />
+          <RecentTransactions
+            allTransactions={allTransactions}
+            onViewAll={() => setLocation("/transactions")}
+            fmtBaht={fmtBaht}
+            fmtThaiDate={fmtThaiDate}
+          />
+        </section>
       </div>
 
       {/* Sheet: Church News & Announcements */}

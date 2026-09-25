@@ -31,7 +31,7 @@ export const Swal = {
       const container = document.createElement("div");
       container.id = "grace-sweetalert-container";
       container.className =
-        "fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#1F1A17]/60 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in";
+        "fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#172128]/60 backdrop-blur-sm transition-opacity duration-200 animate-in fade-in";
 
       const iconSvgs: Record<string, string> = {
         success: `
@@ -63,7 +63,7 @@ export const Swal = {
           </div>
         `,
         question: `
-          <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-[#B9530F]/15 border-2 border-[#B9530F]/30 text-[#B9530F] shadow-sm">
+          <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-[#225B66]/15 border-2 border-[#225B66]/30 text-[#225B66] shadow-sm">
             <svg class="h-10 w-10 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -76,16 +76,16 @@ export const Swal = {
       const cancelText = options.cancelButtonText || "ยกเลิก";
 
       container.innerHTML = `
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-gradient-to-b from-[#FFFFFF] via-white to-[#FAF8F5] p-6 sm:p-9 text-center shadow-2xl border-2 border-[#E4DED7] transition-all duration-200">
+        <div class="relative w-full max-w-lg transform overflow-hidden rounded-2xl bg-gradient-to-b from-[#FFFFFF] via-white to-[#FAF8F5] p-6 sm:p-9 text-center shadow-2xl border-2 border-[#DCE3E6] transition-all duration-200">
           <!-- Background ambients -->
-          <div class="pointer-events-none absolute -top-12 -right-12 w-44 h-44 rounded-full bg-[#B9530F]/10 blur-3xl"></div>
+          <div class="pointer-events-none absolute -top-12 -right-12 w-44 h-44 rounded-full bg-[#225B66]/10 blur-3xl"></div>
           <div class="pointer-events-none absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-[#9BCBA5]/10 blur-3xl"></div>
 
           <div class="relative z-10">
             ${iconHtml}
             ${
               options.title
-                ? `<h3 class="mt-5 text-2xl sm:text-3xl font-black text-[#1F1A17] tracking-tight leading-snug">${options.title}</h3>`
+                ? `<h3 class="mt-5 text-2xl sm:text-3xl font-black text-[#172128] tracking-tight leading-snug">${options.title}</h3>`
                 : ""
             }
             ${
@@ -93,17 +93,17 @@ export const Swal = {
                 ? `<p class="mt-3 text-base sm:text-lg text-[#3F3833] font-medium leading-relaxed max-w-md mx-auto">${options.text}</p>`
                 : ""
             }
-            ${options.html ? `<div class="mt-3 text-sm sm:text-base text-[#57504A]/90">${options.html}</div>` : ""}
+            ${options.html ? `<div class="mt-3 text-sm sm:text-base text-[#42515A]/90">${options.html}</div>` : ""}
 
             <div class="mt-7 flex flex-col-reverse sm:flex-row items-center justify-center gap-3">
               ${
                 options.showCancelButton
-                  ? `<button id="swal-cancel-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl border-2 border-[#E4DED7] bg-[#F4F1ED] hover:bg-[#FDEBD8] text-[#57504A] font-bold text-sm sm:text-base transition-all focus:outline-none focus:ring-4 focus:ring-[#B9530F]/30 active:scale-95 cursor-pointer">
+                  ? `<button id="swal-cancel-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-2xl border-2 border-[#DCE3E6] bg-[#EEF1F3] hover:bg-[#E7F0EE] text-[#42515A] font-bold text-sm sm:text-base transition-all focus:outline-none focus:ring-4 focus:ring-[#225B66]/30 active:scale-95 cursor-pointer">
                       ${cancelText}
                     </button>`
                   : ""
               }
-              <button id="swal-confirm-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-2xl bg-[#B9530F] hover:bg-[#A34A0C] text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-[#B9530F]/30 active:scale-95 cursor-pointer">
+              <button id="swal-confirm-btn" type="button" class="w-full sm:w-auto min-h-[48px] px-8 py-3 rounded-2xl bg-[#225B66] hover:bg-[#174852] text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-[#225B66]/30 active:scale-95 cursor-pointer">
                 ${confirmText}
               </button>
             </div>

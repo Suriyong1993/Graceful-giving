@@ -100,8 +100,8 @@ export function downloadICS(event: {
 
 export function EmptyPanel({ type }: { type: "news" | "events" }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[#E4DED7] bg-white/65 px-6 py-12 text-center">
-      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#F4F1ED] text-[#B9530F]">
+    <div className="rounded-2xl border border-dashed border-[#DCE3E6] bg-white/65 px-6 py-12 text-center">
+      <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-[#EEF1F3] text-[#225B66]">
         {type === "news" ? (
           <Megaphone className="size-7" strokeWidth={1.5} />
         ) : (
@@ -113,7 +113,7 @@ export function EmptyPanel({ type }: { type: "news" | "events" }) {
           ? "ยังไม่มีข่าวสารเผยแพร่"
           : "ยังไม่มีกิจกรรมที่กำลังจะมาถึง"}
       </p>
-      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#57504A]">
+      <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#42515A]">
         {type === "news"
           ? "เมื่อมีประกาศใหม่ สมาชิกจะเห็นได้ที่หน้านี้ทันที"
           : "กิจกรรมของคริสตจักรจะแสดงที่นี่เพื่อให้สมาชิกวางแผนได้ง่ายขึ้น"}
@@ -128,7 +128,7 @@ export function StatusPill({ status }: { status: string }) {
       ? "bg-[#e6f4e8] text-[#2c7244]"
       : status === "cancelled" || status === "archived"
         ? "bg-[#f9e5e2] text-[#aa4e46]"
-        : "bg-[#FDEBD8] text-[#B9530F]";
+        : "bg-[#E7F0EE] text-[#225B66]";
   const label =
     status === "published"
       ? "เผยแพร่แล้ว"
@@ -154,7 +154,7 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-xs font-bold text-[#57504A]">
+    <label className="block text-xs font-bold text-[#42515A]">
       {label}
       <span className="mt-1.5 block">{children}</span>
     </label>
@@ -175,14 +175,14 @@ export function SubmitButtons({
       <button
         type="button"
         onClick={onCancel}
-        className="min-h-[44px] rounded-xl border border-[#E4DED7] py-3 text-sm font-bold text-[#57504A] hover:bg-[#F4F1ED]"
+        className="min-h-[44px] rounded-xl border border-[#DCE3E6] py-3 text-sm font-bold text-[#42515A] hover:bg-[#EEF1F3]"
       >
         ยกเลิก
       </button>
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#A34A0C] py-3 text-sm font-bold text-white hover:bg-[#B9530F] disabled:opacity-60 shadow-sm"
+        className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#174852] py-3 text-sm font-bold text-white hover:bg-[#225B66] disabled:opacity-60 shadow-sm"
       >
         {pending ? (
           <Clock3 className="size-4 animate-spin" />
