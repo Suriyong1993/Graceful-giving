@@ -8,7 +8,6 @@ import {
   LoadingSkeleton,
   MoneyDisplay,
 } from "@/components/common/CommonUI";
-import { Illustration } from "@/components/Illustration";
 import {
   Download,
   HandCoins,
@@ -129,7 +128,7 @@ export default function Offerings() {
         </div>
       }
     >
-      {/* 1. Header Banner with 3D Offering Box Illustration */}
+      {/* 1. Header Banner */}
       <div className="bg-gradient-to-r from-[#FFFFFF] via-[#FAF8F5] to-[#FFF8EA] rounded-2xl p-5 sm:p-7 border border-[#E7DCC8] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
         <div className="space-y-2 text-center sm:text-left">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#E7DCC8] text-xs font-bold text-[#51443A]">
@@ -142,16 +141,6 @@ export default function Offerings() {
           <p className="text-xs text-[#807266]">
             "ผู้ให้ด้วยใจยินดี พระเจ้าทรงรัก" — 2 โครินธ์ 9:7
           </p>
-        </div>
-
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-white p-1.5 border border-[#E7DCC8] shadow-xs shrink-0">
-          <Illustration
-            src="/illustrations/offering_box.jpg"
-            alt="กล่องถวาย"
-            className="w-full h-full object-cover rounded-2xl"
-            width={112}
-            height={112}
-          />
         </div>
       </div>
 

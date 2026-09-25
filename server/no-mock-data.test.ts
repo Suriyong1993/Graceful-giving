@@ -155,3 +155,29 @@ describe("fund pickers read the database", () => {
     });
   }
 });
+
+describe("role holders come from the database", () => {
+  for (const file of [
+    "client/src/pages/Profile.tsx",
+    "client/src/pages/Settings.tsx",
+  ]) {
+    const source = read(file);
+
+    it(`${file} reads the holders through tRPC`, () => {
+      expect(source).toContain("trpc.church.listRoleHolders.useQuery");
+      expect(source).toContain("roleHolderLabel(");
+    });
+
+    it(`${file} has no hardcoded appointee names`, () => {
+      expect(source).not.toContain("appointee");
+      // Names that were typed into the page before the query existed.
+      for (const name of ["บาลเพ็ชร", "ดวงจิตร", "จิณเซ่ง"]) {
+        expect(source).not.toContain(name);
+      }
+    });
+  }
+
+  it("says so when a role has no holder", () => {
+    expect(read("client/src/lib/roleHolders.ts")).toContain("ยังไม่กำหนด");
+  });
+});

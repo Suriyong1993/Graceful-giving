@@ -1,12 +1,4 @@
-import {
-  BarChart3,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Info,
-  Loader2,
-} from "lucide-react";
-import { Illustration } from "@/components/Illustration";
+import { BarChart3, ChevronRight, Eye, EyeOff, Info } from "lucide-react";
 
 interface BalanceCardProps {
   showBalance: boolean;
@@ -62,12 +54,7 @@ export function BalanceCard({
             </button>
 
             {/* Data-source status */}
-            {isBalanceLoading && (
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#F0EAF8] text-[#7D3C98] text-xs sm:text-sm font-bold">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                กำลังโหลดข้อมูล
-              </span>
-            )}
+
             {isDataUnavailable && (
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#FFF8EA] border border-dashed border-[#F9D2AE] text-[#7F3A0D] text-xs sm:text-sm font-bold">
                 <Info className="w-4 h-4" />
@@ -79,10 +66,13 @@ export function BalanceCard({
           </div>
 
           {isBalanceLoading ? (
-            <div
-              className="h-12 sm:h-16 md:h-20 w-56 sm:w-80 rounded-2xl bg-[#EDE8E3] animate-pulse"
-              aria-hidden="true"
-            />
+            <div role="status" aria-live="polite">
+              <span className="sr-only">กำลังโหลดยอดเงินคงเหลือ</span>
+              <div
+                className="h-12 sm:h-16 md:h-20 w-56 sm:w-80 rounded-2xl bg-[#EDE8E3] animate-pulse"
+                aria-hidden="true"
+              />
+            </div>
           ) : (
             <div
               /* Fluid, and never wrapping. The old fixed steps reached 96px,
@@ -99,7 +89,10 @@ export function BalanceCard({
 
           <p className="text-sm sm:text-base md:text-lg text-[#3F3833] font-bold flex items-center gap-2 pt-1">
             {isBalanceLoading ? (
-              <span>กำลังตรวจสอบยอดเงินล่าสุด…</span>
+              <span
+                className="block h-5 w-64 max-w-full rounded-md bg-[#EDE6D8] animate-pulse"
+                aria-hidden="true"
+              />
             ) : isPositiveBalance ? (
               <>
                 <span>ขอบคุณพระเจ้าสำหรับทุกการถวาย</span>
@@ -124,20 +117,6 @@ export function BalanceCard({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Right: Balance illustration tucked cleanly in corner */}
-        <div className="hidden sm:block shrink-0 z-10">
-          <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl overflow-hidden border border-[#E7DCC8] bg-[#FAF8F5] p-1.5 shadow-2xs">
-            <Illustration
-              src="/illustrations/balance_wallet.jpg"
-              alt="กระเป๋าสตางค์ยอดคงเหลือ"
-              className="w-full h-full object-cover rounded-xl"
-              width={176}
-              height={176}
-              aria-hidden="true"
-            />
-          </div>
         </div>
       </div>
     </section>

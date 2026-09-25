@@ -1,5 +1,4 @@
 import React from "react";
-import { Illustration } from "@/components/Illustration";
 import { ArrowLeft, Search } from "lucide-react";
 import { formatAmount } from "@/lib/format";
 import {
@@ -17,9 +16,16 @@ export const LoadingSkeleton: React.FC<{
   count?: number;
   height?: string;
   className?: string;
-}> = ({ count = 3, height = "h-24", className = "" }) => {
+  /** Read by screen readers in place of the visual placeholders. */
+  label?: string;
+}> = ({ count = 3, height = "h-24", className = "", label = "กำลังโหลด" }) => {
   return (
-    <div className={`space-y-3.5 w-full ${className}`}>
+    <div
+      className={`space-y-3.5 w-full ${className}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="sr-only">{label}</span>
       {Array.from({ length: count }).map((_, idx) => (
         <div
           key={idx}
@@ -42,33 +48,14 @@ export const LoadingSkeleton: React.FC<{
 export const EmptyState: React.FC<{
   title: string;
   description: string;
-  illustrationSrc?: string;
-  illustrationAlt?: string;
   actionText?: string;
   onAction?: () => void;
   className?: string;
-}> = ({
-  title,
-  description,
-  illustrationSrc = "/illustrations/offering_box.jpg",
-  illustrationAlt = "กล่องถวาย",
-  actionText,
-  onAction,
-  className = "",
-}) => {
+}> = ({ title, description, actionText, onAction, className = "" }) => {
   return (
     <div
       className={`py-12 px-6 rounded-2xl bg-white border border-[#E7DCC8] card-elevation-sm flex flex-col items-center justify-center text-center space-y-4 ${className}`}
     >
-      <div className="size-20 rounded-2xl overflow-hidden bg-[#FFF8EA] shrink-0">
-        <Illustration
-          src={illustrationSrc}
-          alt={illustrationAlt}
-          className="w-full h-full object-cover rounded-xl"
-          width={80}
-          height={80}
-        />
-      </div>
       <div className="space-y-1 max-w-sm">
         <h3 className="text-base font-semibold text-[#171311]">{title}</h3>
         <p className="text-sm text-[#807266] leading-relaxed">{description}</p>

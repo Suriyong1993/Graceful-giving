@@ -177,6 +177,8 @@ export const churchProfiles = pgTable("church_profiles", {
   address: text("address"),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
+  /** Contact for personal-data requests, shown on the public /privacy page. */
+  privacyContactEmail: varchar("privacyContactEmail", { length: 320 }),
   website: varchar("website", { length: 500 }),
   pastorName: varchar("pastorName", { length: 120 }),
   assistantPastorName: varchar("assistantPastorName", { length: 120 }),
@@ -191,6 +193,11 @@ export const churchProfiles = pgTable("church_profiles", {
   setupCompleted: boolean("setupCompleted").default(false).notNull(),
   /** Custom verse or motto */
   motto: varchar("motto", { length: 280 }),
+  /**
+   * A withdrawal request above this amount needs a second, different
+   * approver. Null means one approver is always enough.
+   */
+  approvalThreshold: decimal("approvalThreshold", { precision: 15, scale: 2 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -356,6 +363,11 @@ export const expenses = pgTable("expenses", {
   status: expenseStatusEnum("status").default("approved").notNull(),
   approvedBy: integer("approvedBy"),
   recordedBy: integer("recordedBy").notNull(),
+  /**
+   * Set when this expense is the payment of a withdrawal request. Unique, so
+   * one request produces at most one expense.
+   */
+  withdrawalId: integer("withdrawalId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -383,6 +395,16 @@ export const withdrawalRequests = pgTable("withdrawal_requests", {
   approvalDate: timestamp("approvalDate"),
   approvalNote: text("approvalNote"),
   rejectionReason: text("rejectionReason"),
+  /**
+   * 1 or 2, fixed at the first approval from the church's threshold, so a
+   * later threshold change does not move a request that is half-approved.
+   */
+  requiredApprovals: integer("requiredApprovals"),
+  secondApprovedBy: integer("secondApprovedBy"),
+  secondApprovalDate: timestamp("secondApprovalDate"),
+  /** Who paid it out, and when; set together with status "disbursed". */
+  disbursedBy: integer("disbursedBy"),
+  disbursedAt: timestamp("disbursedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt")
     .defaultNow()
@@ -525,6 +547,13 @@ export const offeringEnvelopes = pgTable("offering_envelopes", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   /** Bank reference or cheque number when the gift did not arrive as cash. */
   reference: varchar("reference", { length: 120 }),
+  /**
+   * For a transfer: the offering that already records this money (usually
+   * the one an approved LINE slip created). Posting the round does not
+   * create a second offering for it. Unique, so one offering backs at most
+   * one envelope.
+   */
+  linkedOfferingId: integer("linkedOfferingId"),
   notes: text("notes"),
   recordedBy: integer("recordedBy").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -662,7 +691,9 @@ export type InsertSessionDocument = typeof sessionDocuments.$inferInsert;
  */
 export const lineSlips = pgTable("line_slips", {
   id: serial("id").primaryKey(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
 
   // ─── LINE sender info ───
   /** LINE user ID of the sender */
@@ -696,19 +727,31 @@ export const lineSlips = pgTable("line_slips", {
   /** Extracted transfer amount in THB */
   extractedAmount: decimal("extractedAmount", { precision: 15, scale: 2 }),
   /** AI confidence 0.0–1.0 for the amount field */
-  extractedAmountConfidence: decimal("extractedAmountConfidence", { precision: 4, scale: 3 }),
+  extractedAmountConfidence: decimal("extractedAmountConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Extracted transfer date/time */
   extractedDate: timestamp("extractedDate"),
   /** AI confidence 0.0–1.0 for the date field */
-  extractedDateConfidence: decimal("extractedDateConfidence", { precision: 4, scale: 3 }),
+  extractedDateConfidence: decimal("extractedDateConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Bank transaction reference / transaction ID */
   extractedRef: varchar("extractedRef", { length: 120 }),
   /** AI confidence 0.0–1.0 for the reference field */
-  extractedRefConfidence: decimal("extractedRefConfidence", { precision: 4, scale: 3 }),
+  extractedRefConfidence: decimal("extractedRefConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Sender name as printed on the slip */
   extractedSenderName: varchar("extractedSenderName", { length: 180 }),
   /** AI confidence 0.0–1.0 for the sender name field */
-  extractedSenderConfidence: decimal("extractedSenderConfidence", { precision: 4, scale: 3 }),
+  extractedSenderConfidence: decimal("extractedSenderConfidence", {
+    precision: 4,
+    scale: 3,
+  }),
   /** Source bank name (e.g. "SCB", "กสิกรไทย") */
   extractedBank: varchar("extractedBank", { length: 80 }),
 
@@ -756,7 +799,9 @@ export type InsertLineSlip = typeof lineSlips.$inferInsert;
 export const lineProcessingJobs = pgTable("line_processing_jobs", {
   id: serial("id").primaryKey(),
   slipId: integer("slipId").notNull(),
-  churchId: varchar("churchId", { length: 64 }).notNull().default("demo-church"),
+  churchId: varchar("churchId", { length: 64 })
+    .notNull()
+    .default("demo-church"),
   /** queued → processing → done | failed */
   status: varchar("status", { length: 20 }).default("queued").notNull(),
   attempts: integer("attempts").default(0).notNull(),
